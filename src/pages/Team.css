@@ -1,0 +1,132 @@
+.team-section {
+  padding: 80px 24px;
+}
+
+.team-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.team-card {
+  background: white;
+  padding: 36px 28px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.team-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.08);
+  transform: translateY(-4px);
+}
+
+.team-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.team-avatar span {
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.team-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.team-role {
+  display: block;
+  color: #6366f1;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.team-card p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.join-section {
+  padding: 80px 24px;
+  background: #f9fafb;
+  text-align: center;
+}
+
+.join-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.join-section p {
+  color: #6b7280;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 auto 32px;
+}
+
+@media (max-width: 768px) {
+  .team-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .team-card {
+    background: #1f2937;
+    border-color: #2e303a;
+  }
+
+  .team-card:hover {
+    border-color: #6366f1;
+  }
+
+  .team-card h3 {
+    color: #f3f4f6;
+  }
+
+  .team-card p {
+    color: #9ca3af;
+  }
+
+  .join-section {
+    background: #111827;
+  }
+
+  .join-section h2 {
+    color: #f3f4f6;
+  }
+
+  .join-section p {
+    color: #9ca3af;
+  }
+}

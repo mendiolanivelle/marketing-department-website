@@ -1,0 +1,163 @@
+.services-section {
+  padding: 80px 24px;
+}
+
+.services-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.service-card {
+  background: white;
+  padding: 36px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.service-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 10px 40px rgba(99, 102, 241, 0.08);
+  transform: translateY(-4px);
+}
+
+.service-icon {
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+}
+
+.service-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 12px;
+}
+
+.service-card p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin: 0 0 20px;
+}
+
+.service-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-features li {
+  background: #f0f0ff;
+  color: #6366f1;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.process-section {
+  padding: 80px 24px;
+  background: #f9fafb;
+}
+
+.process-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.section-subtitle {
+  text-align: center;
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0 0 48px;
+}
+
+.process-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.process-step {
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.step-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #6366f1;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.process-step h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.process-step p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .service-card {
+    background: #1f2937;
+    border-color: #2e303a;
+  }
+
+  .service-card:hover {
+    border-color: #6366f1;
+  }
+
+  .service-card h3 {
+    color: #f3f4f6;
+  }
+
+  .service-card p {
+    color: #9ca3af;
+  }
+
+  .service-features li {
+    background: rgba(99, 102, 241, 0.15);
+  }
+
+  .process-section {
+    background: #111827;
+  }
+
+  .process-section h2 {
+    color: #f3f4f6;
+  }
+
+  .process-step h3 {
+    color: #f3f4f6;
+  }
+
+  .process-step p {
+    color: #9ca3af;
+  }
+}
