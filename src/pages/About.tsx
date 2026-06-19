@@ -1,7 +1,7 @@
 export default function About() {
   return (
     <div>
-      <section className="pt-28 pb-16 px-6 text-center bg-gradient-to-b from-orange-50 to-white">
+      <section className="pt-28 pb-16 px-6 text-center bg-white">
         <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">About Our Department</h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">Learn about the Marketing department's mission, structure, and how we support the organization</p>
       </section>
@@ -17,7 +17,7 @@ export default function About() {
               We partner with Sales, Product, Customer Success, and Leadership to develop strategies that align with company objectives and deliver measurable results.
             </p>
           </div>
-          <div className="bg-gradient-to-br from-orange-50 to-orange-50 rounded-2xl p-16 text-center border-2 border-dashed border-orange-200">
+          <div className="bg-gray-50 rounded-2xl p-16 text-center border-2 border-dashed border-gray-200">
             <span className="text-6xl block mb-3">&#127970;</span>
             <p className="text-gray-500 font-medium">Marketing Department - Floor 4</p>
           </div>
@@ -46,15 +46,15 @@ export default function About() {
 
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="p-10 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <div className="p-10 rounded-2xl bg-gray-900 text-white">
             <h3 className="text-2xl font-bold mb-4">Our Mission</h3>
-            <p className="text-white/90 leading-relaxed text-lg">
+            <p className="text-white/70 leading-relaxed text-lg">
               To drive growth and brand awareness through data-driven marketing strategies that support every team in the organization and deliver measurable business impact.
             </p>
           </div>
-          <div className="p-10 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <div className="p-10 rounded-2xl bg-gray-900 text-white">
             <h3 className="text-2xl font-bold mb-4">Our Vision</h3>
-            <p className="text-white/90 leading-relaxed text-lg">
+            <p className="text-white/70 leading-relaxed text-lg">
               To be recognized as a strategic partner within the company, setting the standard for marketing excellence and contributing directly to company-wide success.
             </p>
           </div>

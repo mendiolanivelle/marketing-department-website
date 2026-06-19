@@ -12,7 +12,7 @@ const teamMembers = [
 export default function Team() {
   return (
     <div>
-      <section className="pt-28 pb-16 px-6 text-center bg-gradient-to-b from-orange-50 to-white">
+      <section className="pt-28 pb-16 px-6 text-center bg-white">
         <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">Our Team</h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">Meet the Marketing department team members</p>
       </section>
@@ -20,12 +20,12 @@ export default function Team() {
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {teamMembers.map((member, index) => (
-            <div key={index} className="bg-white p-9 rounded-2xl border border-gray-200 text-center hover:border-orange-200 hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-5">
+            <div key={index} className="bg-white p-9 rounded-2xl border border-gray-200 text-center hover:border-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-5">
                 <span className="text-white text-xl font-bold">{member.initials}</span>
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
-              <span className="block text-orange-500 text-sm font-semibold mb-3">{member.role}</span>
+              <span className="block text-gray-500 text-sm font-semibold mb-3">{member.role}</span>
               <p className="text-gray-500 text-sm leading-relaxed">{member.bio}</p>
             </div>
           ))}
@@ -43,7 +43,7 @@ export default function Team() {
               { title: 'Marketing Coordinator', type: 'Full-time · Hybrid' },
               { title: 'Senior Content Strategist', type: 'Full-time · Remote' },
             ].map((role, i) => (
-              <div key={i} className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-orange-200 hover:shadow-md transition">
+              <div key={i} className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition">
                 <h4 className="font-semibold text-gray-900">{role.title}</h4>
                 <span className="text-sm text-gray-500">{role.type}</span>
               </div>

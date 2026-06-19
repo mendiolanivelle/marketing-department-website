@@ -34,7 +34,7 @@ export default function Contact() {
 
   return (
     <div>
-      <section className="pt-28 pb-16 px-6 text-center bg-gradient-to-b from-orange-50 to-white">
+      <section className="pt-28 pb-16 px-6 text-center bg-white">
         <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">Contact the Team</h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">Submit a request, ask a question, or get in touch with the Marketing department</p>
       </section>
@@ -56,7 +56,7 @@ export default function Contact() {
                 { icon: '&#128197;', title: 'Book a Meeting', info: 'calendly.com/company/marketing' },
               ].map((item, i) => (
                 <div key={i} className="flex gap-4 items-start">
-                  <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
                   <div>
                     <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
                     <p className="text-gray-500 text-sm">{item.info}</p>
@@ -78,7 +78,7 @@ export default function Contact() {
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
                 <input
                   {...register('name')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
                   placeholder="Jane Smith"
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
@@ -88,7 +88,7 @@ export default function Contact() {
                 <label htmlFor="department" className="block text-sm font-semibold text-gray-700 mb-2">Your Department</label>
                 <input
                   {...register('department')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
                   placeholder="e.g. Sales, Product, Engineering"
                 />
                 {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department.message}</p>}
@@ -98,7 +98,7 @@ export default function Contact() {
                 <label htmlFor="requestType" className="block text-sm font-semibold text-gray-700 mb-2">Request Type</label>
                 <select
                   {...register('requestType')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition appearance-none bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
                 >
                   <option value="">Select a request type</option>
                   <option value="campaign">Campaign Support</option>
@@ -116,7 +116,7 @@ export default function Contact() {
                 <label htmlFor="priority" className="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
                 <select
                   {...register('priority')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition appearance-none bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
                 >
                   <option value="">Select priority</option>
                   <option value="low">Low - No rush</option>
@@ -132,7 +132,7 @@ export default function Contact() {
                 <textarea
                   {...register('message')}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition resize-vertical"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-vertical"
                   placeholder="Describe your request, goals, timeline, and any relevant context..."
                 ></textarea>
                 {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>}
@@ -141,7 +141,7 @@ export default function Contact() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-200"
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-900/20"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>

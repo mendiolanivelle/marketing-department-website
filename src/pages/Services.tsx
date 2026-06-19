@@ -40,7 +40,7 @@ const services = [
 export default function Services() {
   return (
     <div>
-      <section className="pt-28 pb-16 px-6 text-center bg-gradient-to-b from-orange-50 to-white">
+      <section className="pt-28 pb-16 px-6 text-center bg-white">
         <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">Department Services</h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">What the Marketing team can do for you and your team</p>
       </section>
@@ -48,13 +48,13 @@ export default function Services() {
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service, index) => (
-            <div key={index} className="bg-white p-9 rounded-2xl border border-gray-200 hover:border-orange-200 hover:shadow-xl hover:-translate-y-1 transition-all">
+            <div key={index} className="bg-white p-9 rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all">
               <div className="text-4xl mb-4" dangerouslySetInnerHTML={{ __html: service.icon }}></div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">{service.title}</h3>
               <p className="text-gray-500 text-sm leading-relaxed mb-5">{service.description}</p>
               <ul className="flex flex-wrap gap-2">
                 {service.features.map((feature, i) => (
-                  <li key={i} className="bg-orange-50 text-orange-600 px-3 py-1 rounded-md text-xs font-semibold">
+                  <li key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-xs font-semibold">
                     {feature}
                   </li>
                 ))}
@@ -76,7 +76,7 @@ export default function Services() {
               { num: '04', title: 'Delivery & Review', desc: 'We deliver final assets and gather feedback to improve future collaborations.' },
             ].map((step, i) => (
               <div key={i} className="text-center p-8">
-                <div className="text-4xl font-extrabold text-orange-500 mb-4 opacity-30">{step.num}</div>
+                <div className="text-4xl font-extrabold text-gray-300 mb-4">{step.num}</div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">{step.desc}</p>
               </div>

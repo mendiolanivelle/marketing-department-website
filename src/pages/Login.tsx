@@ -39,12 +39,11 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 relative overflow-hidden">
-        {/* Animated background shapes */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 relative overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/3 rounded-full blur-3xl"></div>
         </div>
 
         {/* Grid pattern overlay */}
@@ -68,7 +67,7 @@ export default function Login() {
           <div className="my-auto">
             <h1 className="text-5xl font-bold mb-6 leading-tight">
               Welcome to your<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-100 to-orange-200">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300">
                 Marketing Hub
               </span>
             </h1>
@@ -106,7 +105,7 @@ export default function Login() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white">
+              <div className="w-12 h-12 bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl flex items-center justify-center text-white">
                 <span className="text-2xl">&#9670;</span>
               </div>
               <span className="text-2xl font-bold text-gray-900">Marketing Dept</span>
@@ -148,7 +147,7 @@ export default function Login() {
                   {...register('email')}
                   type="email"
                   id="email"
-                  className={`w-full pl-12 pr-4 py-3.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-white ${
+                  className={`w-full pl-12 pr-4 py-3.5 border rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition bg-white ${
                     errors.email ? 'border-red-300' : 'border-gray-300 hover:border-gray-400'
                   }`}
                   placeholder="you@company.com"
@@ -178,7 +177,7 @@ export default function Login() {
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  className={`w-full pl-12 pr-12 py-3.5 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-white ${
+                  className={`w-full pl-12 pr-12 py-3.5 border rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition bg-white ${
                     errors.password ? 'border-red-300' : 'border-gray-300 hover:border-gray-400'
                   }`}
                   placeholder="Enter your password"
@@ -212,10 +211,10 @@ export default function Login() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900" />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm font-semibold text-orange-500 hover:text-orange-600 transition">
+              <a href="#" className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition">
                 Forgot password?
               </a>
             </div>
@@ -223,7 +222,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-900/20 hover:shadow-xl hover:shadow-gray-900/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -236,7 +235,7 @@ export default function Login() {
               ) : (
                 <>
                   Sign In
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </>
@@ -247,7 +246,7 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-8 pt-8 border-t border-gray-200">
             <p className="text-center text-sm text-gray-500">
-              Need access? Contact <a href="mailto:it@company.com" className="font-semibold text-orange-500 hover:text-orange-600">IT Support</a>
+              Need access? Contact <a href="mailto:it@company.com" className="font-semibold text-gray-900 hover:text-gray-700">IT Support</a>
             </p>
             <p className="text-center text-xs text-gray-400 mt-2">
               This is an internal system. Unauthorized access is prohibited.

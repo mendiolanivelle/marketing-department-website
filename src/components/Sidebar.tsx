@@ -68,7 +68,7 @@ export default function Sidebar() {
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg transition-all
                   ${isActive(item.path)
-                    ? 'bg-orange-50 text-orange-500 font-semibold'
+                    ? 'border-l-2 border-orange-500 text-gray-900 font-semibold bg-gray-50'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
@@ -85,7 +85,7 @@ export default function Sidebar() {
           {user && (
             <div className="px-4 py-4 border-t border-gray-200">
               <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-semibold">
                     {user.email?.charAt(0).toUpperCase()}
                   </span>
