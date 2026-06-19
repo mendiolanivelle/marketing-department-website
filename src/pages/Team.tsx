@@ -12,30 +12,30 @@ const teamMembers = [
 export default function Team() {
   return (
     <div>
-      <section className="pt-28 pb-16 px-6 text-center bg-white">
-        <h1 className="text-5xl font-extrabold text-gray-900 mb-4 tracking-tight">Our Team</h1>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">Meet the Marketing department team members</p>
+      <section className="pt-20 pb-12 sm:pt-28 sm:pb-16 px-4 sm:px-6 text-center bg-white">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 mb-3 sm:mb-4 tracking-tight">Our Team</h1>
+        <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">Meet the Marketing department team members</p>
       </section>
 
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {teamMembers.map((member, index) => (
-            <div key={index} className="bg-white p-9 rounded-2xl border border-gray-200 text-center hover:border-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all">
-              <div className="w-20 h-20 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-5">
-                <span className="text-white text-xl font-bold">{member.initials}</span>
+            <div key={index} className="bg-white p-6 sm:p-9 rounded-2xl border border-gray-200 text-center hover:border-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-4 sm:mb-5">
+                <span className="text-white text-lg sm:text-xl font-bold">{member.initials}</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
-              <span className="block text-gray-500 text-sm font-semibold mb-3">{member.role}</span>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
+              <span className="block text-gray-500 text-xs sm:text-sm font-semibold mb-2 sm:mb-3">{member.role}</span>
               <p className="text-gray-500 text-sm leading-relaxed">{member.bio}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="py-20 px-6 bg-gray-50 text-center">
+      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-gray-50 text-center">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Open Roles</h2>
-          <p className="text-gray-500 text-lg mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Open Roles</h2>
+          <p className="text-gray-500 text-base sm:text-lg mb-6 sm:mb-8">
             We're currently hiring for the following positions within the Marketing department. Reach out to Sarah Chen or HR for more details.
           </p>
           <div className="flex flex-col gap-3 max-w-lg mx-auto">
@@ -43,7 +43,7 @@ export default function Team() {
               { title: 'Marketing Coordinator', type: 'Full-time · Hybrid' },
               { title: 'Senior Content Strategist', type: 'Full-time · Remote' },
             ].map((role, i) => (
-              <div key={i} className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition">
+              <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-md transition gap-2 sm:gap-0">
                 <h4 className="font-semibold text-gray-900">{role.title}</h4>
                 <span className="text-sm text-gray-500">{role.type}</span>
               </div>

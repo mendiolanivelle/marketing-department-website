@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom'
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 py-16 px-6">
+    <footer className="bg-gray-900 text-gray-300 py-12 sm:py-16 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-8 sm:mb-12">
           <div>
             <h3 className="flex items-center gap-2 text-xl font-bold text-white mb-4">
               <span className="text-orange-500">&#9670;</span>
