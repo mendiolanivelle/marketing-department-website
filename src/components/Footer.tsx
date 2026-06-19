@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           <div>
             <h3 className="flex items-center gap-2 text-xl font-bold text-white mb-4">
-              <span className="text-indigo-400">&#9670;</span>
+              <span className="text-orange-500">&#9670;</span>
               Marketing Department
             </h3>
             <p className="text-sm leading-relaxed text-gray-400">
@@ -18,22 +18,22 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Navigation</h4>
             <ul className="space-y-3">
-              <li><Link to="/" className="text-sm text-gray-400 hover:text-indigo-400 transition">Dashboard</Link></li>
-              <li><Link to="/about" className="text-sm text-gray-400 hover:text-indigo-400 transition">About Us</Link></li>
-              <li><Link to="/services" className="text-sm text-gray-400 hover:text-indigo-400 transition">Services</Link></li>
-              <li><Link to="/team" className="text-sm text-gray-400 hover:text-indigo-400 transition">Team</Link></li>
-              <li><Link to="/contact" className="text-sm text-gray-400 hover:text-indigo-400 transition">Contact</Link></li>
+              <li><Link to="/" className="text-sm text-gray-400 hover:text-orange-500 transition">Dashboard</Link></li>
+              <li><Link to="/about" className="text-sm text-gray-400 hover:text-orange-500 transition">About Us</Link></li>
+              <li><Link to="/services" className="text-sm text-gray-400 hover:text-orange-500 transition">Services</Link></li>
+              <li><Link to="/team" className="text-sm text-gray-400 hover:text-orange-500 transition">Team</Link></li>
+              <li><Link to="/contact" className="text-sm text-gray-400 hover:text-orange-500 transition">Contact</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-gray-400 hover:text-indigo-400 transition">Brand Guidelines</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-indigo-400 transition">Template Library</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-indigo-400 transition">Campaign Calendar</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-indigo-400 transition">Performance Dashboard</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-indigo-400 transition">Team Wiki</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-orange-500 transition">Brand Guidelines</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-orange-500 transition">Template Library</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-orange-500 transition">Campaign Calendar</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-orange-500 transition">Performance Dashboard</a></li>
+              <li><a href="#" className="text-sm text-gray-400 hover:text-orange-500 transition">Team Wiki</a></li>
             </ul>
           </div>
 

@@ -48,7 +48,7 @@ export default function Sidebar() {
           {/* Logo */}
           <div className="px-6 py-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                 <span className="text-white text-xl">&#9670;</span>
               </div>
               <div>
@@ -68,7 +68,7 @@ export default function Sidebar() {
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg transition-all
                   ${isActive(item.path)
-                    ? 'bg-indigo-50 text-indigo-600 font-semibold'
+                    ? 'bg-orange-50 text-orange-500 font-semibold'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
@@ -85,7 +85,7 @@ export default function Sidebar() {
           {user && (
             <div className="px-4 py-4 border-t border-gray-200">
               <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-semibold">
                     {user.email?.charAt(0).toUpperCase()}
                   </span>
