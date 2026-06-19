@@ -2,7 +2,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { QueryProvider } from './providers/QueryProvider'
 import ProtectedRoute from './components/ProtectedRoute'
-import Navbar from './components/Navbar'
+import Sidebar from './components/Sidebar'
 import Footer from './components/Footer'
 import Login from './pages/Login'
 import Home from './pages/Home'
@@ -22,18 +22,20 @@ function App() {
               path="/*"
               element={
                 <ProtectedRoute>
-                  <div className="min-h-screen flex flex-col">
-                    <Navbar />
-                    <main className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/services" element={<Services />} />
-                        <Route path="/team" element={<Team />} />
-                        <Route path="/contact" element={<Contact />} />
-                      </Routes>
-                    </main>
-                    <Footer />
+                  <div className="min-h-screen flex bg-gray-50">
+                    <Sidebar />
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <main className="flex-1">
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/about" element={<About />} />
+                          <Route path="/services" element={<Services />} />
+                          <Route path="/team" element={<Team />} />
+                          <Route path="/contact" element={<Contact />} />
+                        </Routes>
+                      </main>
+                      <Footer />
+                    </div>
                   </div>
                 </ProtectedRoute>
               }
