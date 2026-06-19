@@ -3,50 +3,50 @@ import './Team.css'
 const teamMembers = [
   {
     name: 'Sarah Chen',
-    role: 'Chief Executive Officer',
-    bio: '15+ years leading marketing teams at Fortune 500 companies. Passionate about brand innovation.',
+    role: 'VP of Marketing',
+    bio: 'Leads department strategy and oversees all marketing operations. 15 years of B2B marketing experience.',
     initials: 'SC'
   },
   {
     name: 'Marcus Johnson',
     role: 'Creative Director',
-    bio: 'Award-winning designer with a keen eye for visual storytelling and brand identity.',
+    bio: 'Manages the brand and creative team. Ensures visual consistency across all company materials.',
     initials: 'MJ'
   },
   {
     name: 'Emily Rodriguez',
-    role: 'Head of Digital Strategy',
-    bio: 'Data-driven marketer specializing in performance marketing and growth strategies.',
+    role: 'Digital Marketing Manager',
+    bio: 'Owns paid media, SEO, and marketing automation. Drives our demand generation engine.',
     initials: 'ER'
   },
   {
     name: 'David Kim',
-    role: 'Head of Content',
-    bio: 'Former journalist turned content strategist. Expert in narrative-driven marketing.',
+    role: 'Content Lead',
+    bio: 'Oversees blog, whitepapers, case studies, and sales enablement content across all channels.',
     initials: 'DK'
   },
   {
     name: 'Lisa Patel',
-    role: 'Social Media Manager',
-    bio: 'Community builder with expertise in influencer marketing and viral campaigns.',
+    role: 'Social Media & Comms',
+    bio: 'Manages company social channels, employee advocacy, and internal communications.',
     initials: 'LP'
   },
   {
     name: 'James Wilson',
-    role: 'Analytics Director',
-    bio: 'Data scientist turned marketer. Turns complex data into actionable marketing insights.',
+    role: 'Marketing Analytics',
+    bio: 'Builds dashboards, tracks KPIs, and provides data-driven insights to the team and leadership.',
     initials: 'JW'
   },
   {
     name: 'Anna Kowalski',
-    role: 'Account Director',
-    bio: 'Client relationship expert ensuring every project exceeds expectations.',
+    role: 'Event Coordinator',
+    bio: 'Plans and executes company events, webinars, trade shows, and conference participation.',
     initials: 'AK'
   },
   {
     name: 'Ryan Thompson',
-    role: 'Web Development Lead',
-    bio: 'Full-stack developer creating stunning, high-performance digital experiences.',
+    role: 'Marketing Operations',
+    bio: 'Manages marketing tech stack, CRM integrations, and process automation for the department.',
     initials: 'RT'
   }
 ]
@@ -56,7 +56,7 @@ function Team() {
     <div className="team-page">
       <section className="page-hero">
         <h1>Our Team</h1>
-        <p>Meet the talented people behind our success</p>
+        <p>Meet the Marketing department team members</p>
       </section>
 
       <section className="team-section">
@@ -78,9 +78,18 @@ function Team() {
 
       <section className="join-section">
         <div className="team-container">
-          <h2>Join Our Team</h2>
-          <p>We're always looking for talented, passionate people to join our growing team. If you love marketing and want to make an impact, we'd love to hear from you.</p>
-          <a href="mailto:careers@exodiamarketing.com" className="btn btn-primary">View Open Positions</a>
+          <h2>Open Roles</h2>
+          <p>We're currently hiring for the following positions within the Marketing department. Reach out to Sarah Chen or HR for more details.</p>
+          <div className="open-roles">
+            <div className="role-card">
+              <h4>Marketing Coordinator</h4>
+              <span>Full-time &middot; Hybrid</span>
+            </div>
+            <div className="role-card">
+              <h4>Senior Content Strategist</h4>
+              <span>Full-time &middot; Remote</span>
+            </div>
+          </div>
         </div>
       </section>
     </div>

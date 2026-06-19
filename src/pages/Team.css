@@ -88,6 +88,42 @@
   margin: 0 auto 32px;
 }
 
+.open-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.role-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.role-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+}
+
+.role-card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.role-card span {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 @media (max-width: 768px) {
   .team-grid {
     grid-template-columns: 1fr 1fr;
@@ -127,6 +163,23 @@
   }
 
   .join-section p {
+    color: #9ca3af;
+  }
+
+  .role-card {
+    background: #1f2937;
+    border-color: #2e303a;
+  }
+
+  .role-card:hover {
+    border-color: #6366f1;
+  }
+
+  .role-card h4 {
+    color: #f3f4f6;
+  }
+
+  .role-card span {
     color: #9ca3af;
   }
 }

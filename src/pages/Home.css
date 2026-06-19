@@ -223,12 +223,18 @@
     font-size: 1rem;
   }
 
-  .hero-stats {
-    gap: 32px;
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
 
-  .stat-number {
-    font-size: 1.8rem;
+  .quick-links-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .announcements-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .features h2,
@@ -264,7 +270,109 @@
     color: #9ca3af;
   }
 
-  .features {
+.dashboard-section {
+  padding: 0 24px 80px;
+  margin-top: -40px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 32px;
+}
+
+.dashboard-card h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 20px;
+  text-align: left;
+}
+
+.announcements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcements-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  gap: 12px;
+}
+
+.announcement-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.announcement-tag {
+  background: #eef2ff;
+  color: #6366f1;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.announcement-title {
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.announcement-date {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.quick-links-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #374151;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.quick-link:hover {
+  background: #eef2ff;
+  color: #6366f1;
+}
+
+.quick-link-icon {
+  font-size: 1.2rem;
+}
+
+.features {
     background: #16171d;
   }
 
@@ -288,5 +396,32 @@
 
   .feature-card p {
     color: #9ca3af;
+  }
+
+  .dashboard-card {
+    background: #1f2937;
+    border-color: #2e303a;
+  }
+
+  .dashboard-card h2 {
+    color: #f3f4f6;
+  }
+
+  .announcements-list li {
+    background: #111827;
+  }
+
+  .announcement-title {
+    color: #d1d5db;
+  }
+
+  .quick-link {
+    background: #111827;
+    color: #d1d5db;
+  }
+
+  .quick-link:hover {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a78bfa;
   }
 }

@@ -144,6 +144,52 @@
   margin: 0;
 }
 
+.structure-section {
+  padding: 80px 24px;
+  background: #f9fafb;
+}
+
+.structure-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin: 0 0 48px;
+}
+
+.structure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.structure-card {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s;
+}
+
+.structure-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+}
+
+.structure-card h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.structure-card p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .page-hero h1 {
     font-size: 2.2rem;
@@ -204,6 +250,27 @@
   }
 
   .value-card p {
+    color: #9ca3af;
+  }
+
+  .structure-section {
+    background: #111827;
+  }
+
+  .structure-section h2 {
+    color: #f3f4f6;
+  }
+
+  .structure-card {
+    background: #1f2937;
+    border-color: #2e303a;
+  }
+
+  .structure-card h3 {
+    color: #f3f4f6;
+  }
+
+  .structure-card p {
     color: #9ca3af;
   }
 }

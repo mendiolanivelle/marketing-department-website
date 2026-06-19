@@ -7,46 +7,41 @@ function Footer() {
       <div className="footer-container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <h3><span className="logo-icon">&#9670;</span> Exodia Marketing</h3>
-            <p>Transforming brands through innovative marketing strategies and creative excellence.</p>
-            <div className="social-links">
-              <a href="#" aria-label="Twitter">&#120143;</a>
-              <a href="#" aria-label="LinkedIn">in</a>
-              <a href="#" aria-label="Instagram">&#9737;</a>
-            </div>
+            <h3><span className="logo-icon">&#9670;</span> Marketing Department</h3>
+            <p>Internal portal for the Marketing department. Access resources, submit requests, and stay up to date with team news.</p>
           </div>
           <div className="footer-links">
-            <h4>Quick Links</h4>
+            <h4>Navigation</h4>
             <ul>
-              <li><Link to="/">Home</Link></li>
+              <li><Link to="/">Dashboard</Link></li>
               <li><Link to="/about">About Us</Link></li>
               <li><Link to="/services">Services</Link></li>
-              <li><Link to="/team">Our Team</Link></li>
+              <li><Link to="/team">Team</Link></li>
               <li><Link to="/contact">Contact</Link></li>
             </ul>
           </div>
           <div className="footer-links">
-            <h4>Services</h4>
+            <h4>Resources</h4>
             <ul>
-              <li><Link to="/services">Brand Strategy</Link></li>
-              <li><Link to="/services">Digital Marketing</Link></li>
-              <li><Link to="/services">Content Creation</Link></li>
-              <li><Link to="/services">Social Media</Link></li>
-              <li><Link to="/services">Analytics</Link></li>
+              <li><a href="#">Brand Guidelines</a></li>
+              <li><a href="#">Template Library</a></li>
+              <li><a href="#">Campaign Calendar</a></li>
+              <li><a href="#">Performance Dashboard</a></li>
+              <li><a href="#">Team Wiki</a></li>
             </ul>
           </div>
           <div className="footer-links">
             <h4>Contact</h4>
             <ul>
-              <li>hello@exodiamarketing.com</li>
-              <li>+1 (555) 123-4567</li>
-              <li>123 Creative Ave, Suite 400</li>
-              <li>New York, NY 10001</li>
+              <li>marketing@company.com</li>
+              <li>Slack: #marketing-requests</li>
+              <li>Floor 4, Room 412</li>
+              <li>Mon - Fri: 9AM - 5:30PM</li>
             </ul>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2026 Exodia Marketing. All rights reserved.</p>
+          <p>&copy; 2026 Marketing Department &middot; Internal Use Only</p>
         </div>
       </div>
     </footer>
