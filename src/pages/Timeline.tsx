@@ -76,29 +76,39 @@ export default function Timeline() {
     }
   }, [fetchLeads])
 
-  const handleDragStart = (leadId: string) => {
+  const handleDragStart = (e: React.DragEvent, leadId: string) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', leadId)
     setDraggedLead(leadId)
   }
 
-  const handleDrop = async (status: LeadStatus) => {
-    if (draggedLead === null) return
+  const handleDragEnd = () => {
+    setDraggedLead(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = async (e: React.DragEvent, status: LeadStatus) => {
+    e.preventDefault()
+    const leadId = e.dataTransfer.getData('text/plain')
+    
+    if (!leadId) return
     
     if (isSupabaseConfigured && supabase) {
       try {
         const { error } = await supabase
           .from('leads')
           .update({ status, updated_at: new Date().toISOString() })
-          .eq('id', draggedLead)
+          .eq('id', leadId)
         if (error) throw error
       } catch (err) {
         console.error('Error updating lead status:', err)
       }
     }
     setDraggedLead(null)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
   }
 
   const handleMoveLead = async (leadId: string, status: LeadStatus) => {
