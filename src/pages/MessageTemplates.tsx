@@ -122,6 +122,19 @@ export default function MessageTemplates() {
 
   useEffect(() => {
     fetchTemplates()
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const channel = supabase
+      .channel('message_templates_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_templates' }, () => {
+        fetchTemplates()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchTemplates])
 
   const onSubmit = async (data: TemplateFormData) => {
