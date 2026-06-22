@@ -354,7 +354,11 @@ export default function Timeline() {
                     <div
                       key={lead.id}
                       draggable
-                      onDragStart={() => handleDragStart(lead.id)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', lead.id)
+                        handleDragStart(lead.id)
+                      }}
                       className="bg-white rounded-xl p-3 sm:p-4 border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 transition-all"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -366,12 +370,13 @@ export default function Timeline() {
                             <span className="text-xs text-gray-400">{lead.date}</span>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1" onDragStart={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               handleEditLead(lead)
                             }}
+                            onDragStart={(e) => e.stopPropagation()}
                             className="p-1.5 rounded-lg hover:bg-gray-100 transition"
                             title="Edit"
                           >
@@ -384,6 +389,7 @@ export default function Timeline() {
                               e.stopPropagation()
                               handleDeleteLead(lead.id)
                             }}
+                            onDragStart={(e) => e.stopPropagation()}
                             className="p-1.5 rounded-lg hover:bg-red-50 transition"
                             title="Delete"
                           >
@@ -397,6 +403,7 @@ export default function Timeline() {
                                 e.stopPropagation()
                                 setMoveLeadId(moveLeadId === lead.id ? null : lead.id)
                               }}
+                              onDragStart={(e) => e.stopPropagation()}
                               className="p-1.5 rounded-lg hover:bg-gray-100 transition"
                             >
                               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
