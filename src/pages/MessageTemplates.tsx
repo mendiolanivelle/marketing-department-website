@@ -91,6 +91,8 @@ export default function MessageTemplates() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const {
     register,
@@ -138,27 +140,11 @@ export default function MessageTemplates() {
   }, [fetchTemplates])
 
   const onSubmit = async (data: TemplateFormData) => {
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
     if (!isSupabaseConfigured || !supabase) {
-      if (editingId) {
-        setTemplates(prev =>
-          prev.map(t =>
-            t.id === editingId
-              ? { ...t, ...data, updated_at: new Date().toISOString().split('T')[0] }
-              : t
-          )
-        )
-      } else {
-        const newTemplate: MessageTemplate = {
-          id: Date.now().toString(),
-          ...data,
-          created_at: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString().split('T')[0],
-        }
-        setTemplates(prev => [newTemplate, ...prev])
-      }
-      reset()
-      setShowForm(false)
-      setEditingId(null)
+      setErrorMessage('Supabase is not configured. Please check your environment variables.')
       return
     }
 
@@ -169,18 +155,22 @@ export default function MessageTemplates() {
           .update({ ...data, updated_at: new Date().toISOString() })
           .eq('id', editingId)
         if (error) throw error
+        setSuccessMessage('Template updated successfully!')
       } else {
         const { error } = await supabase
           .from('message_templates')
           .insert([{ ...data }])
         if (error) throw error
+        setSuccessMessage('Template created successfully!')
       }
       await fetchTemplates()
       reset()
       setShowForm(false)
       setEditingId(null)
+      setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error saving template:', err)
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save template. Please try again.')
     }
   }
 
@@ -196,19 +186,27 @@ export default function MessageTemplates() {
   }
 
   const handleDelete = async (id: string) => {
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase
-          .from('message_templates')
-          .delete()
-          .eq('id', id)
-        if (error) throw error
-        await fetchTemplates()
-      } catch (err) {
-        console.error('Error deleting template:', err)
-      }
-    } else {
-      setTemplates(prev => prev.filter(t => t.id !== id))
+    setErrorMessage(null)
+    
+    if (!isSupabaseConfigured || !supabase) {
+      setErrorMessage('Supabase is not configured. Please check your environment variables.')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('message_templates')
+        .delete()
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      setSuccessMessage('Template deleted successfully!')
+      await fetchTemplates()
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Error deleting template:', err)
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to delete template. Please try again.')
     }
     setDeleteConfirmId(null)
   }
@@ -267,10 +265,23 @@ export default function MessageTemplates() {
       )}
 
       {showForm && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
-            {editingId ? 'Edit Template' : 'New Template'}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {editingId ? 'Edit Template' : 'Create New Template'}
           </h2>
+          
+          {errorMessage && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{errorMessage}</p>
+            </div>
+          )}
+          
+          {successMessage && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 text-sm">{successMessage}</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
