@@ -31,6 +31,7 @@ interface TimelineLead {
   notes: string
   attachments: string[]
   email_history: EmailHistoryItem[]
+  last_email_sent?: string
   created_at: string
   updated_at: string
 }
@@ -75,8 +76,13 @@ export default function Timeline() {
   const [editingLead, setEditingLead] = useState<TimelineLead | null>(null)
   const [newNote, setNewNote] = useState('')
   const [newAttachment, setNewAttachment] = useState('')
-  const [newEmailSubject, setNewEmailSubject] = useState('')
-  const [newEmailPreview, setNewEmailPreview] = useState('')
+  const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null)
+  const [editingNoteValue, setEditingNoteValue] = useState('')
+  const [showSendEmail, setShowSendEmail] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [lastEmailSent, setLastEmailSent] = useState('')
+  const [editingLastEmail, setEditingLastEmail] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
@@ -101,6 +107,7 @@ export default function Timeline() {
         ...l,
         attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
         email_history: typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || []),
+        last_email_sent: l.last_email_sent || '',
       }))
 
       setTables(parsedTables)
@@ -257,6 +264,38 @@ export default function Timeline() {
     } catch (err) { console.error('Error adding note:', err) }
   }
 
+  const deleteNote = async (noteIndex: number) => {
+    if (!selectedLead || !supabase) return
+    const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
+    notes.splice(noteIndex, 1)
+    const updatedNotes = notes.join('\n')
+    try {
+      const { error } = await supabase
+        .from('timeline_leads')
+        .update({ notes: updatedNotes })
+        .eq('id', selectedLead.id)
+      if (error) throw error
+      setSelectedLead({ ...selectedLead, notes: updatedNotes })
+    } catch (err) { console.error('Error deleting note:', err) }
+  }
+
+  const updateNote = async (noteIndex: number) => {
+    if (!selectedLead || !editingNoteValue.trim() || !supabase) return
+    const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
+    notes[noteIndex] = editingNoteValue.trim()
+    const updatedNotes = notes.join('\n')
+    try {
+      const { error } = await supabase
+        .from('timeline_leads')
+        .update({ notes: updatedNotes })
+        .eq('id', selectedLead.id)
+      if (error) throw error
+      setSelectedLead({ ...selectedLead, notes: updatedNotes })
+      setEditingNoteIndex(null)
+      setEditingNoteValue('')
+    } catch (err) { console.error('Error updating note:', err) }
+  }
+
   const addAttachment = async () => {
     if (!selectedLead || !newAttachment.trim() || !supabase) return
     const updatedAttachments = [...selectedLead.attachments, newAttachment.trim()]
@@ -271,24 +310,51 @@ export default function Timeline() {
     } catch (err) { console.error('Error adding attachment:', err) }
   }
 
-  const addEmailHistory = async () => {
-    if (!selectedLead || !newEmailSubject.trim() || !supabase) return
-    const newEntry: EmailHistoryItem = {
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      subject: newEmailSubject.trim(),
-      preview: newEmailPreview.trim(),
-    }
-    const updatedHistory = [newEntry, ...selectedLead.email_history]
+  const deleteAttachment = async (attIndex: number) => {
+    if (!selectedLead || !supabase) return
+    const updatedAttachments = selectedLead.attachments.filter((_, i) => i !== attIndex)
     try {
       const { error } = await supabase
         .from('timeline_leads')
-        .update({ email_history: updatedHistory })
+        .update({ attachments: updatedAttachments })
         .eq('id', selectedLead.id)
       if (error) throw error
-      setSelectedLead({ ...selectedLead, email_history: updatedHistory })
-      setNewEmailSubject('')
-      setNewEmailPreview('')
-    } catch (err) { console.error('Error adding email:', err) }
+      setSelectedLead({ ...selectedLead, attachments: updatedAttachments })
+    } catch (err) { console.error('Error deleting attachment:', err) }
+  }
+
+  const sendEmail = async () => {
+    if (!selectedLead || !emailSubject.trim() || !supabase) return
+    // Open mailto link
+    const mailtoLink = `mailto:${selectedLead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+    window.open(mailtoLink, '_blank')
+    // Update last email sent date
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    try {
+      const { error } = await supabase
+        .from('timeline_leads')
+        .update({ last_email_sent: today })
+        .eq('id', selectedLead.id)
+      if (error) throw error
+      setSelectedLead({ ...selectedLead, last_email_sent: today })
+      setLastEmailSent(today)
+    } catch (err) { console.error('Error updating email date:', err) }
+    setShowSendEmail(false)
+    setEmailSubject('')
+    setEmailBody('')
+  }
+
+  const saveLastEmailSent = async () => {
+    if (!selectedLead || !supabase) return
+    try {
+      const { error } = await supabase
+        .from('timeline_leads')
+        .update({ last_email_sent: lastEmailSent })
+        .eq('id', selectedLead.id)
+      if (error) throw error
+      setSelectedLead({ ...selectedLead, last_email_sent: lastEmailSent })
+    } catch (err) { console.error('Error saving email date:', err) }
+    setEditingLastEmail(false)
   }
 
   const filteredTables = searchQuery
@@ -456,16 +522,99 @@ export default function Timeline() {
                   <div className="text-xs mb-1" style={{ color: var(--text-secondary), fontWeight: 300 }}>Contact Email</div>
                   <div className="text-sm" style={{ color: var(--text-primary), fontWeight: 500 }}>{selectedLead.email}</div>
                 </div>
+
+                {/* Last Email Sent Date */}
+                <div className="p-3 rounded-xl border" style={{ backgroundColor: var(--bg-secondary), borderColor: var(--border-primary) }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-xs" style={{ color: var(--text-secondary), fontWeight: 300 }}>Last Email Sent</div>
+                    <button
+                      onClick={() => { setEditingLastEmail(true); setLastEmailSent(selectedLead.last_email_sent || '') }}
+                      className="text-xs px-2 py-0.5 rounded transition"
+                      style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}
+                    >
+                      {editingLastEmail ? 'Cancel' : 'Edit'}
+                    </button>
+                  </div>
+                  {editingLastEmail ? (
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="text"
+                        value={lastEmailSent}
+                        onChange={(e) => setLastEmailSent(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveLastEmailSent(); if (e.key === 'Escape') { setEditingLastEmail(false); setLastEmailSent(selectedLead.last_email_sent || '') } }}
+                        className="flex-1 px-2 py-1 text-sm border rounded outline-none"
+                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                        placeholder="e.g., Jun 20, 2026"
+                        autoFocus
+                      />
+                      <button onClick={saveLastEmailSent} className="px-3 py-1 text-sm text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+                    </div>
+                  ) : (
+                    <div className="text-sm mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                      {selectedLead.last_email_sent || 'No email sent yet'}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Right side panel - Notes, Attachments, Email History */}
-              <div className="w-96 overflow-y-auto p-6">
+              {/* Right side panel - Notes, Attachments, Send Email */}
+              <div className="w-[480px] overflow-y-auto p-6">
                 {/* Notes Section */}
                 <div className="mb-6">
-                  <h4 className="text-sm mb-2" style={{ color: var(--text-primary), fontWeight: 700 }}>Notes</h4>
-                  <div className="p-3 rounded-xl border mb-2 min-h-[60px]" style={{ backgroundColor: var(--bg-secondary), borderColor: var(--border-primary) }}>
-                    <p className="text-sm whitespace-pre-wrap" style={{ color: var(--text-secondary), fontWeight: 300 }}>{selectedLead.notes || 'No notes yet.'}</p>
-                  </div>
+                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Notes</h4>
+                  {selectedLead.notes && selectedLead.notes.split('\n').filter(n => n.trim()).length > 0 ? (
+                    <div className="space-y-2 mb-3">
+                      {selectedLead.notes.split('\n').filter(n => n.trim()).map((note, i) => (
+                        <div key={i} className="group flex items-start gap-2 p-3 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                          {editingNoteIndex === i ? (
+                            <div className="flex-1 flex gap-2">
+                              <input
+                                type="text"
+                                value={editingNoteValue}
+                                onChange={(e) => setEditingNoteValue(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') updateNote(i); if (e.key === 'Escape') { setEditingNoteIndex(null); setEditingNoteValue('') } }}
+                                className="flex-1 px-2 py-1 text-sm border rounded outline-none"
+                                style={{ borderColor: 'var(--border-focus)', color: 'var(--text-primary)' }}
+                                autoFocus
+                              />
+                              <button onClick={() => updateNote(i)} className="px-2 py-1 text-xs text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+                              <button onClick={() => { setEditingNoteIndex(null); setEditingNoteValue('') }} className="px-2 py-1 text-xs rounded" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="flex-1 text-sm whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{note}</p>
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => { setEditingNoteIndex(i); setEditingNoteValue(note) }}
+                                  className="p-1 rounded transition"
+                                  style={{ color: 'var(--text-muted)' }}
+                                  title="Edit note"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => deleteNote(i)}
+                                  className="p-1 rounded transition"
+                                  style={{ color: 'var(--text-muted)' }}
+                                  title="Delete note"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No notes yet.</p>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -474,28 +623,40 @@ export default function Timeline() {
                       onChange={(e) => setNewNote(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') addNote() }}
                       className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
-                      style={{ borderColor: var(--border-primary) }}
+                      style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                     />
-                    <button onClick={addNote} className="px-3 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: var(--accent), fontWeight: 500 }}>Add</button>
+                    <button onClick={addNote} className="px-3 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
                   </div>
                 </div>
 
                 {/* Attachments Section */}
                 <div className="mb-6">
-                  <h4 className="text-sm mb-2" style={{ color: var(--text-primary), fontWeight: 700 }}>Attachments & Links</h4>
+                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Attachments & Links</h4>
                   {selectedLead.attachments.length > 0 ? (
-                    <div className="space-y-1 mb-2">
+                    <div className="space-y-1 mb-3">
                       {selectedLead.attachments.map((att, i) => (
-                        <div key={i} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: var(--bg-secondary) }}>
-                          <svg className="w-4 h-4 flex-shrink-0" style={{ color: var(--accent) }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div key={i} className="group flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                          <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                           </svg>
-                          <a href={att} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline" style={{ color: var(--text-secondary) }}>{att}</a>
+                          <a href={att} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate hover:underline" style={{ color: 'var(--text-secondary)' }}>{att}</a>
+                          <button
+                            onClick={() => deleteAttachment(i)}
+                            className="p-1 rounded opacity-0 group-hover:opacity-100 transition"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="Remove attachment"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm mb-2" style={{ color: var(--border-primary), fontWeight: 300 }}>No attachments yet.</p>
+                    <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No attachments yet.</p>
+                    </div>
                   )}
                   <div className="flex gap-2">
                     <input
@@ -505,55 +666,66 @@ export default function Timeline() {
                       onChange={(e) => setNewAttachment(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') addAttachment() }}
                       className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
-                      style={{ borderColor: var(--border-primary) }}
+                      style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
                     />
-                    <button onClick={addAttachment} className="px-3 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: var(--accent), fontWeight: 500 }}>Add</button>
+                    <button onClick={addAttachment} className="px-3 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
                   </div>
                 </div>
 
-                {/* Email History Mini-Timeline */}
+                {/* Send Email Section */}
                 <div>
-                  <h4 className="text-sm mb-3" style={{ color: var(--text-primary), fontWeight: 700 }}>Email History</h4>
-                  {selectedLead.email_history.length > 0 ? (
-                    <div className="space-y-3 mb-4">
-                      {selectedLead.email_history.map((item, i) => (
-                        <div key={i} className="flex gap-3">
-                          <div className="flex flex-col items-center">
-                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: var(--accent) }}></div>
-                            {i < selectedLead.email_history.length - 1 && <div className="w-px flex-1 mt-1" style={{ backgroundColor: var(--border-primary) }}></div>}
-                          </div>
-                          <div className="pb-3">
-                            <div className="text-xs mb-0.5" style={{ color: var(--border-primary), fontWeight: 300 }}>{item.date}</div>
-                            <div className="text-sm" style={{ color: var(--text-primary), fontWeight: 500 }}>{item.subject}</div>
-                            <div className="text-xs" style={{ color: var(--text-secondary), fontWeight: 300 }}>{item.preview}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm mb-4" style={{ color: var(--border-primary), fontWeight: 300 }}>No email history yet.</p>
-                  )}
-                  <div className="border-t pt-3" style={{ borderColor: var(--border-primary) }}>
-                    <input
-                      type="text"
-                      placeholder="Email subject..."
-                      value={newEmailSubject}
-                      onChange={(e) => setNewEmailSubject(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-2"
-                      style={{ borderColor: var(--border-primary) }}
-                    />
-                    <textarea
-                      placeholder="Email preview..."
-                      value={newEmailPreview}
-                      onChange={(e) => setNewEmailPreview(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-2 resize-none"
-                      style={{ borderColor: var(--border-primary) }}
-                    />
-                    <button onClick={addEmailHistory} className="px-3 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: var(--accent), fontWeight: 500 }}>Add Email Entry</button>
-                  </div>
+                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Send Email</h4>
+                  <button
+                    onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition"
+                    style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Compose Email to {selectedLead.contact}
+                  </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Email Modal */}
+      {showSendEmail && selectedLead && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowSendEmail(false)} />
+          <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email}</p>
+            <input
+              type="text"
+              placeholder="Subject"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              autoFocus
+            />
+            <textarea
+              placeholder="Write your email..."
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              rows={6}
+              className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4 resize-none"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowSendEmail(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button
+                onClick={sendEmail}
+                disabled={!emailSubject.trim()}
+                className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+              >
+                Send Email
+              </button>
             </div>
           </div>
         </div>
