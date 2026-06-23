@@ -26,6 +26,53 @@ body, p, span, div, a, button, input, textarea, select {
   font-weight: 300;
 }
 
+/* Dark mode styles */
+.dark {
+  --bg-primary: #1B1A1C;
+  --bg-secondary: #3E4048;
+  --text-primary: #FFFFFF;
+  --text-secondary: #CACDD7;
+  --border-color: #3E4048;
+}
+
+.dark body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark .bg-white {
+  background-color: var(--bg-primary) !important;
+}
+
+.dark .border-gray-200,
+.dark .border-\[#CACDD7\] {
+  border-color: var(--border-color) !important;
+}
+
+.dark .text-\[#1B1A1C\] {
+  color: var(--text-primary) !important;
+}
+
+.dark .text-\[#3E4048\] {
+  color: var(--text-secondary) !important;
+}
+
+.dark .text-\[#CACDD7\] {
+  color: var(--text-secondary) !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.dark ::placeholder {
+  color: var(--text-secondary);
+}
+
 * {
   font-family: 'Roboto', sans-serif;
 }

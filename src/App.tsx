@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
@@ -15,38 +16,40 @@ import LeadGeneration from './pages/LeadGeneration'
 
 function App() {
   return (
-    <AuthProvider>
-      <HashRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <div className="min-h-screen flex bg-gray-50">
-                  <Sidebar />
-                  <div className="flex-1 flex flex-col min-w-0">
-                    <main className="flex-1">
-                      <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/services" element={<Services />} />
-                        <Route path="/team" element={<Team />} />
-                        <Route path="/timeline" element={<Timeline />} />
-                        <Route path="/templates" element={<MessageTemplates />} />
-                        <Route path="/calendar" element={<Calendar />} />
-                        <Route path="/leads" element={<LeadGeneration />} />
-                        <Route path="/contact" element={<Contact />} />
-                      </Routes>
-                    </main>
+    <ThemeProvider>
+      <AuthProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <div className="min-h-screen flex bg-white dark:bg-[#1B1A1C] transition-colors">
+                    <Sidebar />
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <main className="flex-1">
+                        <Routes>
+                          <Route path="/" element={<Home />} />
+                          <Route path="/about" element={<About />} />
+                          <Route path="/services" element={<Services />} />
+                          <Route path="/team" element={<Team />} />
+                          <Route path="/timeline" element={<Timeline />} />
+                          <Route path="/templates" element={<MessageTemplates />} />
+                          <Route path="/calendar" element={<Calendar />} />
+                          <Route path="/leads" element={<LeadGeneration />} />
+                          <Route path="/contact" element={<Contact />} />
+                        </Routes>
+                      </main>
+                    </div>
                   </div>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </HashRouter>
-    </AuthProvider>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </HashRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -17,11 +18,11 @@ const navItems = [
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-  const [darkMode, setDarkMode] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const location = useLocation()
   const { user, signOut } = useAuth()
+  const { darkMode, toggleDarkMode } = useTheme()
 
   const isActive = (path: string) => location.pathname === path
 
@@ -36,15 +37,15 @@ export default function Sidebar() {
     }
   }
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
-    if (darkMode) {
-      document.documentElement.style.setProperty('--bg-primary', '#FFFFFF')
-      document.documentElement.style.setProperty('--text-primary', '#1B1A1C')
-    } else {
-      document.documentElement.style.setProperty('--bg-primary', '#1B1A1C')
-      document.documentElement.style.setProperty('--text-primary', '#FFFFFF')
+  const getDisplayName = () => {
+    if (!user?.email) return 'User'
+    const email = user.email.split('@')[0]
+    // Try to extract first and last name from email
+    const parts = email.split(/[._-]/)
+    if (parts.length >= 2) {
+      return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
     }
+    return email.charAt(0).toUpperCase() + email.slice(1)
   }
 
   return (
@@ -154,7 +155,7 @@ export default function Sidebar() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 500 }}>
-                    {user.email?.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                    {getDisplayName()}
                   </p>
                 </div>
                 <svg className="w-4 h-4" style={{ color: '#3E4048' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,7 +170,7 @@ export default function Sidebar() {
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all"
                     style={{ color: '#3E4048', fontWeight: 300 }}
                   >
-                    <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
+                    <span className="text-lg">{darkMode ? '☀️' : ''}</span>
                     <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
                   </button>
                   <button
