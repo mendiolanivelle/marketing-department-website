@@ -72,19 +72,19 @@
   --bg-primary: #1B1A1C;
   --bg-secondary: #252426;
   --bg-card: #2A292C;
-  --bg-hover: rgba(202, 205, 215, 0.08);
+  --bg-hover: rgba(255, 255, 255, 0.08);
   --bg-overlay: rgba(0, 0, 0, 0.6);
 
   /* Text - inverted for contrast */
   --text-primary: #FFFFFF;
-  --text-secondary: #CACDD7;
-  --text-tertiary: #8A8D96;
+  --text-secondary: #FFFFFF;
+  --text-tertiary: #CACDD7;
   --text-muted: #3E4048;
   --text-inverse: #1B1A1C;
 
-  /* Borders - subtle on dark */
-  --border-primary: #3E4048;
-  --border-secondary: #2E2D30;
+  /* Borders - white on dark */
+  --border-primary: #FFFFFF;
+  --border-secondary: #CACDD7;
   --border-focus: #FF5900;
 
   /* Buttons - adapted for dark */
@@ -93,8 +93,8 @@
   --btn-accent-bg: #FF5900;
   --btn-accent-text: #FFFFFF;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #CACDD7;
-  --btn-ghost-hover: rgba(202, 205, 215, 0.1);
+  --btn-ghost-text: #FFFFFF;
+  --btn-ghost-hover: rgba(255, 255, 255, 0.1);
 
   /* Accents - same orange, pops on dark */
   --accent: #FF5900;
