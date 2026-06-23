@@ -109,6 +109,84 @@ export default function LeadGeneration() {
     finally { setRowsLoading(false) }
   }, [])
 
+  const checkAndRouteDuplicates = async (
+    rowsToCheck: Record<string, string>[],
+    sourceFileId: string,
+    sourceFileName: string,
+    columns: string[]
+  ): Promise<number> => {
+    if (!isSupabaseConfigured || !supabase || rowsToCheck.length === 0) return 0
+
+    const emailCol = columns.find(h => h.toLowerCase().includes('email'))
+    if (!emailCol) return 0
+
+    const { data: allRows } = await supabase
+      .from('lead_rows')
+      .select('file_id, data')
+      .neq('file_id', sourceFileId)
+
+    const existingEmails = new Set<string>()
+    if (allRows) {
+      allRows.forEach(r => {
+        const data = r.data as Record<string, string>
+        if (data[emailCol]) {
+          existingEmails.add(data[emailCol].toLowerCase().trim())
+        }
+      })
+    }
+
+    const duplicateRows: Record<string, string>[] = []
+    rowsToCheck.forEach(row => {
+      if (row[emailCol]) {
+        const email = row[emailCol].toLowerCase().trim()
+        if (existingEmails.has(email)) {
+          duplicateRows.push(row)
+        } else {
+          existingEmails.add(email)
+        }
+      }
+    })
+
+    if (duplicateRows.length === 0) return 0
+
+    let { data: dupFile } = await supabase
+      .from('lead_files')
+      .select('*')
+      .eq('name', 'Duplicate Leads')
+      .single()
+
+    if (!dupFile) {
+      const { data: newDupFile, error: dupFileError } = await supabase
+        .from('lead_files')
+        .insert([{ name: 'Duplicate Leads', columns: [...columns, 'Source File'], source: 'spreadsheet' }])
+        .select()
+        .single()
+      if (dupFileError) throw dupFileError
+      dupFile = newDupFile
+    }
+
+    const { data: existingDupRows } = await supabase
+      .from('lead_rows')
+      .select('row_index')
+      .eq('file_id', dupFile.id)
+      .order('row_index', { ascending: false })
+      .limit(1)
+
+    const startIdx = existingDupRows && existingDupRows.length > 0 ? existingDupRows[0].row_index + 1 : 0
+
+    const dupInserts = duplicateRows.map((row, idx) => ({
+      file_id: dupFile.id,
+      row_index: startIdx + idx,
+      data: { ...row, 'Source File': sourceFileName },
+    }))
+
+    const { error: dupRowsError } = await supabase.from('lead_rows').insert(dupInserts)
+    if (dupRowsError) throw dupRowsError
+
+    await fetchFiles()
+    return duplicateRows.length
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !isSupabaseConfigured || !supabase) return
@@ -120,8 +198,6 @@ export default function LeadGeneration() {
 
       if (headers.length === 0) { alert('CSV file is empty or invalid'); return }
 
-      const emailCol = headers.find(h => h.toLowerCase().includes('email'))
-
       const { data: fileData, error: fileError } = await supabase
         .from('lead_files')
         .insert([{ name: file.name.replace(/\.csv$/i, ''), columns: headers, source: 'csv' }])
@@ -131,6 +207,7 @@ export default function LeadGeneration() {
       if (fileError) throw fileError
 
       if (parsedRows.length > 0) {
+        const emailCol = headers.find(h => h.toLowerCase().includes('email'))
         let existingEmails = new Set<string>()
 
         if (emailCol) {
@@ -140,21 +217,18 @@ export default function LeadGeneration() {
           if (allRows) {
             allRows.forEach(r => {
               const data = r.data as Record<string, string>
-              const email = Object.values(data).find(v => v && v.includes('@'))
-              if (email) existingEmails.add(email.toLowerCase().trim())
+              if (data[emailCol]) {
+                existingEmails.add(data[emailCol].toLowerCase().trim())
+              }
             })
           }
         }
 
         const uniqueRows: Record<string, string>[] = []
-        const duplicateRows: Record<string, string>[] = []
-
         parsedRows.forEach(row => {
           if (emailCol && row[emailCol]) {
             const email = row[emailCol].toLowerCase().trim()
-            if (existingEmails.has(email)) {
-              duplicateRows.push(row)
-            } else {
+            if (!existingEmails.has(email)) {
               uniqueRows.push(row)
               existingEmails.add(email)
             }
@@ -173,43 +247,15 @@ export default function LeadGeneration() {
           if (rowsError) throw rowsError
         }
 
-        if (duplicateRows.length > 0) {
-          let { data: dupFile } = await supabase
-            .from('lead_files')
-            .select('*')
-            .eq('name', 'Duplicate Leads')
-            .single()
+        const duplicateCount = await checkAndRouteDuplicates(
+          parsedRows,
+          fileData.id,
+          file.name.replace(/\.csv$/i, ''),
+          headers
+        )
 
-          if (!dupFile) {
-            const { data: newDupFile, error: dupFileError } = await supabase
-              .from('lead_files')
-              .insert([{ name: 'Duplicate Leads', columns: [...headers, 'Source File'], source: 'spreadsheet' }])
-              .select()
-              .single()
-            if (dupFileError) throw dupFileError
-            dupFile = newDupFile
-          }
-
-          const { data: existingDupRows } = await supabase
-            .from('lead_rows')
-            .select('row_index')
-            .eq('file_id', dupFile.id)
-            .order('row_index', { ascending: false })
-            .limit(1)
-
-          const startIdx = existingDupRows && existingDupRows.length > 0 ? existingDupRows[0].row_index + 1 : 0
-
-          const dupInserts = duplicateRows.map((row, idx) => ({
-            file_id: dupFile.id,
-            row_index: startIdx + idx,
-            data: { ...row, 'Source File': file.name.replace(/\.csv$/i, '') },
-          }))
-
-          const { error: dupRowsError } = await supabase.from('lead_rows').insert(dupInserts)
-          if (dupRowsError) throw dupRowsError
-
-          await fetchFiles()
-          alert(`${duplicateRows.length} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
+        if (duplicateCount > 0) {
+          alert(`${duplicateCount} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
         }
       }
 
@@ -270,7 +316,7 @@ export default function LeadGeneration() {
   }
 
   const saveCellEdit = async () => {
-    if (!editingCell || !supabase) return
+    if (!editingCell || !supabase || !selectedFile) return
     const row = rows.find(r => r.id === editingCell.rowId)
     if (!row) return
 
@@ -282,6 +328,21 @@ export default function LeadGeneration() {
 
     if (!error) {
       setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData } : r))
+
+      const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
+      if (emailCol && editingCell.col === emailCol && editValue.trim()) {
+        const duplicateCount = await checkAndRouteDuplicates(
+          [newData],
+          selectedFile.id,
+          selectedFile.name,
+          selectedFile.columns
+        )
+
+        if (duplicateCount > 0) {
+          await fetchRows(selectedFile.id)
+          alert(`Duplicate email detected. This lead has been moved to "Duplicate Leads" file.`)
+        }
+      }
     }
     setEditingCell(null)
   }
