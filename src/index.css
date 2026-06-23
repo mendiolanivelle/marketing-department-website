@@ -9,69 +9,274 @@
   --font-sans: 'Roboto', sans-serif;
 }
 
+/* ============================================
+   EXODIA BRANDING - COLOR SYSTEM
+   ============================================
+   Palette:
+   - White:    #FFFFFF  (30%)
+   - Black:    #1B1A1C  (30%)
+   - L.Grey:   #CACDD7  (15%)
+   - D.Grey:   #3E4048  (15%)
+   - Orange:   #FF5900  (10%)
+   ============================================ */
+
+:root {
+  /* Backgrounds */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F6F8;
+  --bg-card: #FFFFFF;
+  --bg-hover: rgba(202, 205, 215, 0.25);
+  --bg-overlay: rgba(27, 26, 28, 0.3);
+
+  /* Text - proper contrast hierarchy */
+  --text-primary: #1B1A1C;
+  --text-secondary: #3E4048;
+  --text-tertiary: #6B6E78;
+  --text-muted: #CACDD7;
+  --text-inverse: #FFFFFF;
+
+  /* Borders */
+  --border-primary: #CACDD7;
+  --border-secondary: #E2E4E9;
+  --border-focus: #FF5900;
+
+  /* Buttons */
+  --btn-primary-bg: #1B1A1C;
+  --btn-primary-text: #FFFFFF;
+  --btn-accent-bg: #FF5900;
+  --btn-accent-text: #FFFFFF;
+  --btn-ghost-bg: transparent;
+  --btn-ghost-text: #3E4048;
+  --btn-ghost-hover: rgba(202, 205, 215, 0.3);
+
+  /* Accents */
+  --accent: #FF5900;
+  --accent-light: rgba(255, 89, 0, 0.1);
+  --accent-hover: #E55000;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(27, 26, 28, 0.05);
+  --shadow-md: 0 4px 6px rgba(27, 26, 28, 0.07);
+  --shadow-lg: 0 10px 25px rgba(27, 26, 28, 0.1);
+
+  /* Logo */
+  --logo-bg: #FF5900;
+  --logo-text: #FFFFFF;
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+.dark {
+  /* Backgrounds - deep and rich */
+  --bg-primary: #1B1A1C;
+  --bg-secondary: #252426;
+  --bg-card: #2A292C;
+  --bg-hover: rgba(202, 205, 215, 0.08);
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Text - inverted for contrast */
+  --text-primary: #FFFFFF;
+  --text-secondary: #CACDD7;
+  --text-tertiary: #8A8D96;
+  --text-muted: #3E4048;
+  --text-inverse: #1B1A1C;
+
+  /* Borders - subtle on dark */
+  --border-primary: #3E4048;
+  --border-secondary: #2E2D30;
+  --border-focus: #FF5900;
+
+  /* Buttons - adapted for dark */
+  --btn-primary-bg: #FFFFFF;
+  --btn-primary-text: #1B1A1C;
+  --btn-accent-bg: #FF5900;
+  --btn-accent-text: #FFFFFF;
+  --btn-ghost-bg: transparent;
+  --btn-ghost-text: #CACDD7;
+  --btn-ghost-hover: rgba(202, 205, 215, 0.1);
+
+  /* Accents - same orange, pops on dark */
+  --accent: #FF5900;
+  --accent-light: rgba(255, 89, 0, 0.15);
+  --accent-hover: #FF6B1A;
+
+  /* Shadows - darker, more subtle */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+
+  /* Logo - brighter in dark mode */
+  --logo-bg: #FF5900;
+  --logo-text: #FFFFFF;
+}
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
 * {
   font-family: 'Roboto', sans-serif;
+  box-sizing: border-box;
 }
 
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Typography hierarchy */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
-p, span, a, li, label, input, textarea, select, button {
+.font-medium, .font-semibold {
+  font-weight: 500;
+}
+
+p, span, div, a, button, input, textarea, select, label {
   font-weight: 300;
 }
 
-.font-semibold, .font-bold, .font-extrabold {
-  font-weight: 700 !important;
+/* ============================================
+   UTILITY CLASSES FOR EXODIA THEME
+   ============================================ */
+.exodia-bg { background-color: var(--bg-primary); }
+.exodia-bg-secondary { background-color: var(--bg-secondary); }
+.exodia-bg-card { background-color: var(--bg-card); }
+.exodia-bg-hover:hover { background-color: var(--bg-hover); }
+
+.exodia-text { color: var(--text-primary); }
+.exodia-text-secondary { color: var(--text-secondary); }
+.exodia-text-tertiary { color: var(--text-tertiary); }
+.exodia-text-muted { color: var(--text-muted); }
+.exodia-text-inverse { color: var(--text-inverse); }
+
+.exodia-border { border-color: var(--border-primary); }
+.exodia-border-secondary { border-color: var(--border-secondary); }
+
+.exodia-btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-weight: 500;
+}
+.exodia-btn-primary:hover {
+  opacity: 0.9;
 }
 
-.font-medium {
-  font-weight: 500 !important;
+.exodia-btn-accent {
+  background-color: var(--btn-accent-bg);
+  color: var(--btn-accent-text);
+  font-weight: 500;
+}
+.exodia-btn-accent:hover {
+  background-color: var(--accent-hover);
 }
 
-.font-normal, .font-light {
-  font-weight: 300 !important;
+.exodia-btn-ghost {
+  background-color: var(--btn-ghost-bg);
+  color: var(--btn-ghost-text);
+}
+.exodia-btn-ghost:hover {
+  background-color: var(--btn-ghost-hover);
 }
 
-.dark {
-  --bg-primary: #1B1A1C;
-  --bg-secondary: #3E4048;
-  --text-primary: #FFFFFF;
-  --text-secondary: #CACDD7;
-  --border-color: #3E4048;
-}
-
-.dark body {
-  background-color: var(--bg-primary);
+/* Form elements */
+input, textarea, select {
+  background-color: var(--bg-card);
   color: var(--text-primary);
+  border-color: var(--border-primary);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.dark .bg-white {
-  background-color: var(--bg-primary) !important;
+input:focus, textarea:focus, select:focus {
+  border-color: var(--border-focus);
+  outline: none;
 }
 
-.dark .border-gray-200,
-.dark [class~="border-[#CACDD7]"] {
-  border-color: var(--border-color) !important;
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted);
 }
 
-.dark [class~="text-[#1B1A1C]"] {
-  color: var(--text-primary) !important;
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.dark [class~="text-[#3E4048]"],
-.dark [class~="text-[#CACDD7]"] {
-  color: var(--text-secondary) !important;
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
 }
 
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: var(--bg-secondary);
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+/* Transitions for theme switching */
+.theme-transition {
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* Ensure smooth transitions on all themed elements */
+button, a, input, textarea, select, div, span, p, h1, h2, h3, h4, h5, h6 {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Fix for dark mode logo visibility */
+.dark .logo-icon {
+  filter: brightness(1.2);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Focus states */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Ensure proper contrast for links */
+a {
   color: var(--text-primary);
-  border-color: var(--border-color);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent);
 }
 
-.dark ::placeholder {
-  color: var(--text-secondary);
+/* Table styles for dark mode */
+.dark table {
+  border-color: var(--border-primary);
+}
+.dark th, .dark td {
+  border-color: var(--border-secondary);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background-color: var(--bg-overlay);
+  backdrop-filter: var(--overlay-blur);
 }

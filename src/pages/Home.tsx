@@ -121,12 +121,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Global Search Bar */}
-      <div className="sticky top-0 z-30 px-4 sm:px-6 py-3 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+      <div className="sticky top-0 z-30 px-4 sm:px-6 py-3 border-b theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
         <div className="max-w-7xl mx-auto">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -135,25 +135,26 @@ export default function Home() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none transition"
-              style={{ borderColor: '#CACDD7', color: '#1B1A1C', fontWeight: 300 }}
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
             />
           </div>
         </div>
       </div>
 
-      <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Hero Section */}
+      <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-5xl mb-4 sm:mb-6 tracking-tight" style={{ color: '#1B1A1C', fontWeight: 700 }}>
-            Welcome to the <span style={{ color: '#3E4048', fontWeight: 500 }}>Marketing Hub</span>
+          <h1 className="text-3xl sm:text-5xl mb-4 sm:mb-6 tracking-tight" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+            Welcome to the <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Marketing Hub</span>
           </h1>
-          <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: '#3E4048', fontWeight: 300 }}>
+          <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
             Your central portal for department resources, campaign requests, brand assets, and team updates.
           </p>
           <div className="flex flex-col gap-4 justify-center items-center">
-            <Link to="/contact" className="px-8 py-3.5 text-white rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto" style={{ backgroundColor: '#1B1A1C', fontWeight: 500, boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}>
+            <Link to="/contact" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-primary" style={{ boxShadow: 'var(--shadow-md)' }}>
               Submit a Request
             </Link>
-            <Link to="/services" className="px-8 py-3.5 text-white rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto" style={{ backgroundColor: '#FF5900', fontWeight: 500 }}>
+            <Link to="/services" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-accent">
               Marketing Capabilities
             </Link>
           </div>
@@ -162,60 +163,48 @@ export default function Home() {
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
-          {/* Lead Pipeline - Clickable with popup */}
+          {/* Lead Pipeline - Clickable */}
           <div
             onClick={() => setShowPipeline(true)}
-            className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer"
-            style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
+            className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer theme-transition"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
           >
-            <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>Lead Pipeline</h2>
+            <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048', fontWeight: 300 }}>Total Leads</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.totalLeads}</div>
-                <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>From all sources</div>
-              </div>
-              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048', fontWeight: 300 }}>Emails Sent</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.emailsSent}</div>
-                <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
-              </div>
-              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048', fontWeight: 300 }}>Replied</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.replied}</div>
-                <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
-              </div>
-              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048', fontWeight: 300 }}>No Reply</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.noReply}</div>
-                <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>Follow-up needed</div>
-              </div>
-              <div className="p-3 sm:p-5 rounded-xl border col-span-2 sm:col-span-1" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048', fontWeight: 300 }}>Meetings</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.meetingsLeft}</div>
-                <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>Scheduled</div>
-              </div>
+              {[
+                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
+                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
+                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
+                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
+                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+              ].map((stat, i) => (
+                <div key={i} className="p-3 sm:p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                  <div className="text-xs sm:text-sm mb-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
+                  <div className="text-2xl sm:text-3xl" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                  <div className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
-            <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#9989; My Tasks</h2>
+            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
               <ul className="space-y-2 sm:space-y-3">
                 {tasks.map((task) => (
-                  <li key={task.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+                  <li key={task.id} className="flex items-center gap-3 p-3 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <input
                       type="checkbox"
                       checked={task.done}
                       onChange={() => toggleTask(task.id)}
                       className="w-4 h-4 rounded cursor-pointer"
-                      style={{ accentColor: '#FF5900' }}
+                      style={{ accentColor: 'var(--accent)' }}
                     />
                     <span
                       className="text-sm flex-1"
                       style={{
-                        color: task.done ? '#FF5900' : '#3E4048',
+                        color: task.done ? 'var(--accent)' : 'var(--text-secondary)',
                         fontWeight: 300,
                         textDecoration: task.done ? 'line-through' : 'none'
                       }}
@@ -228,23 +217,22 @@ export default function Home() {
             </div>
 
             {/* Announcements */}
-            <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128227; Announcements</h2>
+            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
               <ul className="space-y-2 sm:space-y-3">
                 {announcements.map((item) => (
-                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <div className="flex items-center gap-2.5 flex-1">
-                      <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}>
+                      <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
                         {item.tag}
                       </span>
-                      <span className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>{item.title}</span>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.title}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs whitespace-nowrap" style={{ color: '#CACDD7', fontWeight: 300 }}>{item.date}</span>
+                      <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
                       <button
                         onClick={() => setSelectedAnnouncement(item)}
-                        className="px-3 py-1 text-xs rounded transition"
-                        style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+                        className="px-3 py-1 text-xs rounded transition exodia-btn-accent"
                       >
                         View
                       </button>
@@ -256,11 +244,14 @@ export default function Home() {
           </div>
 
           {/* Quick Links */}
-          <div className="rounded-2xl border p-4 sm:p-8 mt-4 sm:mt-6" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128279; Quick Links</h2>
+          <div className="rounded-2xl border p-4 sm:p-8 mt-4 sm:mt-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128279; Quick Links</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {quickLinks.map((link, i) => (
-                <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048', fontWeight: 300 }}>
+                <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 300 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                >
                   <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
                   <span>{link.label}</span>
                 </Link>
@@ -270,10 +261,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-20 px-4 sm:px-6" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Department Highlights */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: '#1B1A1C', fontWeight: 700 }}>Department Highlights</h2>
-          <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: '#3E4048', fontWeight: 300 }}>Key metrics and focus areas for this quarter</p>
+          <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Highlights</h2>
+          <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Key metrics and focus areas for this quarter</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[
               { icon: '&#127919;', title: 'Active Campaigns', desc: '12 campaigns currently running across digital, print, and event channels.' },
@@ -281,10 +273,10 @@ export default function Home() {
               { icon: '&#128200;', title: 'Q2 Results', desc: 'Lead generation up 23% and engagement rate improved by 18% quarter-over-quarter.' },
               { icon: '&#129309;', title: 'Cross-Team Collab', desc: 'Working with Sales, Product, and Customer Success on the Q3 go-to-market plan.' },
             ].map((item, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:-translate-y-1" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
-                <h3 className="text-base sm:text-lg mb-2" style={{ color: '#1B1A1C', fontWeight: 500 }}>{item.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#3E4048', fontWeight: 300 }}>{item.desc}</p>
+                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.desc}</p>
               </div>
             ))}
           </div>
@@ -296,34 +288,33 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: 'rgba(27,26,28,0.2)', backdropFilter: 'blur(4px)' }}
+            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }}
             onClick={() => setSelectedAnnouncement(null)}
           />
-          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-lg w-full" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-lg w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <span className="px-2.5 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}>
+                <span className="px-2.5 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
                   {selectedAnnouncement.tag}
                 </span>
-                <h3 className="text-xl mt-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{selectedAnnouncement.title}</h3>
+                <h3 className="text-xl mt-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedAnnouncement.title}</h3>
               </div>
               <button
                 onClick={() => setSelectedAnnouncement(null)}
                 className="p-1 rounded-lg transition"
-                style={{ color: '#3E4048' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <p className="text-sm mb-4" style={{ color: '#3E4048', fontWeight: 300 }}>{selectedAnnouncement.content}</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedAnnouncement.content}</p>
             <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
               <button
                 onClick={() => setSelectedAnnouncement(null)}
-                className="px-4 py-2 text-sm rounded-lg transition"
-                style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+                className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
               >
                 Mark as Read
               </button>
@@ -337,16 +328,16 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0"
-            style={{ backgroundColor: 'rgba(27,26,28,0.2)', backdropFilter: 'blur(4px)' }}
+            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }}
             onClick={() => setShowPipeline(false)}
           />
-          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-4xl w-full" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-4xl w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
             <div className="flex items-start justify-between mb-6">
-              <h3 className="text-2xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>Lead Pipeline Overview</h3>
+              <h3 className="text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline Overview</h3>
               <button
                 onClick={() => setShowPipeline(false)}
                 className="p-1 rounded-lg transition"
-                style={{ color: '#3E4048' }}
+                style={{ color: 'var(--text-secondary)' }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -354,38 +345,22 @@ export default function Home() {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Total Leads</div>
-                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.totalLeads}</div>
-                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>From all sources</div>
-              </div>
-              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Emails Sent</div>
-                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.emailsSent}</div>
-                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
-              </div>
-              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Replied</div>
-                <div className="text-4xl mb-2" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.replied}</div>
-                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
-              </div>
-              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>No Reply</div>
-                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.noReply}</div>
-                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>Follow-up needed</div>
-              </div>
-              <div className="p-5 rounded-xl border col-span-2 sm:col-span-1" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
-                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Meetings</div>
-                <div className="text-4xl mb-2" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.meetingsLeft}</div>
-                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>Scheduled</div>
-              </div>
+              {[
+                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
+                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
+                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
+                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
+                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+              ].map((stat, i) => (
+                <div key={i} className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                  <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
+                  <div className="text-4xl mb-2" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
+                </div>
+              ))}
             </div>
             <div className="mt-6 flex justify-end">
-              <Link
-                to="/leads"
-                className="px-6 py-2.5 text-sm rounded-lg transition"
-                style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
-              >
+              <Link to="/leads" className="px-6 py-2.5 text-sm rounded-lg transition exodia-btn-accent">
                 View Full Pipeline
               </Link>
             </div>

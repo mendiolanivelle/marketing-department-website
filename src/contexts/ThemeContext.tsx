@@ -9,21 +9,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
+    const saved = localStorage.getItem('exodia-dark-mode')
     return saved ? JSON.parse(saved) : false
   })
 
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(darkMode))
+    localStorage.setItem('exodia-dark-mode', JSON.stringify(darkMode))
+    const root = document.documentElement
     if (darkMode) {
-      document.documentElement.classList.add('dark')
+      root.classList.add('dark')
     } else {
-      document.documentElement.classList.remove('dark')
+      root.classList.remove('dark')
     }
   }, [darkMode])
 
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode)
+    setDarkMode(prev => !prev)
   }
 
   return (

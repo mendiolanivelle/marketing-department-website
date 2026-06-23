@@ -624,7 +624,7 @@ export default function LeadGeneration() {
         {/* Menu Bar */}
         <div className="flex items-center px-2 py-1 border-b border-[#CACDD7] bg-white">
           <div className="flex items-center gap-2 mr-4">
-            <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: '#FF5900' }}>
+            <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: var(--accent) }}>
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
@@ -771,7 +771,7 @@ export default function LeadGeneration() {
             </svg>
             Export CSV
           </button>
-          <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white rounded flex items-center gap-1.5" style={{ backgroundColor: '#FF5900' }}>
+          <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white rounded flex items-center gap-1.5" style={{ backgroundColor: var(--accent) }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
@@ -806,7 +806,7 @@ export default function LeadGeneration() {
         <div className="flex-1 overflow-auto">
           {rowsLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#FF5900' }}></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: var(--accent) }}></div>
             </div>
           ) : (
             <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left', width: `${10000 / zoom}%` }}>
@@ -896,7 +896,7 @@ export default function LeadGeneration() {
                                 onBlur={saveCellEdit}
                                 onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
                                 className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
-                                style={{ borderColor: '#FF5900' }}
+                                style={{ borderColor: var(--accent) }}
                                 autoFocus
                               />
                             ) : (

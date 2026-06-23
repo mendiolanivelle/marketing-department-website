@@ -40,7 +40,6 @@ export default function Sidebar() {
   const getDisplayName = () => {
     if (!user?.email) return 'User'
     const email = user.email.split('@')[0]
-    // Try to extract first and last name from email
     const parts = email.split(/[._-]/)
     if (parts.length >= 2) {
       return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
@@ -50,82 +49,111 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border"
-        style={{ borderColor: '#CACDD7' }}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg shadow-lg border theme-transition"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
       >
-        <svg className="w-6 h-6" style={{ color: '#1B1A1C' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
         </svg>
       </button>
 
+      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40"
-          style={{ backgroundColor: 'rgba(27,26,28,0.5)' }}
+          style={{ backgroundColor: 'var(--bg-overlay)' }}
           onClick={() => setIsOpen(false)}
         />
       )}
 
+      {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-screen w-64 bg-white border-r z-40
+        fixed top-0 left-0 h-screen w-64 border-r z-40 theme-transition
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:sticky lg:top-0 lg:translate-x-0 lg:z-0
-      `} style={{ borderColor: '#CACDD7' }}>
+      `} style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
         <div className="flex flex-col h-full">
-          <div className="px-6 py-6 border-b" style={{ borderColor: '#CACDD7' }}>
+          {/* Logo */}
+          <div className="px-6 py-6 border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FF5900' }}>
-                <span className="text-white text-xl">&#9670;</span>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md"
+                style={{ backgroundColor: 'var(--logo-bg)' }}
+              >
+                <span className="text-white text-xl" style={{ fontWeight: 700 }}>&#9670;</span>
               </div>
               <div>
-                <h1 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Marketing Dept</h1>
-                <p className="text-xs" style={{ color: '#3E4048', fontWeight: 300 }}>Internal Portal</p>
+                <h1 className="text-lg" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Internal Portal</p>
               </div>
             </div>
           </div>
 
+          {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setIsOpen(false)}
-                className={`
-                  flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                  ${isActive(item.path)
-                    ? 'font-semibold'
-                    : ''
+            {navItems.map((item) => {
+              const active = isActive(item.path)
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all theme-transition"
+                  style={active
+                    ? {
+                        borderLeft: '3px solid var(--accent)',
+                        color: 'var(--text-primary)',
+                        backgroundColor: 'var(--accent-light)',
+                        fontWeight: 500,
+                      }
+                    : {
+                        color: 'var(--text-secondary)',
+                        fontWeight: 300,
+                      }
                   }
-                `}
-                style={isActive(item.path)
-                  ? { borderLeft: '2px solid #FF5900', color: '#1B1A1C', backgroundColor: 'rgba(202,205,215,0.15)', fontWeight: 500 }
-                  : { color: '#3E4048', fontWeight: 300 }
-                }
-              >
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                </svg>
-                <span>{item.label}</span>
-              </Link>
-            ))}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+                      e.currentTarget.style.color = 'var(--text-primary)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                      e.currentTarget.style.color = 'var(--text-secondary)'
+                    }
+                  }}
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                  </svg>
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
           </nav>
 
+          {/* Profile section */}
           {user && (
-            <div className="px-4 py-4 border-t relative" style={{ borderColor: '#CACDD7' }}>
+            <div className="px-4 py-4 border-t relative theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
               <div
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all"
-                style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all theme-transition"
+                style={{ backgroundColor: 'var(--bg-hover)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
               >
                 <div className="relative">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt="Avatar"
-                      className="w-8 h-8 rounded-full object-cover cursor-pointer"
+                      className="w-8 h-8 rounded-full object-cover cursor-pointer border-2"
+                      style={{ borderColor: 'var(--accent)' }}
                       onClick={(e) => {
                         e.stopPropagation()
                         fileInputRef.current?.click()
@@ -133,15 +161,15 @@ export default function Sidebar() {
                     />
                   ) : (
                     <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
-                      style={{ backgroundColor: '#1B1A1C' }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-2"
+                      style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}
                       onClick={(e) => {
                         e.stopPropagation()
                         fileInputRef.current?.click()
                       }}
                     >
-                      <span className="text-white text-sm" style={{ fontWeight: 500 }}>
-                        {user.email?.charAt(0).toUpperCase()}
+                      <span className="text-sm" style={{ color: 'var(--btn-primary-text)', fontWeight: 500 }}>
+                        {getDisplayName().charAt(0).toUpperCase()}
                       </span>
                     </div>
                   )}
@@ -154,29 +182,37 @@ export default function Sidebar() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 500 }}>
+                  <p className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                     {getDisplayName()}
                   </p>
                 </div>
-                <svg className="w-4 h-4" style={{ color: '#3E4048' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showProfileDropdown ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                 </svg>
               </div>
 
+              {/* Dropdown */}
               {showProfileDropdown && (
-                <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+                <div
+                  className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border shadow-lg theme-transition"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
+                >
                   <button
                     onClick={toggleDarkMode}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all"
-                    style={{ color: '#3E4048', fontWeight: 300 }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all theme-transition"
+                    style={{ color: 'var(--text-secondary)', fontWeight: 300 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
                     <span className="text-lg">{darkMode ? '☀️' : ''}</span>
                     <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
                   </button>
                   <button
                     onClick={signOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all"
-                    style={{ color: '#FF5900', fontWeight: 500 }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all theme-transition"
+                    style={{ color: 'var(--accent)', fontWeight: 500 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

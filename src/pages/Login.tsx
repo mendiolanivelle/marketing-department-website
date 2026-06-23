@@ -39,7 +39,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: '#FF5900' }}>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: 'var(--accent)' }}>
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
@@ -57,13 +57,13 @@ export default function Login() {
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <span className="text-3xl">&#9670;</span>
               </div>
-              <span className="text-2xl font-bold">Marketing Department</span>
+              <span className="text-2xl" style={{ fontWeight: 700 }}>Marketing Department</span>
             </div>
             <p className="text-white/70 text-sm">Internal Portal</p>
           </div>
 
           <div className="my-auto">
-            <h1 className="text-5xl font-bold mb-6 leading-tight">
+            <h1 className="text-5xl mb-6 leading-tight" style={{ fontWeight: 700 }}>
               Welcome to your<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
                 Marketing Hub
@@ -82,7 +82,7 @@ export default function Login() {
                 <div key={i} className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                   <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 text-2xl" dangerouslySetInnerHTML={{ __html: feature.icon }}></div>
                   <div>
-                    <h3 className="font-semibold text-lg">{feature.title}</h3>
+                    <h3 className="text-lg" style={{ fontWeight: 500 }}>{feature.title}</h3>
                     <p className="text-white/70 text-sm">{feature.desc}</p>
                   </div>
                 </div>
@@ -97,42 +97,46 @@ export default function Login() {
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="w-full max-w-md">
+          {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="inline-flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: '#FF5900' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: 'var(--accent)' }}>
                 <span className="text-2xl">&#9670;</span>
               </div>
-              <span className="text-2xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>Marketing Dept</span>
+              <span className="text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</span>
             </div>
           </div>
 
+          {/* Form header */}
           <div className="mb-8">
-            <h2 className="text-3xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Sign in</h2>
-            <p style={{ color: '#3E4048', fontWeight: 300 }}>Enter your credentials to access the portal</p>
+            <h2 className="text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Sign in</h2>
+            <p style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Enter your credentials to access the portal</p>
           </div>
 
+          {/* Error message */}
           {(error || configError) && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
               <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="text-sm font-medium text-red-800">{configError ? 'Configuration Error' : 'Authentication failed'}</p>
+                <p className="text-sm text-red-800" style={{ fontWeight: 500 }}>{configError ? 'Configuration Error' : 'Authentication failed'}</p>
                 <p className="text-sm text-red-600 mt-0.5">{configError || error}</p>
               </div>
             </div>
           )}
 
+          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm mb-2" style={{ color: '#3E4048', fontWeight: 500 }}>
+              <label htmlFor="email" className="block text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                   </svg>
                 </div>
@@ -140,10 +144,10 @@ export default function Login() {
                   {...register('email')}
                   type="email"
                   id="email"
-                  className={`w-full pl-12 pr-4 py-3.5 border rounded-xl focus:ring-2 focus:border-transparent outline-none transition bg-white ${
-                    errors.email ? 'border-red-300' : 'hover:border-[#3E4048]'
+                  className={`w-full pl-12 pr-4 py-3.5 border rounded-xl outline-none transition ${
+                    errors.email ? 'border-red-300' : ''
                   }`}
-                  style={{ borderColor: '#CACDD7' }}
+                  style={{ borderColor: errors.email ? undefined : 'var(--border-primary)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   placeholder="you@company.com"
                 />
               </div>
@@ -158,12 +162,12 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm mb-2" style={{ color: '#3E4048', fontWeight: 500 }}>
+              <label htmlFor="password" className="block text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -171,17 +175,17 @@ export default function Login() {
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  className={`w-full pl-12 pr-12 py-3.5 border rounded-xl focus:ring-2 focus:border-transparent outline-none transition bg-white ${
-                    errors.password ? 'border-red-300' : 'hover:border-[#3E4048]'
+                  className={`w-full pl-12 pr-12 py-3.5 border rounded-xl outline-none transition ${
+                    errors.password ? 'border-red-300' : ''
                   }`}
-                  style={{ borderColor: '#CACDD7' }}
+                  style={{ borderColor: errors.password ? undefined : 'var(--border-primary)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-4 flex items-center transition"
-                  style={{ color: '#CACDD7' }}
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,10 +211,10 @@ export default function Login() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-[#CACDD7] focus:ring-[#FF5900]" />
-                <span className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Remember me</span>
+                <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: 'var(--accent)', borderColor: 'var(--border-primary)' }} />
+                <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Remember me</span>
               </label>
-              <a href="#" className="text-sm transition hover:underline" style={{ color: '#3E4048', fontWeight: 500 }}>
+              <a href="#" className="text-sm transition hover:underline" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
                 Forgot password?
               </a>
             </div>
@@ -218,8 +222,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full text-white py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#1B1A1C', fontWeight: 500, boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}
+              className="w-full text-white py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2 exodia-btn-primary"
+              style={{ boxShadow: 'var(--shadow-md)' }}
             >
               {isSubmitting ? (
                 <>
@@ -232,7 +236,7 @@ export default function Login() {
               ) : (
                 <>
                   Sign In
-                  <svg className="w-5 h-5" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </>
@@ -240,11 +244,12 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-8 pt-8 border-t" style={{ borderColor: '#CACDD7' }}>
-            <p className="text-center text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>
-              Need access? Contact <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#1B1A1C', fontWeight: 500 }}>IT Support</a>
+          {/* Footer */}
+          <div className="mt-8 pt-8 border-t theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
+            <p className="text-center text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              Need access? Contact <a href="mailto:it@company.com" className="hover:underline" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>IT Support</a>
             </p>
-            <p className="text-center text-xs mt-2" style={{ color: '#CACDD7', fontWeight: 300 }}>
+            <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
               This is an internal system. Unauthorized access is prohibited.
             </p>
           </div>
