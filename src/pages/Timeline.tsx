@@ -935,6 +935,7 @@ export default function Timeline() {
                     style={{
                       backgroundColor: 'var(--bg-secondary)',
                       opacity: isDraggedColumn ? 0.5 : 1,
+                      border: draggedColumn?.tableId === table.id && draggedColumn?.colKey !== col.key ? '2px dashed var(--accent)' : 'none',
                     }}
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -959,6 +960,9 @@ export default function Timeline() {
                       draggable
                       onDragStart={(e) => {
                         e.stopPropagation()
+                        // Set data to indicate this is a column drag
+                        e.dataTransfer.setData('application/column', JSON.stringify({ tableId: table.id, colKey: col.key }))
+                        e.dataTransfer.effectAllowed = 'move'
                         handleColumnDragStart(e, table.id, col.key)
                       }}
                       onDragEnd={handleColumnDragEnd}
@@ -977,6 +981,7 @@ export default function Timeline() {
                             style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 500 }}
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
+                            onDragStart={(e) => e.stopPropagation()}
                           />
                         ) : (
                           <h3
@@ -987,6 +992,7 @@ export default function Timeline() {
                               setEditingColumnLabel({ tableId: table.id, colKey: col.key })
                               setEditingColumnValue(col.label)
                             }}
+                            onDragStart={(e) => e.stopPropagation()}
                             title="Click to edit column name"
                           >
                             {col.label}
@@ -1006,11 +1012,13 @@ export default function Timeline() {
                           draggable
                           onDragStart={(e) => {
                             e.stopPropagation()
+                            // Only set text/plain for card drags
+                            e.dataTransfer.setData('text/plain', lead.id)
                             handleDragStart(e, lead.id)
                           }}
                           onDragEnd={handleDragEnd}
                           onClick={() => setSelectedLead(lead)}
-                          className={`bg-white rounded-xl p-3 border cursor-grab active:cursor-grabbing transition-all group ${
+                          className={`bg-white rounded-xl p-3 border cursor-pointer transition-all group ${
                             draggedLead === lead.id ? 'opacity-50' : 'hover:shadow-md'
                           }`}
                           style={{ borderColor: 'var(--border-primary)' }}
