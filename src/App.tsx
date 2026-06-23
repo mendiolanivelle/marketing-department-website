@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { QueryProvider } from './providers/QueryProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -15,8 +15,6 @@ import MessageTemplates from './pages/MessageTemplates'
 import Calendar from './pages/Calendar'
 
 function App() {
-  const location = useLocation()
-  
   return (
     <QueryProvider>
       <AuthProvider>
@@ -31,7 +29,7 @@ function App() {
                     <Sidebar />
                     <div className="flex-1 flex flex-col min-w-0">
                       <main className="flex-1">
-                        <Routes location={location}>
+                        <Routes>
                           <Route path="/" element={<Home />} />
                           <Route path="/about" element={<About />} />
                           <Route path="/services" element={<Services />} />
