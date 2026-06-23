@@ -54,8 +54,8 @@ export default function Sidebar() {
                 <span className="text-white text-xl">&#9670;</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold" style={{ color: '#1B1A1C' }}>Marketing Dept</h1>
-                <p className="text-xs" style={{ color: '#3E4048' }}>Internal Portal</p>
+                <h1 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Marketing Dept</h1>
+                <p className="text-xs" style={{ color: '#3E4048', fontWeight: 300 }}>Internal Portal</p>
               </div>
             </div>
           </div>
@@ -74,8 +74,8 @@ export default function Sidebar() {
                   }
                 `}
                 style={isActive(item.path)
-                  ? { borderLeft: '2px solid #FF5900', color: '#1B1A1C', backgroundColor: 'rgba(202,205,215,0.15)' }
-                  : { color: '#3E4048' }
+                  ? { borderLeft: '2px solid #FF5900', color: '#1B1A1C', backgroundColor: 'rgba(202,205,215,0.15)', fontWeight: 500 }
+                  : { color: '#3E4048', fontWeight: 300 }
                 }
               >
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +95,7 @@ export default function Sidebar() {
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: '#1B1A1C' }}>{user.email}</p>
+                  <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 500 }}>{user.email}</p>
                 </div>
               </div>
               <button
@@ -106,7 +106,7 @@ export default function Sidebar() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span className="font-medium">Sign Out</span>
+                <span style={{ fontWeight: 500 }}>Sign Out</span>
               </button>
             </div>
           )}

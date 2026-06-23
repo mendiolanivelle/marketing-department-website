@@ -104,13 +104,13 @@ export default function Login() {
               <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: '#FF5900' }}>
                 <span className="text-2xl">&#9670;</span>
               </div>
-              <span className="text-2xl font-bold" style={{ color: '#1B1A1C' }}>Marketing Dept</span>
+              <span className="text-2xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>Marketing Dept</span>
             </div>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2" style={{ color: '#1B1A1C' }}>Sign in</h2>
-            <p style={{ color: '#3E4048' }}>Enter your credentials to access the portal</p>
+            <h2 className="text-3xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Sign in</h2>
+            <p style={{ color: '#3E4048', fontWeight: 300 }}>Enter your credentials to access the portal</p>
           </div>
 
           {(error || configError) && (
@@ -127,7 +127,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold mb-2" style={{ color: '#3E4048' }}>
+              <label htmlFor="email" className="block text-sm mb-2" style={{ color: '#3E4048', fontWeight: 500 }}>
                 Email Address
               </label>
               <div className="relative">
@@ -158,7 +158,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold mb-2" style={{ color: '#3E4048' }}>
+              <label htmlFor="password" className="block text-sm mb-2" style={{ color: '#3E4048', fontWeight: 500 }}>
                 Password
               </label>
               <div className="relative">
@@ -208,9 +208,9 @@ export default function Login() {
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 rounded border-[#CACDD7] focus:ring-[#FF5900]" />
-                <span className="text-sm" style={{ color: '#3E4048' }}>Remember me</span>
+                <span className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Remember me</span>
               </label>
-              <a href="#" className="text-sm font-semibold transition" style={{ color: '#3E4048' }}>
+              <a href="#" className="text-sm transition hover:underline" style={{ color: '#3E4048', fontWeight: 500 }}>
                 Forgot password?
               </a>
             </div>
@@ -218,8 +218,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#1B1A1C', boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}
+              className="w-full text-white py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              style={{ backgroundColor: '#1B1A1C', fontWeight: 500, boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}
             >
               {isSubmitting ? (
                 <>
@@ -241,10 +241,10 @@ export default function Login() {
           </form>
 
           <div className="mt-8 pt-8 border-t" style={{ borderColor: '#CACDD7' }}>
-            <p className="text-center text-sm" style={{ color: '#3E4048' }}>
-              Need access? Contact <a href="mailto:it@company.com" className="font-semibold hover:underline" style={{ color: '#1B1A1C' }}>IT Support</a>
+            <p className="text-center text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>
+              Need access? Contact <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#1B1A1C', fontWeight: 500 }}>IT Support</a>
             </p>
-            <p className="text-center text-xs mt-2" style={{ color: '#CACDD7' }}>
+            <p className="text-center text-xs mt-2" style={{ color: '#CACDD7', fontWeight: 300 }}>
               This is an internal system. Unauthorized access is prohibited.
             </p>
           </div>
