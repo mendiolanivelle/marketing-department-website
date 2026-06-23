@@ -75,25 +75,13 @@ export default function Home() {
 
         if (leadStatusCol && data[leadStatusCol]) {
           const status = data[leadStatusCol].toLowerCase()
-          if (status.includes('replied')) {
-            replied++
-          }
-          if (status.includes('no reply')) {
-            noReply++
-          }
-          if (status.includes('meeting booked')) {
-            meetingsLeft++
-          }
+          if (status.includes('replied')) replied++
+          if (status.includes('no reply')) noReply++
+          if (status.includes('meeting booked')) meetingsLeft++
         }
       })
 
-      setLeadStats({
-        totalLeads,
-        emailsSent,
-        replied,
-        noReply,
-        meetingsLeft,
-      })
+      setLeadStats({ totalLeads, emailsSent, replied, noReply, meetingsLeft })
     } catch (err) {
       console.error('Error fetching lead stats:', err)
     }
@@ -101,21 +89,16 @@ export default function Home() {
 
   useEffect(() => {
     fetchLeadStats()
-
     if (!isSupabaseConfigured || !supabase) return
 
     const filesChannel = supabase
       .channel('lead_files_dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => {
-        fetchLeadStats()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => { fetchLeadStats() })
       .subscribe()
 
     const rowsChannel = supabase
       .channel('lead_rows_dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => {
-        fetchLeadStats()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => { fetchLeadStats() })
       .subscribe()
 
     return () => {
@@ -125,20 +108,20 @@ export default function Home() {
   }, [fetchLeadStats])
 
   return (
-    <div className="min-h-screen">
-      <section className="pt-20 pb-12 px-4 sm:px-6 text-center bg-white sm:pt-32 sm:pb-20">
+    <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+      <section className="pt-20 pb-12 px-4 sm:px-6 text-center sm:pt-32 sm:pb-20" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 mb-4 sm:mb-6 tracking-tight">
-            Welcome to the <span className="text-gray-500">Marketing Hub</span>
+          <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 sm:mb-6 tracking-tight" style={{ color: '#1B1A1C' }}>
+            Welcome to the <span style={{ color: '#3E4048' }}>Marketing Hub</span>
           </h1>
-          <p className="text-base sm:text-xl text-gray-600 mb-6 sm:mb-10 leading-relaxed">
+          <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: '#3E4048' }}>
             Your central portal for department resources, campaign requests, brand assets, and team updates.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link to="/contact" className="px-8 py-3.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition shadow-lg shadow-gray-900/20">
+            <Link to="/contact" className="px-8 py-3.5 text-white font-semibold rounded-xl transition hover:-translate-y-0.5" style={{ backgroundColor: '#1B1A1C', boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}>
               Submit a Request
             </Link>
-            <Link to="/services" className="px-8 py-3.5 bg-white text-gray-900 font-semibold rounded-xl border-2 border-gray-200 hover:border-gray-900 transition">
+            <Link to="/services" className="px-8 py-3.5 font-semibold rounded-xl border-2 transition hover:-translate-y-0.5" style={{ backgroundColor: '#FFFFFF', color: '#1B1A1C', borderColor: '#CACDD7' }}>
               Our Services
             </Link>
           </div>
@@ -147,74 +130,74 @@ export default function Home() {
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
-          <Link to="/leads" className="block bg-white rounded-2xl border border-gray-200 p-4 sm:p-8 mb-4 sm:mb-6 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-left">Lead Pipeline</h2>
+          <Link to="/leads" className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+            <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 text-left" style={{ color: '#1B1A1C' }}>Lead Pipeline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-              <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Total Leads</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.totalLeads}</div>
-                <div className="text-xs text-gray-400 mt-1">From all sources</div>
+              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048' }}>Total Leads</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#1B1A1C' }}>{leadStats.totalLeads}</div>
+                <div className="text-xs mt-1" style={{ color: '#CACDD7' }}>From all sources</div>
               </div>
-              <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Emails Sent</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.emailsSent}</div>
-                <div className="text-xs text-gray-400 mt-1">{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
+              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048' }}>Emails Sent</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#1B1A1C' }}>{leadStats.emailsSent}</div>
+                <div className="text-xs mt-1" style={{ color: '#CACDD7' }}>{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
               </div>
-              <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Replied</div>
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">{leadStats.replied}</div>
-                <div className="text-xs text-gray-400 mt-1">{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
+              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048' }}>Replied</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#FF5900' }}>{leadStats.replied}</div>
+                <div className="text-xs mt-1" style={{ color: '#CACDD7' }}>{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
               </div>
-              <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">No Reply</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.noReply}</div>
-                <div className="text-xs text-gray-400 mt-1">Follow-up needed</div>
+              <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048' }}>No Reply</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#1B1A1C' }}>{leadStats.noReply}</div>
+                <div className="text-xs mt-1" style={{ color: '#CACDD7' }}>Follow-up needed</div>
               </div>
-              <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200 col-span-2 sm:col-span-1">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Meetings</div>
-                <div className="text-2xl sm:text-3xl font-bold text-orange-500">{leadStats.meetingsLeft}</div>
-                <div className="text-xs text-gray-400 mt-1">Scheduled</div>
+              <div className="p-3 sm:p-5 rounded-xl border col-span-2 sm:col-span-1" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: '#3E4048' }}>Meetings</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#FF5900' }}>{leadStats.meetingsLeft}</div>
+                <div className="text-xs mt-1" style={{ color: '#CACDD7' }}>Scheduled</div>
               </div>
             </div>
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-8">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-5 text-left">&#128227; Announcements</h2>
-            <ul className="space-y-2 sm:space-y-3">
-              {announcements.map((item) => (
-                <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="bg-orange-50 text-orange-500 px-2.5 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap">
-                      {item.tag}
-                    </span>
-                    <span className="text-gray-700 text-sm font-medium">{item.title}</span>
-                  </div>
-                  <span className="text-gray-400 text-xs whitespace-nowrap sm:text-right">{item.date}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-8">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-5 text-left">&#128279; Quick Links</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {quickLinks.map((link, i) => (
-                <a key={i} href={link.href} className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-100 hover:text-gray-900 transition">
-                  <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
-                  <span>{link.label}</span>
-                </a>
-              ))}
+            <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C' }}>&#128227; Announcements</h2>
+              <ul className="space-y-2 sm:space-y-3">
+                {announcements.map((item) => (
+                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold whitespace-nowrap" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900' }}>
+                        {item.tag}
+                      </span>
+                      <span className="text-sm font-medium" style={{ color: '#3E4048' }}>{item.title}</span>
+                    </div>
+                    <span className="text-xs whitespace-nowrap sm:text-right" style={{ color: '#CACDD7' }}>{item.date}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+
+            <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+              <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C' }}>&#128279; Quick Links</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {quickLinks.map((link, i) => (
+                  <a key={i} href={link.href} className="flex items-center gap-2.5 p-3 rounded-lg text-sm font-medium transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048' }}>
+                    <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
+                    <span>{link.label}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="py-12 sm:py-20 px-4 sm:px-6 bg-white">
+      <section className="py-12 sm:py-20 px-4 sm:px-6" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 text-center mb-2 sm:mb-3">Department Highlights</h2>
-          <p className="text-center text-gray-500 text-base sm:text-lg mb-8 sm:mb-12">Key metrics and focus areas for this quarter</p>
+          <h2 className="text-2xl sm:text-4xl font-bold text-center mb-2 sm:mb-3" style={{ color: '#1B1A1C' }}>Department Highlights</h2>
+          <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: '#3E4048' }}>Key metrics and focus areas for this quarter</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[
               { icon: '&#127919;', title: 'Active Campaigns', desc: '12 campaigns currently running across digital, print, and event channels.' },
@@ -222,10 +205,10 @@ export default function Home() {
               { icon: '&#128200;', title: 'Q2 Results', desc: 'Lead generation up 23% and engagement rate improved by 18% quarter-over-quarter.' },
               { icon: '&#129309;', title: 'Cross-Team Collab', desc: 'Working with Sales, Product, and Customer Success on the Q3 go-to-market plan.' },
             ].map((item, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:-translate-y-1 transition-all bg-white">
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:-translate-y-1" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                <h3 className="text-base sm:text-lg font-semibold mb-2" style={{ color: '#1B1A1C' }}>{item.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#3E4048' }}>{item.desc}</p>
               </div>
             ))}
           </div>

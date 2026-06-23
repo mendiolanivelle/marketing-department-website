@@ -35,15 +35,15 @@ export default function Contact() {
   return (
     <div>
       <section className="pt-20 pb-12 sm:pt-28 sm:pb-16 px-4 sm:px-6 text-center bg-white">
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 mb-3 sm:mb-4 tracking-tight">Contact the Team</h1>
-        <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">Submit a request, ask a question, or get in touch with the Marketing department</p>
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-[#1B1A1C] mb-3 sm:mb-4 tracking-tight">Contact the Team</h1>
+        <p className="text-base sm:text-lg text-[#3E4048] max-w-2xl mx-auto">Submit a request, ask a question, or get in touch with the Marketing department</p>
       </section>
 
       <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-16">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3 sm:mb-4">Reach Out</h2>
-            <p className="text-gray-500 text-base sm:text-lg mb-6 sm:mb-10 leading-relaxed">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1B1A1C] mb-3 sm:mb-4">Reach Out</h2>
+            <p className="text-[#3E4048] text-base sm:text-lg mb-6 sm:mb-10 leading-relaxed">
               Need marketing support? Have a question about brand guidelines? Want to discuss a campaign idea? Use the form or reach us through the channels below.
             </p>
 
@@ -56,49 +56,49 @@ export default function Contact() {
                 { icon: '&#128197;', title: 'Book a Meeting', info: 'calendly.com/company/marketing' },
               ].map((item, i) => (
                 <div key={i} className="flex gap-3 sm:gap-4 items-start">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-lg sm:text-xl" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[rgba(202,205,215,0.2)] rounded-xl flex items-center justify-center flex-shrink-0 text-lg sm:text-xl" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
-                    <p className="text-gray-500 text-sm">{item.info}</p>
+                    <h4 className="font-semibold text-[#1B1A1C] text-sm">{item.title}</h4>
+                    <p className="text-[#3E4048] text-sm">{item.info}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white p-6 sm:p-10 rounded-2xl border border-gray-200">
+          <div className="bg-white p-6 sm:p-10 rounded-2xl border border-[#CACDD7]">
             {submitted && (
-              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium">
+              <div className="bg-[rgba(255,89,0,0.05)] border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium">
                 Request submitted! We'll review it and get back to you within 1-2 business days.
               </div>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">Your Name</label>
+                <label htmlFor="name" className="block text-sm font-semibold text-[#3E4048] mb-2">Your Name</label>
                 <input
                   {...register('name')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                   placeholder="Jane Smith"
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="department" className="block text-sm font-semibold text-gray-700 mb-2">Your Department</label>
+                <label htmlFor="department" className="block text-sm font-semibold text-[#3E4048] mb-2">Your Department</label>
                 <input
                   {...register('department')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                   placeholder="e.g. Sales, Product, Engineering"
                 />
                 {errors.department && <p className="mt-1 text-sm text-red-600">{errors.department.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="requestType" className="block text-sm font-semibold text-gray-700 mb-2">Request Type</label>
+                <label htmlFor="requestType" className="block text-sm font-semibold text-[#3E4048] mb-2">Request Type</label>
                 <select
                   {...register('requestType')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
+                  className="w-full px-4 py-3 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition appearance-none bg-white"
                 >
                   <option value="">Select a request type</option>
                   <option value="campaign">Campaign Support</option>
@@ -113,10 +113,10 @@ export default function Contact() {
               </div>
 
               <div>
-                <label htmlFor="priority" className="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+                <label htmlFor="priority" className="block text-sm font-semibold text-[#3E4048] mb-2">Priority</label>
                 <select
                   {...register('priority')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
+                  className="w-full px-4 py-3 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition appearance-none bg-white"
                 >
                   <option value="">Select priority</option>
                   <option value="low">Low - No rush</option>
@@ -128,11 +128,11 @@ export default function Contact() {
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-2">Details</label>
+                <label htmlFor="message" className="block text-sm font-semibold text-[#3E4048] mb-2">Details</label>
                 <textarea
                   {...register('message')}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-vertical"
+                  className="w-full px-4 py-3 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition resize-vertical"
                   placeholder="Describe your request, goals, timeline, and any relevant context..."
                 ></textarea>
                 {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>}
@@ -141,7 +141,7 @@ export default function Contact() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-gray-900/20"
+                className="w-full bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#1B1A1C]/20"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>

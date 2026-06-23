@@ -240,8 +240,8 @@ export default function MessageTemplates() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Message Templates</h1>
-          <p className="text-sm sm:text-base text-gray-500">Email templates for client communication and automation</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#1B1A1C] mb-1">Message Templates</h1>
+          <p className="text-sm sm:text-base text-[#3E4048]">Email templates for client communication and automation</p>
         </div>
         <button
           onClick={() => {
@@ -253,7 +253,7 @@ export default function MessageTemplates() {
               setShowForm(true)
             }
           }}
-          className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition text-sm whitespace-nowrap"
+          className="px-5 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white font-semibold rounded-xl transition text-sm whitespace-nowrap"
         >
           {showForm ? 'Cancel' : '+ New Template'}
         </button>
@@ -270,12 +270,12 @@ export default function MessageTemplates() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => { setShowForm(false); setEditingId(null); reset() }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-              <h2 className="text-lg font-bold text-gray-900">
+            <div className="sticky top-0 bg-white border-b border-[#CACDD7] px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-lg font-bold text-[#1B1A1C]">
                 {editingId ? 'Edit Template' : 'Create New Template'}
               </h2>
-              <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 hover:bg-gray-100 rounded-full transition">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
+                <svg className="w-5 h-5 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -288,7 +288,7 @@ export default function MessageTemplates() {
             )}
 
             {successMessage && (
-              <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mx-6 mt-4 p-4 bg-[rgba(255,89,0,0.05)] border border-green-200 rounded-lg">
                 <p className="text-green-800 text-sm">{successMessage}</p>
               </div>
             )}
@@ -296,19 +296,19 @@ export default function MessageTemplates() {
             <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+                  <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Title</label>
                   <input
                     {...register('title')}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                    className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg text-sm focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                     placeholder="e.g. Accept Client - 1st Meeting"
                   />
                   {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                  <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Category</label>
                   <select
                     {...register('category')}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
+                    className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg text-sm focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select category</option>
                     {defaultCategories.map((cat) => (
@@ -319,37 +319,37 @@ export default function MessageTemplates() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject Line</label>
+                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Subject Line</label>
                 <input
                   {...register('subject')}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg text-sm focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                   placeholder="e.g. Re: Meeting Request - {{company_name}}"
                 />
                 {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
-                <p className="mt-1 text-xs text-gray-400">Use {'{{variable_name}}'} for dynamic placeholders</p>
+                <p className="mt-1 text-xs text-[#CACDD7]">Use {'{{variable_name}}'} for dynamic placeholders</p>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Body</label>
+                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Email Body</label>
                 <textarea
                   {...register('body')}
                   rows={8}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-vertical font-mono"
+                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg text-sm focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition resize-vertical font-mono"
                   placeholder="Write your email template here..."
                 />
                 {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
               </div>
-              <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-6 px-6 py-4 flex justify-end gap-3">
+              <div className="sticky bottom-0 bg-white border-t border-[#CACDD7] -mx-6 px-6 py-4 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => { setShowForm(false); setEditingId(null); reset() }}
-                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition text-sm"
+                  className="px-5 py-2.5 bg-[rgba(202,205,215,0.2)] hover:bg-[rgba(202,205,215,0.3)] text-[#3E4048] font-semibold rounded-lg transition text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50"
+                  className="px-5 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white font-semibold rounded-lg transition text-sm disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : editingId ? 'Update Template' : 'Save Template'}
                 </button>
@@ -367,8 +367,8 @@ export default function MessageTemplates() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
                 selectedCategory === cat
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-[#1B1A1C] text-white'
+                  : 'bg-[rgba(202,205,215,0.2)] text-[#3E4048] hover:bg-[rgba(202,205,215,0.3)]'
               }`}
             >
               {cat}
@@ -379,49 +379,49 @@ export default function MessageTemplates() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B1A1C]"></div>
         </div>
       ) : filteredTemplates.length === 0 ? (
         <div className="text-center py-20">
-          <p className="text-gray-400 text-lg mb-2">No templates found</p>
-          <p className="text-gray-400 text-sm">Create your first template to get started</p>
+          <p className="text-[#CACDD7] text-lg mb-2">No templates found</p>
+          <p className="text-[#CACDD7] text-sm">Create your first template to get started</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 hover:border-gray-300 transition-all"
+              className="bg-white rounded-2xl border border-[#CACDD7] p-4 sm:p-6 hover:border-[#CACDD7] transition-all"
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="min-w-0 flex-1">
-                  <span className="inline-block bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-xs font-semibold mb-2">
+                  <span className="inline-block bg-[rgba(202,205,215,0.2)] text-[#3E4048] px-2 py-0.5 rounded-md text-xs font-semibold mb-2">
                     {template.category}
                   </span>
-                  <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">{template.title}</h3>
+                  <h3 className="font-bold text-[#1B1A1C] text-sm sm:text-base truncate">{template.title}</h3>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={() => handleCopy(`Subject: ${template.subject}\n\n${template.body}`, template.id)}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition"
+                    className="p-2 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
                     title="Copy to clipboard"
                   >
                     {copiedId === template.id ? (
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     )}
                   </button>
                   <button
                     onClick={() => handleEdit(template)}
-                    className="p-2 rounded-lg hover:bg-gray-100 transition"
+                    className="p-2 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
                     title="Edit"
                   >
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
@@ -438,10 +438,10 @@ export default function MessageTemplates() {
                       </button>
                       <button
                         onClick={() => setDeleteConfirmId(null)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition"
+                        className="p-2 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
                         title="Cancel"
                       >
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
@@ -452,7 +452,7 @@ export default function MessageTemplates() {
                       className="p-2 rounded-lg hover:bg-red-50 transition"
                       title="Delete"
                     >
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
@@ -461,13 +461,13 @@ export default function MessageTemplates() {
               </div>
 
               <div className="mb-3">
-                <p className="text-xs text-gray-400 mb-1">Subject</p>
-                <p className="text-sm text-gray-700 font-medium">{template.subject}</p>
+                <p className="text-xs text-[#CACDD7] mb-1">Subject</p>
+                <p className="text-sm text-[#3E4048] font-medium">{template.subject}</p>
               </div>
 
               <div>
-                <p className="text-xs text-gray-400 mb-1">Body</p>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-4 font-mono leading-relaxed">{template.body}</p>
+                <p className="text-xs text-[#CACDD7] mb-1">Body</p>
+                <p className="text-sm text-[#3E4048] whitespace-pre-wrap line-clamp-4 font-mono leading-relaxed">{template.body}</p>
               </div>
             </div>
           ))}

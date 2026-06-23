@@ -21,8 +21,8 @@ const columns: { key: LeadStatus; label: string; color: string }[] = [
   { key: 'second-meeting', label: '2nd Meeting', color: 'bg-indigo-500' },
   { key: 'third-meeting', label: '3rd Meeting', color: 'bg-violet-500' },
   { key: 'quotation', label: 'Quotation', color: 'bg-amber-500' },
-  { key: 'start-of-project', label: 'Start of Project', color: 'bg-green-500' },
-  { key: 'follow-up', label: 'Follow Up', color: 'bg-gray-500' },
+  { key: 'start-of-project', label: 'Start of Project', color: 'bg-[rgba(255,89,0,0.05)]0' },
+  { key: 'follow-up', label: 'Follow Up', color: 'bg-[rgba(202,205,215,0.15)]0' },
 ]
 
 export default function Timeline() {
@@ -217,8 +217,8 @@ export default function Timeline() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Lead Pipeline</h1>
-          <p className="text-sm sm:text-base text-gray-500">Drag and drop on desktop, or tap the arrow icon on mobile to move leads</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#1B1A1C] mb-2">Lead Pipeline</h1>
+          <p className="text-sm sm:text-base text-[#3E4048]">Drag and drop on desktop, or tap the arrow icon on mobile to move leads</p>
         </div>
         <button
           onClick={() => {
@@ -233,7 +233,7 @@ export default function Timeline() {
               status: 'initial-meeting',
             })
           }}
-          className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition text-sm whitespace-nowrap"
+          className="px-5 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white font-semibold rounded-xl transition text-sm whitespace-nowrap"
         >
           {showAddForm ? 'Cancel' : '+ Add Lead'}
         </button>
@@ -246,61 +246,61 @@ export default function Timeline() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Company</label>
               <input
                 type="text"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                 placeholder="Company name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Contact Person</label>
               <input
                 type="text"
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                 placeholder="Contact name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                 placeholder="Email address"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Value</label>
               <input
                 type="text"
                 value={formData.value}
                 onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                 placeholder="$0,000"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Date</label>
               <input
                 type="text"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
                 placeholder="e.g., Jun 18"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-[#3E4048] mb-1">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as LeadStatus })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                className="w-full px-3 py-2 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#1B1A1C] focus:border-transparent outline-none transition"
               >
                 {columns.map((col) => (
                   <option key={col.key} value={col.key}>{col.label}</option>
@@ -311,7 +311,7 @@ export default function Timeline() {
           <div className="flex gap-3">
             <button
               onClick={editingLead ? handleUpdateLead : handleAddLead}
-              className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition text-sm"
+              className="px-5 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white font-semibold rounded-lg transition text-sm"
             >
               {editingLead ? 'Update Lead' : 'Add Lead'}
             </button>
@@ -328,7 +328,7 @@ export default function Timeline() {
                   status: 'initial-meeting',
                 })
               }}
-              className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition text-sm"
+              className="px-5 py-2.5 bg-[rgba(202,205,215,0.2)] hover:bg-[rgba(202,205,215,0.3)] text-[#3E4048] font-semibold rounded-lg transition text-sm"
             >
               Cancel
             </button>
@@ -338,7 +338,7 @@ export default function Timeline() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B1A1C]"></div>
         </div>
       ) : (
         <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -347,16 +347,16 @@ export default function Timeline() {
             return (
               <div
                 key={column.key}
-                className="min-w-[260px] sm:min-w-[280px] flex-1 bg-gray-100 rounded-2xl p-3 sm:p-4"
+                className="min-w-[260px] sm:min-w-[280px] flex-1 bg-[rgba(202,205,215,0.2)] rounded-2xl p-3 sm:p-4"
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(column.key)}
               >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div className="flex items-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded-full ${column.color}`}></div>
-                    <h2 className="font-semibold text-gray-900 text-xs sm:text-sm">{column.label}</h2>
+                    <h2 className="font-semibold text-[#1B1A1C] text-xs sm:text-sm">{column.label}</h2>
                   </div>
-                  <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-medium text-[#3E4048] bg-white px-2 py-0.5 rounded-full">
                     {columnLeads.length}
                   </span>
                 </div>
@@ -371,15 +371,15 @@ export default function Timeline() {
                         e.dataTransfer.setData('text/plain', lead.id)
                         handleDragStart(lead.id)
                       }}
-                      className="bg-white rounded-xl p-3 sm:p-4 border border-gray-200 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 transition-all"
+                      className="bg-white rounded-xl p-3 sm:p-4 border border-[#CACDD7] cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#CACDD7] transition-all"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-gray-900 text-sm mb-0.5 truncate">{lead.company}</h3>
-                          <p className="text-xs text-gray-500 mb-2 sm:mb-3 truncate">{lead.contact}</p>
+                          <h3 className="font-semibold text-[#1B1A1C] text-sm mb-0.5 truncate">{lead.company}</h3>
+                          <p className="text-xs text-[#3E4048] mb-2 sm:mb-3 truncate">{lead.contact}</p>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-900">{lead.value}</span>
-                            <span className="text-xs text-gray-400">{lead.date}</span>
+                            <span className="text-xs font-bold text-[#1B1A1C]">{lead.value}</span>
+                            <span className="text-xs text-[#CACDD7]">{lead.date}</span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-1" onDragStart={(e) => e.stopPropagation()}>
@@ -389,10 +389,10 @@ export default function Timeline() {
                               handleEditLead(lead)
                             }}
                             onDragStart={(e) => e.stopPropagation()}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 transition"
+                            className="p-1.5 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
                             title="Edit"
                           >
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
@@ -405,7 +405,7 @@ export default function Timeline() {
                             className="p-1.5 rounded-lg hover:bg-red-50 transition"
                             title="Delete"
                           >
-                            <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-[#CACDD7] hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
@@ -416,20 +416,20 @@ export default function Timeline() {
                                 setMoveLeadId(moveLeadId === lead.id ? null : lead.id)
                               }}
                               onDragStart={(e) => e.stopPropagation()}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 transition"
+                              className="p-1.5 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
                             >
-                              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                               </svg>
                             </button>
                             {moveLeadId === lead.id && (
-                              <div className="absolute right-0 top-8 z-50 bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-44">
-                                <p className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase">Move to</p>
+                              <div className="absolute right-0 top-8 z-50 bg-white border border-[#CACDD7] rounded-xl shadow-xl py-1 w-44">
+                                <p className="px-3 py-1.5 text-xs font-semibold text-[#CACDD7] uppercase">Move to</p>
                                 {columns.filter(c => c.key !== lead.status).map((col) => (
                                   <button
                                     key={col.key}
                                     onClick={() => handleMoveLead(lead.id, col.key)}
-                                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    className="w-full text-left px-3 py-2 text-sm text-[#3E4048] hover:bg-[rgba(202,205,215,0.15)] flex items-center gap-2"
                                   >
                                     <div className={`w-2 h-2 rounded-full ${col.color}`}></div>
                                     {col.label}
