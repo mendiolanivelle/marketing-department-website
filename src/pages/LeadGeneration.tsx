@@ -600,108 +600,110 @@ export default function LeadGeneration() {
           </div>
         )}
 
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">CSV Files</h2>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-          ) : files.filter(f => f.source === 'csv').length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">CSV Files</h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
               </div>
-              <p className="text-gray-500 text-sm">No CSV files uploaded yet</p>
-              <p className="text-gray-400 text-xs mt-1">Upload a CSV file to get started</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {files.filter(f => f.source === 'csv').map((file) => (
-                <div
-                  key={file.id}
-                  className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => openFile(file)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
-                      title="Delete file"
-                    >
-                      <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{file.name}</h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>{file.columns.length} columns</span>
-                    <span>&middot;</span>
-                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                  </div>
+            ) : files.filter(f => f.source === 'csv').length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <p className="text-gray-500 text-sm">No CSV files uploaded yet</p>
+                <p className="text-gray-400 text-xs mt-1">Upload a CSV file to get started</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {files.filter(f => f.source === 'csv').map((file) => (
+                  <div
+                    key={file.id}
+                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => openFile(file)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
+                        title="Delete file"
+                      >
+                        <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{file.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>{file.columns.length} columns</span>
+                      <span>&middot;</span>
+                      <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Spreadsheets</h2>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-          ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Spreadsheets</h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
               </div>
-              <p className="text-gray-500 text-sm">No spreadsheets created yet</p>
-              <p className="text-gray-400 text-xs mt-1">Create a spreadsheet to get started</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {files.filter(f => f.source === 'spreadsheet').map((file) => (
-                <div
-                  key={file.id}
-                  className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
-                  onClick={() => openFile(file)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
-                      title="Delete file"
-                    >
-                      <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{file.name}</h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <span>{file.columns.length} columns</span>
-                    <span>&middot;</span>
-                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                  </div>
+            ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-gray-500 text-sm">No spreadsheets created yet</p>
+                <p className="text-gray-400 text-xs mt-1">Create a spreadsheet to get started</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {files.filter(f => f.source === 'spreadsheet').map((file) => (
+                  <div
+                    key={file.id}
+                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => openFile(file)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }}
+                        className="p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
+                        title="Delete file"
+                      >
+                        <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{file.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <span>{file.columns.length} columns</span>
+                      <span>&middot;</span>
+                      <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
