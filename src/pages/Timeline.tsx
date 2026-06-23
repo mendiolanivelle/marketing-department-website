@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 type LeadStatus = 'initial-meeting' | 'second-meeting' | 'third-meeting' | 'quotation' | 'start-of-project' | 'follow-up'
@@ -25,6 +26,7 @@ const columns: { key: LeadStatus; label: string; color: string }[] = [
 ]
 
 export default function Timeline() {
+  const location = useLocation()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
@@ -74,7 +76,7 @@ export default function Timeline() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [fetchLeads])
+  }, [fetchLeads, location.pathname])
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.effectAllowed = 'move'
