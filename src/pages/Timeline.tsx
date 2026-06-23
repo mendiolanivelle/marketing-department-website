@@ -60,6 +60,7 @@ export default function Timeline() {
   const [leads, setLeads] = useState<TimelineLead[]>([])
   const [loading, setLoading] = useState(true)
   const [draggedLead, setDraggedLead] = useState<string | null>(null)
+  const [draggedColumn, setDraggedColumn] = useState<{ tableId: string; colKey: string } | null>(null)
   const [selectedLead, setSelectedLead] = useState<TimelineLead | null>(null)
   const [editingTableTitle, setEditingTableTitle] = useState<string | null>(null)
   const [editingTableTitleValue, setEditingTableTitleValue] = useState('')
@@ -156,6 +157,60 @@ export default function Timeline() {
       if (error) throw error
     } catch (err) { console.error('Error moving lead:', err) }
     setDraggedLead(null)
+  }
+
+  // Column drag handlers
+  const handleColumnDragStart = (e: React.DragEvent, tableId: string, colKey: string) => {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('application/column', JSON.stringify({ tableId, colKey }))
+    setDraggedColumn({ tableId, colKey })
+  }
+
+  const handleColumnDragEnd = () => {
+    setDraggedColumn(null)
+  }
+
+  const handleColumnDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleColumnDrop = async (e: React.DragEvent, targetTableId: string, targetColKey: string) => {
+    e.preventDefault()
+    const data = e.dataTransfer.getData('application/column')
+    if (!data || !supabase) return
+
+    const { tableId, colKey } = JSON.parse(data)
+
+    // Only allow reordering within the same table
+    if (tableId !== targetTableId || colKey === targetColKey) {
+      setDraggedColumn(null)
+      return
+    }
+
+    const table = tables.find(t => t.id === tableId)
+    if (!table) return
+
+    // Reorder columns
+    const columns = [...table.columns]
+    const draggedIndex = columns.findIndex(c => c.key === colKey)
+    const targetIndex = columns.findIndex(c => c.key === targetColKey)
+
+    if (draggedIndex === -1 || targetIndex === -1) return
+
+    const [draggedCol] = columns.splice(draggedIndex, 1)
+    columns.splice(targetIndex, 0, draggedCol)
+
+    try {
+      const { error } = await supabase
+        .from('timeline_tables')
+        .update({ columns })
+        .eq('id', tableId)
+      if (error) throw error
+      setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns } : t))
+    } catch (err) { console.error('Error reordering columns:', err) }
+
+    setDraggedColumn(null)
   }
 
   const addTimelineTable = async () => {
@@ -872,13 +927,21 @@ export default function Timeline() {
               {table.columns.map((col) => {
                 const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
                 const colColor = columnColors[col.key] || 'var(--text-secondary)'
+                const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
                 return (
                   <div
                     key={col.key}
                     className="min-w-[240px] sm:min-w-[260px] flex-1 rounded-xl p-3"
-                    style={{ backgroundColor: 'var(--bg-secondary)' }}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, table.id, col.key)}
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      opacity: isDraggedColumn ? 0.5 : 1,
+                      cursor: 'grab'
+                    }}
+                    draggable
+                    onDragStart={(e) => handleColumnDragStart(e, table.id, col.key)}
+                    onDragEnd={handleColumnDragEnd}
+                    onDragOver={(e) => { handleColumnDragOver(e); handleDragOver(e) }}
+                    onDrop={(e) => { handleColumnDrop(e, table.id, col.key); handleDrop(e, table.id, col.key) }}
                   >
                     {/* Column Header */}
                     <div className="flex items-center justify-between mb-3">
