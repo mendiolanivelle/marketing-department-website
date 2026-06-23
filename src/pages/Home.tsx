@@ -3,10 +3,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const announcements = [
-  { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting' },
-  { id: 2, title: 'New Brand Guidelines v2.0 Released', date: 'Jun 20, 2026', tag: 'Update' },
-  { id: 3, title: 'Marketing Offsite - July 10-12', date: 'Jun 18, 2026', tag: 'Event' },
-  { id: 4, title: 'Annual Review Submissions Due July 1', date: 'Jun 15, 2026', tag: 'Deadline' },
+  { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting', content: 'Join us for the Q3 campaign planning session where we will discuss upcoming initiatives and strategies.' },
+  { id: 2, title: 'New Brand Guidelines v2.0 Released', date: 'Jun 20, 2026', tag: 'Update', content: 'The updated brand guidelines are now available. Please review and update your materials accordingly.' },
+  { id: 3, title: 'Marketing Offsite - July 10-12', date: 'Jun 18, 2026', tag: 'Event', content: 'Annual marketing offsite at the mountain resort. All team members are required to attend.' },
+  { id: 4, title: 'Annual Review Submissions Due July 1', date: 'Jun 15, 2026', tag: 'Deadline', content: 'Please submit your annual performance reviews by July 1st to HR.' },
 ]
 
 const quickLinks = [
@@ -26,6 +26,15 @@ export default function Home() {
     noReply: 0,
     meetingsLeft: 0,
   })
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
+  const [showPipeline, setShowPipeline] = useState(false)
+  const [tasks, setTasks] = useState([
+    { id: 1, text: 'Review Q3 campaign proposals', done: false },
+    { id: 2, text: 'Update brand guidelines document', done: true },
+    { id: 3, text: 'Schedule team meeting for July', done: false },
+    { id: 4, text: 'Prepare presentation for stakeholders', done: false },
+  ])
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchLeadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return
@@ -107,9 +116,32 @@ export default function Home() {
     }
   }, [fetchLeadStats])
 
+  const toggleTask = (id: number) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
-      <section className="pt-20 pb-12 px-4 sm:px-6 text-center sm:pt-32 sm:pb-20" style={{ backgroundColor: '#FFFFFF' }}>
+      {/* Global Search Bar */}
+      <div className="sticky top-0 z-30 px-4 sm:px-6 py-3 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search templates, assets, campaigns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none transition"
+              style={{ borderColor: '#CACDD7', color: '#1B1A1C', fontWeight: 300 }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl sm:text-5xl mb-4 sm:mb-6 tracking-tight" style={{ color: '#1B1A1C', fontWeight: 700 }}>
             Welcome to the <span style={{ color: '#3E4048', fontWeight: 500 }}>Marketing Hub</span>
@@ -117,12 +149,12 @@ export default function Home() {
           <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: '#3E4048', fontWeight: 300 }}>
             Your central portal for department resources, campaign requests, brand assets, and team updates.
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link to="/contact" className="px-8 py-3.5 text-white rounded-xl transition hover:-translate-y-0.5" style={{ backgroundColor: '#1B1A1C', fontWeight: 500, boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}>
+          <div className="flex flex-col gap-4 justify-center items-center">
+            <Link to="/contact" className="px-8 py-3.5 text-white rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto" style={{ backgroundColor: '#1B1A1C', fontWeight: 500, boxShadow: '0 10px 15px -3px rgba(27,26,28,0.2)' }}>
               Submit a Request
             </Link>
-            <Link to="/services" className="px-8 py-3.5 rounded-xl border-2 transition hover:-translate-y-0.5" style={{ backgroundColor: '#FFFFFF', color: '#1B1A1C', borderColor: '#CACDD7', fontWeight: 500 }}>
-              Our Services
+            <Link to="/services" className="px-8 py-3.5 text-white rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto" style={{ backgroundColor: '#FF5900', fontWeight: 500 }}>
+              Marketing Capabilities
             </Link>
           </div>
         </div>
@@ -130,7 +162,12 @@ export default function Home() {
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
-          <Link to="/leads" className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+          {/* Lead Pipeline - Clickable with popup */}
+          <div
+            onClick={() => setShowPipeline(true)}
+            className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer"
+            style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
+          >
             <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>Lead Pipeline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
               <div className="p-3 sm:p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
@@ -159,37 +196,77 @@ export default function Home() {
                 <div className="text-xs mt-1" style={{ color: '#CACDD7', fontWeight: 300 }}>Scheduled</div>
               </div>
             </div>
-          </Link>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128227; Announcements</h2>
+              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#9989; My Tasks</h2>
               <ul className="space-y-2 sm:space-y-3">
-                {announcements.map((item) => (
-                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}>
-                        {item.tag}
-                      </span>
-                      <span className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>{item.title}</span>
-                    </div>
-                    <span className="text-xs whitespace-nowrap sm:text-right" style={{ color: '#CACDD7', fontWeight: 300 }}>{item.date}</span>
+                {tasks.map((task) => (
+                  <li key={task.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+                    <input
+                      type="checkbox"
+                      checked={task.done}
+                      onChange={() => toggleTask(task.id)}
+                      className="w-4 h-4 rounded cursor-pointer"
+                      style={{ accentColor: '#FF5900' }}
+                    />
+                    <span
+                      className="text-sm flex-1"
+                      style={{
+                        color: task.done ? '#FF5900' : '#3E4048',
+                        fontWeight: 300,
+                        textDecoration: task.done ? 'line-through' : 'none'
+                      }}
+                    >
+                      {task.text}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
 
+            {/* Announcements */}
             <div className="rounded-2xl border p-4 sm:p-8" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128279; Quick Links</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {quickLinks.map((link, i) => (
-                  <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048', fontWeight: 300 }}>
-                    <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
-                    <span>{link.label}</span>
-                  </Link>
+              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128227; Announcements</h2>
+              <ul className="space-y-2 sm:space-y-3">
+                {announcements.map((item) => (
+                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+                    <div className="flex items-center gap-2.5 flex-1">
+                      <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}>
+                        {item.tag}
+                      </span>
+                      <span className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>{item.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs whitespace-nowrap" style={{ color: '#CACDD7', fontWeight: 300 }}>{item.date}</span>
+                      <button
+                        onClick={() => setSelectedAnnouncement(item)}
+                        className="px-3 py-1 text-xs rounded transition"
+                        style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+                      >
+                        View
+                      </button>
+                    </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="rounded-2xl border p-4 sm:p-8 mt-4 sm:mt-6" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128279; Quick Links</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {quickLinks.map((link, i) => (
+                <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048', fontWeight: 300 }}>
+                  <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
+                  <span>{link.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
           </div>
         </div>
       </section>
@@ -214,6 +291,108 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Announcement Popup */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'rgba(27,26,28,0.2)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setSelectedAnnouncement(null)}
+          />
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-lg w-full" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}>
+                  {selectedAnnouncement.tag}
+                </span>
+                <h3 className="text-xl mt-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{selectedAnnouncement.title}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="p-1 rounded-lg transition"
+                style={{ color: '#3E4048' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm mb-4" style={{ color: '#3E4048', fontWeight: 300 }}>{selectedAnnouncement.content}</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
+              <button
+                onClick={() => setSelectedAnnouncement(null)}
+                className="px-4 py-2 text-sm rounded-lg transition"
+                style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+              >
+                Mark as Read
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lead Pipeline Popup */}
+      {showPipeline && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'rgba(27,26,28,0.2)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setShowPipeline(false)}
+          />
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-4xl w-full" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+            <div className="flex items-start justify-between mb-6">
+              <h3 className="text-2xl" style={{ color: '#1B1A1C', fontWeight: 700 }}>Lead Pipeline Overview</h3>
+              <button
+                onClick={() => setShowPipeline(false)}
+                className="p-1 rounded-lg transition"
+                style={{ color: '#3E4048' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Total Leads</div>
+                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.totalLeads}</div>
+                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>From all sources</div>
+              </div>
+              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Emails Sent</div>
+                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.emailsSent}</div>
+                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
+              </div>
+              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Replied</div>
+                <div className="text-4xl mb-2" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.replied}</div>
+                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
+              </div>
+              <div className="p-5 rounded-xl border" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>No Reply</div>
+                <div className="text-4xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>{leadStats.noReply}</div>
+                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>Follow-up needed</div>
+              </div>
+              <div className="p-5 rounded-xl border col-span-2 sm:col-span-1" style={{ backgroundColor: 'rgba(202,205,215,0.15)', borderColor: '#CACDD7' }}>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Meetings</div>
+                <div className="text-4xl mb-2" style={{ color: '#FF5900', fontWeight: 700 }}>{leadStats.meetingsLeft}</div>
+                <div className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>Scheduled</div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Link
+                to="/leads"
+                className="px-6 py-2.5 text-sm rounded-lg transition"
+                style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+              >
+                View Full Pipeline
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

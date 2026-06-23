@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -16,10 +16,36 @@ const navItems = [
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const location = useLocation()
   const { user, signOut } = useAuth()
 
   const isActive = (path: string) => location.pathname === path
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarUrl(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+    if (darkMode) {
+      document.documentElement.style.setProperty('--bg-primary', '#FFFFFF')
+      document.documentElement.style.setProperty('--text-primary', '#1B1A1C')
+    } else {
+      document.documentElement.style.setProperty('--bg-primary', '#1B1A1C')
+      document.documentElement.style.setProperty('--text-primary', '#FFFFFF')
+    }
+  }
 
   return (
     <>
@@ -87,27 +113,77 @@ export default function Sidebar() {
           </nav>
 
           {user && (
-            <div className="px-4 py-4 border-t" style={{ borderColor: '#CACDD7' }}>
-              <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
-                  <span className="text-white text-sm font-semibold">
-                    {user.email?.charAt(0).toUpperCase()}
-                  </span>
+            <div className="px-4 py-4 border-t relative" style={{ borderColor: '#CACDD7' }}>
+              <div
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all"
+                style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}
+              >
+                <div className="relative">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="w-8 h-8 rounded-full object-cover cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        fileInputRef.current?.click()
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                      style={{ backgroundColor: '#1B1A1C' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        fileInputRef.current?.click()
+                      }}
+                    >
+                      <span className="text-white text-sm" style={{ fontWeight: 500 }}>
+                        {user.email?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 500 }}>{user.email}</p>
+                  <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 500 }}>
+                    {user.email?.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}
+                  </p>
                 </div>
-              </div>
-              <button
-                onClick={signOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all"
-                style={{ color: '#FF5900' }}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg className="w-4 h-4" style={{ color: '#3E4048' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showProfileDropdown ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
                 </svg>
-                <span style={{ fontWeight: 500 }}>Sign Out</span>
-              </button>
+              </div>
+
+              {showProfileDropdown && (
+                <div className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+                  <button
+                    onClick={toggleDarkMode}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all"
+                    style={{ color: '#3E4048', fontWeight: 300 }}
+                  >
+                    <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
+                    <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                  </button>
+                  <button
+                    onClick={signOut}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all"
+                    style={{ color: '#FF5900', fontWeight: 500 }}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
