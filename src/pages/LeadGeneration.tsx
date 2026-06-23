@@ -5,6 +5,7 @@ interface LeadFile {
   id: string
   name: string
   columns: string[]
+  source: 'csv' | 'spreadsheet'
   created_at: string
   updated_at: string
 }
@@ -68,6 +69,9 @@ export default function LeadGeneration() {
   const [editValue, setEditValue] = useState('')
   const [editingHeader, setEditingHeader] = useState<number | null>(null)
   const [headerValue, setHeaderValue] = useState('')
+  const [creatingSpreadsheet, setCreatingSpreadsheet] = useState(false)
+  const [showNewSpreadsheetModal, setShowNewSpreadsheetModal] = useState(false)
+  const [newSpreadsheetName, setNewSpreadsheetName] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
@@ -118,7 +122,7 @@ export default function LeadGeneration() {
 
       const { data: fileData, error: fileError } = await supabase
         .from('lead_files')
-        .insert([{ name: file.name.replace(/\.csv$/i, ''), columns: headers }])
+        .insert([{ name: file.name.replace(/\.csv$/i, ''), columns: headers, source: 'csv' }])
         .select()
         .single()
 
@@ -140,6 +144,37 @@ export default function LeadGeneration() {
       console.error('Error uploading CSV:', err)
       alert('Failed to upload CSV file')
     } finally { setUploading(false) }
+  }
+
+  const createSpreadsheet = async () => {
+    const name = newSpreadsheetName.trim()
+    if (!name || !isSupabaseConfigured || !supabase) return
+
+    setCreatingSpreadsheet(true)
+    try {
+      const defaultColumns = ['Name', 'Email', 'Company', 'Phone', 'Notes']
+      const { data: fileData, error: fileError } = await supabase
+        .from('lead_files')
+        .insert([{ name, columns: defaultColumns, source: 'spreadsheet' }])
+        .select()
+        .single()
+
+      if (fileError) throw fileError
+
+      const emptyRow = defaultColumns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
+      const { error: rowsError } = await supabase
+        .from('lead_rows')
+        .insert([{ file_id: fileData.id, row_index: 0, data: emptyRow }])
+
+      if (rowsError) throw rowsError
+
+      await fetchFiles()
+      setShowNewSpreadsheetModal(false)
+      setNewSpreadsheetName('')
+    } catch (err) {
+      console.error('Error creating spreadsheet:', err)
+      alert('Failed to create spreadsheet')
+    } finally { setCreatingSpreadsheet(false) }
   }
 
   const openFile = async (file: LeadFile) => {
@@ -317,8 +352,8 @@ export default function LeadGeneration() {
               </svg>
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ff5900' }}>
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -332,7 +367,7 @@ export default function LeadGeneration() {
               </svg>
               Export CSV
             </button>
-            <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition flex items-center gap-1.5">
+            <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: '#ff5900' }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -350,7 +385,7 @@ export default function LeadGeneration() {
         <div className="flex-1 overflow-auto">
           {rowsLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#ff5900' }}></div>
             </div>
           ) : (
             <table className="w-full border-collapse min-w-max">
@@ -367,7 +402,8 @@ export default function LeadGeneration() {
                             onChange={(e) => setHeaderValue(e.target.value)}
                             onBlur={saveHeaderEdit}
                             onKeyDown={(e) => { if (e.key === 'Enter') saveHeaderEdit(); if (e.key === 'Escape') setEditingHeader(null) }}
-                            className="w-full px-2 py-1 text-xs font-semibold text-gray-700 bg-white border border-green-500 rounded outline-none"
+                            className="w-full px-2 py-1 text-xs font-semibold text-gray-700 bg-white border rounded outline-none"
+                            style={{ borderColor: '#ff5900' }}
                             autoFocus
                           />
                         ) : (
@@ -395,7 +431,7 @@ export default function LeadGeneration() {
               </thead>
               <tbody>
                 {rows.map((row, rowIdx) => (
-                  <tr key={row.id} className="group hover:bg-green-50/30">
+                  <tr key={row.id} className="group hover:bg-orange-50/30">
                     <td className="border-b border-r border-gray-200 px-2 py-1 text-xs text-gray-400 text-center bg-gray-50/50">
                       {rowIdx + 1}
                     </td>
@@ -412,7 +448,8 @@ export default function LeadGeneration() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onBlur={saveCellEdit}
                             onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
-                            className="w-full px-2 py-1 text-sm bg-white border-2 border-green-500 rounded outline-none"
+                            className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
+                            style={{ borderColor: '#ff5900' }}
                             autoFocus
                           />
                         ) : (
@@ -453,73 +490,195 @@ export default function LeadGeneration() {
       <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Lead Generation</h1>
-          <p className="text-sm sm:text-base text-gray-500">Upload CSV files, manage leads, and track your outreach pipeline</p>
+          <p className="text-sm sm:text-base text-gray-500">Upload CSV files or create spreadsheets to manage your leads</p>
         </div>
 
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className={`
-            relative border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all
-            ${uploading
-              ? 'border-green-400 bg-green-50'
-              : 'border-gray-300 bg-white hover:border-green-400 hover:bg-green-50/30'
-            }
-          `}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          {uploading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className={`
+              relative border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all
+              ${uploading
+                ? 'border-[#ff5900] bg-orange-50'
+                : 'border-gray-300 bg-white hover:border-[#ff5900] hover:bg-orange-50/30'
+              }
+            `}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            {uploading ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#ff5900]"></div>
+                <p className="text-sm font-medium text-[#ff5900]">Uploading and parsing CSV...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Upload CSV File</p>
+                  <p className="text-xs text-gray-500">Import existing data</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div
+            onClick={() => setShowNewSpreadsheetModal(true)}
+            className="border-2 border-dashed border-gray-300 bg-white hover:border-[#ff5900] hover:bg-orange-50/30 rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all"
+          >
             <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
-              <p className="text-sm font-medium text-green-700">Uploading and parsing CSV...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
+                <svg className="w-7 h-7 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
               <div>
-                <p className="text-base font-semibold text-gray-900 mb-1">Drop your CSV file here or click to upload</p>
-                <p className="text-sm text-gray-500">Supports .csv files. Headers in first row.</p>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Create Spreadsheet</p>
+                <p className="text-xs text-gray-500">Start from scratch</p>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
+        {showNewSpreadsheetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-900">Create New Spreadsheet</h2>
+                <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Spreadsheet Name</label>
+                  <input
+                    type="text"
+                    value={newSpreadsheetName}
+                    onChange={(e) => setNewSpreadsheetName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') createSpreadsheet() }}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition"
+                    placeholder="e.g., Q3 Lead List"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+                <button
+                  onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }}
+                  className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createSpreadsheet}
+                  disabled={!newSpreadsheetName.trim() || creatingSpreadsheet}
+                  className="px-5 py-2 text-sm font-semibold text-white bg-[#ff5900] hover:bg-[#e55000] rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {creatingSpreadsheet && (
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Your Files</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">CSV Files</h2>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
-          ) : files.length === 0 ? (
+          ) : files.filter(f => f.source === 'csv').length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
               <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <p className="text-gray-500 text-sm">No files uploaded yet</p>
+              <p className="text-gray-500 text-sm">No CSV files uploaded yet</p>
               <p className="text-gray-400 text-xs mt-1">Upload a CSV file to get started</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {files.map((file) => (
+              {files.filter(f => f.source === 'csv').map((file) => (
                 <div
                   key={file.id}
-                  className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-green-300 hover:shadow-md transition-all cursor-pointer"
+                  className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
                   onClick={() => openFile(file)}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }}
+                      className="p-1.5 rounded-lg hover:bg-red-50 opacity-0 group-hover:opacity-100 transition"
+                      title="Delete file"
+                    >
+                      <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{file.name}</h3>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <span>{file.columns.length} columns</span>
+                    <span>&middot;</span>
+                    <span>{new Date(file.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Spreadsheets</h2>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 text-sm">No spreadsheets created yet</p>
+              <p className="text-gray-400 text-xs mt-1">Create a spreadsheet to get started</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {files.filter(f => f.source === 'spreadsheet').map((file) => (
+                <div
+                  key={file.id}
+                  className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+                  onClick={() => openFile(file)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     </div>

@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS lead_files (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   columns TEXT[] DEFAULT '{}',
+  source TEXT DEFAULT 'csv' CHECK (source IN ('csv', 'spreadsheet')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
