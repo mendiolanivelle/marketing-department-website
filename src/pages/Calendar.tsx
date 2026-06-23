@@ -1,30 +1,40 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-interface CalendarEvent {
-  id: number
+type ItemType = 'event' | 'task' | 'meeting'
+
+interface CalendarItem {
+  id: string
   title: string
+  type: ItemType
   date: string
+  start_time: string | null
+  end_time: string | null
+  description: string | null
+  location: string | null
   color: string
-  time?: string
+  assignees: string[]
+  created_at: string
+  updated_at: string
 }
 
-const sampleEvents: CalendarEvent[] = [
-  { id: 1, title: 'Q3 Campaign Planning', date: '2026-06-25', color: '#ff5900', time: '10:00 AM' },
-  { id: 2, title: 'Brand Review Meeting', date: '2026-06-25', color: '#1a73e8', time: '2:00 PM' },
-  { id: 3, title: 'Content Deadline', date: '2026-06-22', color: '#e8710a', time: '5:00 PM' },
-  { id: 4, title: 'Team Standup', date: '2026-06-23', color: '#0b8043', time: '9:00 AM' },
-  { id: 5, title: 'Social Media Launch', date: '2026-06-23', color: '#8e24aa', time: '12:00 PM' },
-  { id: 6, title: 'Design Sprint', date: '2026-06-18', color: '#1a73e8', time: 'All Day' },
-  { id: 7, title: 'Client Presentation', date: '2026-06-18', color: '#ff5900', time: '3:00 PM' },
-  { id: 8, title: 'Marketing Offsite', date: '2026-07-10', color: '#e8710a', time: 'All Day' },
-  { id: 9, title: 'Marketing Offsite', date: '2026-07-11', color: '#e8710a', time: 'All Day' },
-  { id: 10, title: 'Marketing Offsite', date: '2026-07-12', color: '#e8710a', time: 'All Day' },
-  { id: 11, title: 'Review Submissions Due', date: '2026-07-01', color: '#d93025', time: '11:59 PM' },
-  { id: 12, title: 'Weekly Sync', date: '2026-06-29', color: '#0b8043', time: '10:00 AM' },
-  { id: 13, title: 'Photo Shoot', date: '2026-06-15', color: '#8e24aa', time: '9:00 AM' },
-  { id: 14, title: 'Email Campaign Send', date: '2026-06-12', color: '#1a73e8', time: '8:00 AM' },
-  { id: 15, title: 'Budget Review', date: '2026-06-08', color: '#d93025', time: '2:00 PM' },
-]
+interface FormData {
+  title: string
+  type: ItemType
+  date: string
+  start_time: string
+  end_time: string
+  description: string
+  location: string
+  color: string
+  assignees: string[]
+}
+
+const TYPE_CONFIG: Record<ItemType, { label: string; color: string; icon: string }> = {
+  event: { label: 'Event', color: '#ff5900', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+  task: { label: 'Task', color: '#0b8043', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  meeting: { label: 'Meeting', color: '#1a73e8', icon: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+}
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = [
@@ -46,11 +56,83 @@ function formatDateKey(year: number, month: number, day: number) {
   return `${year}-${m}-${d}`
 }
 
+function formatTime(time: string | null) {
+  if (!time) return ''
+  const [h, m] = time.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const hour = h % 12 || 12
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
+const defaultForm: FormData = {
+  title: '',
+  type: 'event',
+  date: '',
+  start_time: '',
+  end_time: '',
+  description: '',
+  location: '',
+  color: '#ff5900',
+  assignees: [],
+}
+
 export default function Calendar() {
   const today = new Date()
   const [currentYear, setCurrentYear] = useState(today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [items, setItems] = useState<CalendarItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<CalendarItem | null>(null)
+  const [form, setForm] = useState<FormData>({ ...defaultForm })
+  const [assigneeInput, setAssigneeInput] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchItems = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setLoading(false)
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .select('*')
+        .order('date', { ascending: true })
+      if (error) throw error
+      if (data) setItems(data)
+    } catch (err) {
+      console.error('Error fetching calendar items:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchItems()
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const channel = supabase
+      .channel('calendar_items_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items' }, () => {
+        fetchItems()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchItems])
+
+  const itemsByDate = useMemo(() => {
+    const map: Record<string, CalendarItem[]> = {}
+    items.forEach((item) => {
+      if (!map[item.date]) map[item.date] = []
+      map[item.date].push(item)
+    })
+    return map
+  }, [items])
 
   const calendarDays = useMemo(() => {
     const daysInMonth = getDaysInMonth(currentYear, currentMonth)
@@ -62,63 +144,28 @@ export default function Calendar() {
     const days: { day: number; month: number; year: number; isCurrentMonth: boolean }[] = []
 
     for (let i = firstDay - 1; i >= 0; i--) {
-      days.push({
-        day: daysInPrevMonth - i,
-        month: prevMonth,
-        year: prevYear,
-        isCurrentMonth: false,
-      })
+      days.push({ day: daysInPrevMonth - i, month: prevMonth, year: prevYear, isCurrentMonth: false })
     }
-
     for (let d = 1; d <= daysInMonth; d++) {
-      days.push({
-        day: d,
-        month: currentMonth,
-        year: currentYear,
-        isCurrentMonth: true,
-      })
+      days.push({ day: d, month: currentMonth, year: currentYear, isCurrentMonth: true })
     }
-
     const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1
     const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear
     const remaining = 42 - days.length
     for (let d = 1; d <= remaining; d++) {
-      days.push({
-        day: d,
-        month: nextMonth,
-        year: nextYear,
-        isCurrentMonth: false,
-      })
+      days.push({ day: d, month: nextMonth, year: nextYear, isCurrentMonth: false })
     }
-
     return days
   }, [currentYear, currentMonth])
 
-  const eventsByDate = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {}
-    sampleEvents.forEach((event) => {
-      if (!map[event.date]) map[event.date] = []
-      map[event.date].push(event)
-    })
-    return map
-  }, [])
-
   const goToPrevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11)
-      setCurrentYear(currentYear - 1)
-    } else {
-      setCurrentMonth(currentMonth - 1)
-    }
+    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1) }
+    else { setCurrentMonth(currentMonth - 1) }
   }
 
   const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0)
-      setCurrentYear(currentYear + 1)
-    } else {
-      setCurrentMonth(currentMonth + 1)
-    }
+    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1) }
+    else { setCurrentMonth(currentMonth + 1) }
   }
 
   const goToToday = () => {
@@ -129,7 +176,105 @@ export default function Calendar() {
   const isToday = (year: number, month: number, day: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
 
-  const selectedEvents = selectedDate ? eventsByDate[selectedDate] || [] : []
+  const openCreateModal = (date?: string) => {
+    setEditingItem(null)
+    setForm({ ...defaultForm, date: date || formatDateKey(today.getFullYear(), today.getMonth(), today.getDate()) })
+    setAssigneeInput('')
+    setShowModal(true)
+  }
+
+  const openEditModal = (item: CalendarItem) => {
+    setEditingItem(item)
+    setForm({
+      title: item.title,
+      type: item.type,
+      date: item.date,
+      start_time: item.start_time || '',
+      end_time: item.end_time || '',
+      description: item.description || '',
+      location: item.location || '',
+      color: item.color,
+      assignees: item.assignees || [],
+    })
+    setAssigneeInput('')
+    setShowModal(true)
+  }
+
+  const handleTypeChange = (type: ItemType) => {
+    setForm({ ...form, type, color: TYPE_CONFIG[type].color })
+  }
+
+  const addAssignee = () => {
+    const email = assigneeInput.trim().toLowerCase()
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !form.assignees.includes(email)) {
+      setForm({ ...form, assignees: [...form.assignees, email] })
+      setAssigneeInput('')
+    }
+  }
+
+  const removeAssignee = (email: string) => {
+    setForm({ ...form, assignees: form.assignees.filter(a => a !== email) })
+  }
+
+  const handleSubmit = async () => {
+    if (!form.title.trim()) return
+    setSubmitting(true)
+
+    const payload = {
+      title: form.title.trim(),
+      type: form.type,
+      date: form.date,
+      start_time: form.start_time || null,
+      end_time: form.end_time || null,
+      description: form.description.trim() || null,
+      location: form.location.trim() || null,
+      color: form.color,
+      assignees: form.assignees,
+    }
+
+    try {
+      if (isSupabaseConfigured && supabase) {
+        if (editingItem) {
+          const { error } = await supabase
+            .from('calendar_items')
+            .update(payload)
+            .eq('id', editingItem.id)
+          if (error) throw error
+        } else {
+          const { error } = await supabase
+            .from('calendar_items')
+            .insert([payload])
+          if (error) throw error
+        }
+      }
+      setShowModal(false)
+      setEditingItem(null)
+      setForm({ ...defaultForm })
+    } catch (err) {
+      console.error('Error saving calendar item:', err)
+      alert('Failed to save item')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this item?')) return
+    try {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase
+          .from('calendar_items')
+          .delete()
+          .eq('id', id)
+        if (error) throw error
+      }
+    } catch (err) {
+      console.error('Error deleting calendar item:', err)
+      alert('Failed to delete item')
+    }
+  }
+
+  const selectedItems = selectedDate ? itemsByDate[selectedDate] || [] : []
 
   const rows = []
   for (let i = 0; i < calendarDays.length; i += 7) {
@@ -147,39 +292,41 @@ export default function Calendar() {
                 {MONTHS[currentMonth]} {currentYear}
               </h1>
               <div className="flex items-center gap-1">
-                <button
-                  onClick={goToPrevMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-full transition"
-                >
+                <button onClick={goToPrevMonth} className="p-1.5 hover:bg-gray-100 rounded-full transition">
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <button
-                  onClick={goToNextMonth}
-                  className="p-1.5 hover:bg-gray-100 rounded-full transition"
-                >
+                <button onClick={goToNextMonth} className="p-1.5 hover:bg-gray-100 rounded-full transition">
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
               </div>
             </div>
-            <button
-              onClick={goToToday}
-              className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition self-start sm:self-auto"
-            >
-              Today
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                onClick={goToToday}
+                className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => openCreateModal()}
+                className="px-4 py-1.5 text-sm font-semibold text-white bg-[#ff5900] hover:bg-[#e55000] rounded-lg transition flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create
+              </button>
+            </div>
           </div>
 
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b border-gray-200">
             {DAYS.map((day) => (
-              <div
-                key={day}
-                className="py-2 text-center text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide"
-              >
+              <div key={day} className="py-2 text-center text-xs sm:text-sm font-semibold text-gray-500 uppercase tracking-wide">
                 <span className="hidden sm:inline">{day}</span>
                 <span className="sm:hidden">{day.charAt(0)}</span>
               </div>
@@ -187,72 +334,91 @@ export default function Calendar() {
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7">
-            {rows.map((week, weekIdx) =>
-              week.map((dayInfo) => {
-                const dateKey = formatDateKey(dayInfo.year, dayInfo.month, dayInfo.day)
-                const dayEvents = eventsByDate[dateKey] || []
-                const todayFlag = isToday(dayInfo.year, dayInfo.month, dayInfo.day)
-                const isSelected = selectedDate === dateKey
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {rows.map((week, weekIdx) =>
+                week.map((dayInfo) => {
+                  const dateKey = formatDateKey(dayInfo.year, dayInfo.month, dayInfo.day)
+                  const dayItems = itemsByDate[dateKey] || []
+                  const todayFlag = isToday(dayInfo.year, dayInfo.month, dayInfo.day)
+                  const isSelected = selectedDate === dateKey
 
-                return (
-                  <div
-                    key={`${weekIdx}-${dayInfo.day}`}
-                    onClick={() => setSelectedDate(dateKey === selectedDate ? null : dateKey)}
-                    className={`
-                      min-h-[80px] sm:min-h-[110px] border-b border-r border-gray-200 p-1 sm:p-1.5 cursor-pointer transition-colors
-                      ${!dayInfo.isCurrentMonth ? 'bg-gray-50/70' : 'bg-white'}
-                      ${isSelected ? 'bg-orange-50/50' : ''}
-                      hover:bg-gray-50
-                      ${weekIdx === 0 ? '' : ''}
-                    `}
-                  >
-                    <div className="flex justify-center sm:justify-start mb-0.5">
-                      <span
-                        className={`
-                          inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm rounded-full
-                          ${todayFlag ? 'bg-[#ff5900] text-white font-bold' : ''}
-                          ${!todayFlag && dayInfo.isCurrentMonth ? 'text-gray-900 font-medium' : ''}
-                          ${!todayFlag && !dayInfo.isCurrentMonth ? 'text-gray-400' : ''}
-                        `}
-                      >
-                        {dayInfo.day}
-                      </span>
-                    </div>
-                    <div className="space-y-0.5 overflow-hidden">
-                      {dayEvents.slice(0, 3).map((event) => (
-                        <div
-                          key={event.id}
-                          className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white"
-                          style={{ backgroundColor: event.color }}
+                  return (
+                    <div
+                      key={`${weekIdx}-${dayInfo.day}`}
+                      onClick={() => setSelectedDate(dateKey === selectedDate ? null : dateKey)}
+                      className={`
+                        min-h-[80px] sm:min-h-[110px] border-b border-r border-gray-200 p-1 sm:p-1.5 cursor-pointer transition-colors
+                        ${!dayInfo.isCurrentMonth ? 'bg-gray-50/70' : 'bg-white'}
+                        ${isSelected ? 'bg-orange-50/50' : ''}
+                        hover:bg-gray-50
+                      `}
+                    >
+                      <div className="flex justify-between items-start mb-0.5">
+                        <span
+                          className={`
+                            inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm rounded-full
+                            ${todayFlag ? 'bg-[#ff5900] text-white font-bold' : ''}
+                            ${!todayFlag && dayInfo.isCurrentMonth ? 'text-gray-900 font-medium' : ''}
+                            ${!todayFlag && !dayInfo.isCurrentMonth ? 'text-gray-400' : ''}
+                          `}
                         >
-                          <span className="truncate">{event.title}</span>
-                        </div>
-                      ))}
-                      {dayEvents.slice(0, 2).map((event) => (
-                        <div
-                          key={`m-${event.id}`}
-                          className="sm:hidden flex items-center justify-center w-5 h-5 rounded-full mx-auto"
-                          style={{ backgroundColor: event.color }}
-                          title={event.title}
-                        />
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <div className="hidden sm:block text-xs text-gray-500 font-medium px-1">
-                          +{dayEvents.length - 3} more
-                        </div>
-                      )}
-                      {dayEvents.length > 2 && (
-                        <div className="sm:hidden text-xs text-gray-500 text-center font-medium">
-                          +{dayEvents.length - 2}
-                        </div>
-                      )}
+                          {dayInfo.day}
+                        </span>
+                        {dayItems.length > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openCreateModal(dateKey) }}
+                            className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-gray-200 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-0.5 overflow-hidden">
+                        {dayItems.slice(0, 3).map((item) => (
+                          <div
+                            key={item.id}
+                            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white"
+                            style={{ backgroundColor: item.color }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedDate(dateKey) }}
+                          >
+                            <svg className="w-3 h-3 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[item.type].icon} />
+                            </svg>
+                            <span className="truncate">{item.title}</span>
+                          </div>
+                        ))}
+                        {dayItems.slice(0, 2).map((item) => (
+                          <div
+                            key={`m-${item.id}`}
+                            className="sm:hidden flex items-center justify-center w-5 h-5 rounded-full mx-auto"
+                            style={{ backgroundColor: item.color }}
+                            title={`${TYPE_CONFIG[item.type].label}: ${item.title}`}
+                          />
+                        ))}
+                        {dayItems.length > 3 && (
+                          <div className="hidden sm:block text-xs text-gray-500 font-medium px-1">
+                            +{dayItems.length - 3} more
+                          </div>
+                        )}
+                        {dayItems.length > 2 && (
+                          <div className="sm:hidden text-xs text-gray-500 text-center font-medium">
+                            +{dayItems.length - 2}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
+                  )
+                })
+              )}
+            </div>
+          )}
         </div>
 
         {/* Selected date detail panel */}
@@ -261,37 +427,94 @@ export default function Calendar() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">
                 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
+                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
                 })}
               </h2>
-              <button
-                onClick={() => setSelectedDate(null)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
-              >
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openCreateModal(selectedDate)}
+                  className="px-3 py-1.5 text-xs font-semibold text-white bg-[#ff5900] hover:bg-[#e55000] rounded-lg transition flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add
+                </button>
+                <button onClick={() => setSelectedDate(null)} className="p-1 hover:bg-gray-100 rounded-full transition">
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            {selectedEvents.length === 0 ? (
-              <p className="text-gray-500 text-sm">No events scheduled for this day.</p>
+            {selectedItems.length === 0 ? (
+              <p className="text-gray-500 text-sm">No items for this day. Click "Add" to create one.</p>
             ) : (
               <div className="space-y-2">
-                {selectedEvents.map((event) => (
+                {selectedItems.map((item) => (
                   <div
-                    key={event.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition"
+                    key={item.id}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition group"
                   >
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: event.color }}
-                    />
+                    <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: item.color }} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                      <p className="text-xs text-gray-500">{event.time}</p>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-white"
+                          style={{ backgroundColor: item.color }}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[item.type].icon} />
+                          </svg>
+                          {TYPE_CONFIG[item.type].label}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                      {(item.start_time || item.location) && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {item.start_time && <span>{formatTime(item.start_time)}{item.end_time ? ` - ${formatTime(item.end_time)}` : ''}</span>}
+                          {item.start_time && item.location && <span> &middot; </span>}
+                          {item.location && <span>{item.location}</span>}
+                        </p>
+                      )}
+                      {item.description && (
+                        <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                      )}
+                      {item.assignees && item.assignees.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {item.assignees.map((email) => (
+                            <span
+                              key={email}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              {email}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition"
+                        title="Edit"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition"
+                        title="Delete"
+                      >
+                        <svg className="w-4 h-4 text-gray-400 hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -300,6 +523,194 @@ export default function Calendar() {
           </div>
         )}
       </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-lg font-bold text-gray-900">
+                {editingItem ? 'Edit Item' : 'Create New Item'}
+              </h2>
+              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded-full transition">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Type selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(TYPE_CONFIG) as ItemType[]).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => handleTypeChange(type)}
+                      className={`
+                        flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition
+                        ${form.type === type
+                          ? 'border-current text-white shadow-sm'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }
+                      `}
+                      style={form.type === type ? { backgroundColor: TYPE_CONFIG[type].color, borderColor: TYPE_CONFIG[type].color } : {}}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[type].icon} />
+                      </svg>
+                      {TYPE_CONFIG[type].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                  placeholder="Enter title..."
+                  autoFocus
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => setForm({ ...form, date: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                />
+              </div>
+
+              {/* Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Start Time</label>
+                  <input
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">End Time</label>
+                  <input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Location</label>
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                  placeholder="e.g., Conference Room A, Zoom"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none"
+                  placeholder="Add details..."
+                />
+              </div>
+
+              {/* Assignees */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Assign People
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={assigneeInput}
+                    onChange={(e) => setAssigneeInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAssignee() } }}
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
+                    placeholder="Enter email address..."
+                  />
+                  <button
+                    type="button"
+                    onClick={addAssignee}
+                    className="px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition text-sm font-semibold"
+                  >
+                    Add
+                  </button>
+                </div>
+                {form.assignees.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {form.assignees.map((email) => (
+                      <span
+                        key={email}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
+                      >
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => removeAssignee(email)}
+                          className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 transition"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal footer */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!form.title.trim() || submitting}
+                className="px-5 py-2.5 text-sm font-semibold text-white bg-[#ff5900] hover:bg-[#e55000] rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting && (
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {editingItem ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
