@@ -33,14 +33,23 @@ export default function Home() {
     try {
       const { data: files, error: filesError } = await supabase
         .from('lead_files')
-        .select('id, columns')
+        .select('id, name, columns')
 
       if (filesError) throw filesError
       if (!files || files.length === 0) return
 
+      const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
+      const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+
+      if (nonDuplicateFileIds.length === 0) {
+        setLeadStats({ totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 })
+        return
+      }
+
       const { data: allRows, error: rowsError } = await supabase
         .from('lead_rows')
         .select('file_id, data')
+        .in('file_id', nonDuplicateFileIds)
 
       if (rowsError) throw rowsError
       if (!allRows) return
@@ -48,38 +57,35 @@ export default function Home() {
       const totalLeads = allRows.length
       let emailsSent = 0
       let replied = 0
+      let noReply = 0
       let meetingsLeft = 0
 
       allRows.forEach((row) => {
         const data = row.data as Record<string, string>
-        const file = files.find(f => f.id === row.file_id)
+        const file = nonDuplicateFiles.find(f => f.id === row.file_id)
         if (!file) return
 
         const columns = file.columns as string[]
-        const emailCol = columns.find(col => col.toLowerCase().includes('email'))
-        const statusCol = columns.find(col =>
-          col.toLowerCase().includes('status') ||
-          col.toLowerCase().includes('reply') ||
-          col.toLowerCase().includes('response')
-        )
-        const meetingCol = columns.find(col => col.toLowerCase().includes('meeting'))
+        const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
+        const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
 
-        if (emailCol && data[emailCol]?.trim()) {
+        if (emailStatusCol && data[emailStatusCol]?.trim()) {
           emailsSent++
-          if (statusCol) {
-            const status = data[statusCol]?.toLowerCase() || ''
-            if (status.includes('replied') || status.includes('yes') || status.includes('responded')) {
-              replied++
-            }
+        }
+
+        if (leadStatusCol && data[leadStatusCol]) {
+          const status = data[leadStatusCol].toLowerCase()
+          if (status.includes('replied')) {
+            replied++
+          }
+          if (status.includes('no reply')) {
+            noReply++
+          }
+          if (status.includes('meeting booked')) {
+            meetingsLeft++
           }
         }
-
-        if (meetingCol && data[meetingCol]?.trim()) {
-          meetingsLeft++
-        }
       })
-
-      const noReply = emailsSent - replied
 
       setLeadStats({
         totalLeads,
