@@ -155,15 +155,17 @@ export default function MessageTemplates() {
           .update({ ...data, updated_at: new Date().toISOString() })
           .eq('id', editingId)
         if (error) throw error
+        setTemplates(prev => prev.map(t => t.id === editingId ? { ...t, ...data, updated_at: new Date().toISOString() } : t))
         setSuccessMessage('Template updated successfully!')
       } else {
-        const { error } = await supabase
+        const { data: newData, error } = await supabase
           .from('message_templates')
           .insert([{ ...data }])
+          .select()
         if (error) throw error
+        if (newData) setTemplates(prev => [newData[0], ...prev])
         setSuccessMessage('Template created successfully!')
       }
-      await fetchTemplates()
       reset()
       setShowForm(false)
       setEditingId(null)
@@ -265,85 +267,95 @@ export default function MessageTemplates() {
       )}
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {editingId ? 'Edit Template' : 'Create New Template'}
-          </h2>
-          
-          {errorMessage && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 text-sm">{errorMessage}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => { setShowForm(false); setEditingId(null); reset() }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-lg font-bold text-gray-900">
+                {editingId ? 'Edit Template' : 'Create New Template'}
+              </h2>
+              <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 hover:bg-gray-100 rounded-full transition">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-          )}
-          
-          {successMessage && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 text-sm">{successMessage}</p>
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {errorMessage && (
+              <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">{errorMessage}</p>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800 text-sm">{successMessage}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+                  <input
+                    {...register('title')}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
+                    placeholder="e.g. Accept Client - 1st Meeting"
+                  />
+                  {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
+                  <select
+                    {...register('category')}
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
+                  >
+                    <option value="">Select category</option>
+                    {defaultCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category.message}</p>}
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject Line</label>
                 <input
-                  {...register('title')}
+                  {...register('subject')}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
-                  placeholder="e.g. Accept Client - 1st Meeting"
+                  placeholder="e.g. Re: Meeting Request - {{company_name}}"
                 />
-                {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
+                {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
+                <p className="mt-1 text-xs text-gray-400">Use {'{{variable_name}}'} for dynamic placeholders</p>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category</label>
-                <select
-                  {...register('category')}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition appearance-none bg-white"
-                >
-                  <option value="">Select category</option>
-                  {defaultCategories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-                {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category.message}</p>}
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Body</label>
+                <textarea
+                  {...register('body')}
+                  rows={8}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-vertical font-mono"
+                  placeholder="Write your email template here..."
+                />
+                {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subject Line</label>
-              <input
-                {...register('subject')}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition"
-                placeholder="e.g. Re: Meeting Request - {{company_name}}"
-              />
-              {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
-              <p className="mt-1 text-xs text-gray-400">Use {'{{variable_name}}'} for dynamic placeholders</p>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Body</label>
-              <textarea
-                {...register('body')}
-                rows={8}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition resize-vertical font-mono"
-                placeholder="Write your email template here..."
-              />
-              {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50"
-              >
-                {isSubmitting ? 'Saving...' : editingId ? 'Update Template' : 'Save Template'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); setEditingId(null); reset() }}
-                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-6 px-6 py-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); setEditingId(null); reset() }}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg transition text-sm disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Saving...' : editingId ? 'Update Template' : 'Save Template'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
