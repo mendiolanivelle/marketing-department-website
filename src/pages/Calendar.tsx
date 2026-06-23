@@ -14,6 +14,7 @@ interface CalendarItem {
   location: string | null
   color: string
   assignees: string[]
+  notes: string
   created_at: string
   updated_at: string
 }
@@ -28,6 +29,7 @@ interface FormData {
   location: string
   color: string
   assignees: string[]
+  notes: string
 }
 
 const TYPE_CONFIG: Record<ItemType, { label: string; color: string; icon: string }> = {
@@ -74,6 +76,7 @@ const defaultForm: FormData = {
   location: '',
   color: 'var(--accent)',
   assignees: [],
+  notes: '',
 }
 
 export default function Calendar() {
@@ -85,6 +88,9 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null)
+  const [viewItem, setViewItem] = useState<CalendarItem | null>(null)
+  const [editingNotes, setEditingNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
   const [form, setForm] = useState<FormData>({ ...defaultForm })
   const [assigneeInput, setAssigneeInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -195,9 +201,33 @@ export default function Calendar() {
       location: item.location || '',
       color: item.color,
       assignees: item.assignees || [],
+      notes: item.notes || '',
     })
     setAssigneeInput('')
     setShowModal(true)
+  }
+
+  const openViewItem = (item: CalendarItem) => {
+    setViewItem(item)
+    setEditingNotes(item.notes || '')
+  }
+
+  const saveNotes = async () => {
+    if (!viewItem || !supabase) return
+    setSavingNotes(true)
+    try {
+      const { error } = await supabase
+        .from('calendar_items')
+        .update({ notes: editingNotes })
+        .eq('id', viewItem.id)
+      if (error) throw error
+      setViewItem({ ...viewItem, notes: editingNotes })
+      setItems(prev => prev.map(i => i.id === viewItem.id ? { ...i, notes: editingNotes } : i))
+    } catch (err) {
+      console.error('Error saving notes:', err)
+    } finally {
+      setSavingNotes(false)
+    }
   }
 
   const handleTypeChange = (type: ItemType) => {
@@ -230,6 +260,7 @@ export default function Calendar() {
       location: form.location.trim() || null,
       color: form.color,
       assignees: form.assignees,
+      notes: form.notes || '',
     }
 
     try {
@@ -384,9 +415,9 @@ export default function Calendar() {
                         {dayItems.slice(0, 3).map((item) => (
                           <div
                             key={item.id}
-                            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white"
+                            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white cursor-pointer hover:opacity-90 transition"
                             style={{ backgroundColor: item.color }}
-                            onClick={(e) => { e.stopPropagation(); setSelectedDate(dateKey) }}
+                            onClick={(e) => { e.stopPropagation(); openViewItem(item) }}
                           >
                             <svg className="w-3 h-3 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[item.type].icon} />
@@ -420,109 +451,149 @@ export default function Calendar() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Selected date detail panel */}
-        {selectedDate && (
-          <div className="mt-4 bg-white rounded-2xl border border-[#CACDD7] p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-[#1B1A1C]">
-                {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-                  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-                })}
-              </h2>
-              <div className="flex items-center gap-2">
+      {/* Item Detail Popup */}
+      {viewItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setViewItem(null)} />
+          <div className="relative rounded-2xl border w-full max-h-[90vh] overflow-hidden flex flex-col" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', maxWidth: '600px' }}>
+            {/* Header */}
+            <div className="flex items-start justify-between p-6 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold text-white"
+                    style={{ backgroundColor: viewItem.color }}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[viewItem.type].icon} />
+                    </svg>
+                    {TYPE_CONFIG[viewItem.type].label}
+                  </span>
+                </div>
+                <h3 className="text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{viewItem.title}</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+                  {new Date(viewItem.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 ml-4">
                 <button
-                  onClick={() => openCreateModal(selectedDate)}
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-[#FF5900] hover:bg-[#FF5900] rounded-lg transition flex items-center gap-1"
+                  onClick={() => { openEditModal(viewItem); setViewItem(null) }}
+                  className="p-2 rounded-lg transition"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title="Edit"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Add
                 </button>
-                <button onClick={() => setSelectedDate(null)} className="p-1 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
-                  <svg className="w-5 h-5 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button
+                  onClick={() => { handleDelete(viewItem.id); setViewItem(null) }}
+                  className="p-2 rounded-lg transition"
+                  style={{ color: 'var(--text-secondary)' }}
+                  title="Delete"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewItem(null)}
+                  className="p-2 rounded-lg transition"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
             </div>
-            {selectedItems.length === 0 ? (
-              <p className="text-[#3E4048] text-sm">No items for this day. Click "Add" to create one.</p>
-            ) : (
-              <div className="space-y-2">
-                {selectedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-[#CACDD7] hover:border-[#CACDD7] transition group"
-                  >
-                    <div className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: item.color }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold text-white"
-                          style={{ backgroundColor: item.color }}
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TYPE_CONFIG[item.type].icon} />
-                          </svg>
-                          {TYPE_CONFIG[item.type].label}
-                        </span>
-                      </div>
-                      <p className="text-sm font-semibold text-[#1B1A1C]">{item.title}</p>
-                      {(item.start_time || item.location) && (
-                        <p className="text-xs text-[#3E4048] mt-0.5">
-                          {item.start_time && <span>{formatTime(item.start_time)}{item.end_time ? ` - ${formatTime(item.end_time)}` : ''}</span>}
-                          {item.start_time && item.location && <span> &middot; </span>}
-                          {item.location && <span>{item.location}</span>}
-                        </p>
-                      )}
-                      {item.description && (
-                        <p className="text-xs text-[#3E4048] mt-1">{item.description}</p>
-                      )}
-                      {item.assignees && item.assignees.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {item.assignees.map((email) => (
-                            <span
-                              key={email}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-[rgba(202,205,215,0.2)] text-[#3E4048] rounded-full text-xs"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                              {email}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Time & Location */}
+              {(viewItem.start_time || viewItem.location) && (
+                <div className="flex flex-wrap gap-4">
+                  {viewItem.start_time && (
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+                        {formatTime(viewItem.start_time)}{viewItem.end_time ? ` - ${formatTime(viewItem.end_time)}` : ''}
+                      </span>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                      <button
-                        onClick={() => openEditModal(item)}
-                        className="p-1.5 rounded-lg hover:bg-[rgba(202,205,215,0.2)] transition"
-                        title="Edit"
-                      >
-                        <svg className="w-4 h-4 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 transition"
-                        title="Delete"
-                      >
-                        <svg className="w-4 h-4 text-[#CACDD7] hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                  )}
+                  {viewItem.location && (
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{viewItem.location}</span>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Description */}
+              {viewItem.description && (
+                <div>
+                  <h4 className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Description</h4>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{viewItem.description}</p>
+                </div>
+              )}
+
+              {/* Assignees */}
+              {viewItem.assignees && viewItem.assignees.length > 0 && (
+                <div>
+                  <h4 className="text-xs uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Assigned To</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewItem.assignees.map((email) => (
+                      <span
+                        key={email}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                      >
+                        <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        {email}
+                      </span>
+                    ))}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Notes - Editable */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Notes</h4>
+                  {editingNotes !== viewItem.notes && (
+                    <button
+                      onClick={saveNotes}
+                      disabled={savingNotes}
+                      className="text-xs px-2 py-0.5 rounded transition disabled:opacity-50"
+                      style={{ color: 'var(--accent)', backgroundColor: 'var(--accent-light)', fontWeight: 500 }}
+                    >
+                      {savingNotes ? 'Saving...' : 'Save'}
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={editingNotes}
+                  onChange={(e) => setEditingNotes(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-sm border rounded-lg outline-none resize-none"
+                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                  placeholder="Add notes..."
+                />
               </div>
-            )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -634,6 +705,18 @@ export default function Calendar() {
                   rows={3}
                   className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none"
                   placeholder="Add details..."
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none"
+                  placeholder="Add notes..."
                 />
               </div>
 
