@@ -938,8 +938,8 @@ export default function LeadGeneration() {
 
         {/* Status Bar */}
         <div className="border-t border-[#CACDD7] px-4 py-1 bg-[rgba(202,205,215,0.15)] flex items-center justify-between text-xs text-[#3E4048]">
-          <span>{rows.length} rows × {selectedFile.columns.length} columns</span>
-          <span>Click cell to edit · Drag headers to rearrange</span>
+          <span>{rows.length} rows x {selectedFile.columns.length} columns</span>
+          <span>Click cell to edit - drag headers to rearrange</span>
         </div>
       </div>
     )

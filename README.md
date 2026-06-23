@@ -75,7 +75,7 @@ src/
 
 ## AI Agent Context
 
-Generated output, installed dependencies, lockfile churn, logs, and local environment files are excluded from AI indexing in `.aiignore` and `.cursorignore`. This keeps future coding-agent context focused on source files.
+Generated output, installed dependencies, lockfile churn, logs, and local environment files are excluded from AI indexing in `.aiignore`, `.cursorignore`, `.codexignore`, `.aiderignore`, `.continueignore`, `.windsurfignore`, and `.claudeignore`. This keeps future coding-agent context focused on source files.
 
 ## Features
 
