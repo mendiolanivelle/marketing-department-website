@@ -12,6 +12,7 @@ import Contact from './pages/Contact'
 import Timeline from './pages/Timeline'
 import MessageTemplates from './pages/MessageTemplates'
 import Calendar from './pages/Calendar'
+import LeadGeneration from './pages/LeadGeneration'
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
                           <Route path="/timeline" element={<Timeline />} />
                           <Route path="/templates" element={<MessageTemplates />} />
                           <Route path="/calendar" element={<Calendar />} />
+                          <Route path="/leads" element={<LeadGeneration />} />
                           <Route path="/contact" element={<Contact />} />
                         </Routes>
                       </main>
