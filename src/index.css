@@ -51,16 +51,16 @@ p, span, a, li, label, input, textarea, select, button {
 }
 
 .dark .border-gray-200,
-.dark .border-\[#CACDD7\] {
+.dark [class~="border-[#CACDD7]"] {
   border-color: var(--border-color) !important;
 }
 
-.dark .text-\[#1B1A1C\] {
+.dark [class~="text-[#1B1A1C]"] {
   color: var(--text-primary) !important;
 }
 
-.dark .text-\[#3E4048\],
-.dark .text-\[#CACDD7\] {
+.dark [class~="text-[#3E4048]"],
+.dark [class~="text-[#CACDD7]"] {
   color: var(--text-secondary) !important;
 }
 
