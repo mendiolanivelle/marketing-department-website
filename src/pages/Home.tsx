@@ -187,7 +187,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
@@ -241,21 +241,21 @@ export default function Home() {
                 ))}
               </ul>
             </div>
-          </div>
 
-          {/* Quick Links */}
-          <div className="rounded-2xl border p-4 sm:p-8 mt-4 sm:mt-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128279; Quick Links</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {quickLinks.map((link, i) => (
-                <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 300 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                >
-                  <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
-                  <span>{link.label}</span>
-                </Link>
-              ))}
+            {/* Quick Links */}
+            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128279; Quick Links</h2>
+              <div className="space-y-2.5">
+                {quickLinks.map((link, i) => (
+                  <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 300 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  >
+                    <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
