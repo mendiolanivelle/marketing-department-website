@@ -19,6 +19,21 @@ interface LeadRow {
   updated_at: string
 }
 
+interface CellFormat {
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  strikethrough?: boolean
+  fontSize?: number
+  fontFamily?: string
+  textColor?: string
+  fillColor?: string
+  align?: 'left' | 'center' | 'right'
+  valign?: 'top' | 'middle' | 'bottom'
+  wrap?: boolean
+  border?: string
+}
+
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter(line => line.trim())
   if (lines.length === 0) return { headers: [], rows: [] }
@@ -58,6 +73,24 @@ function parseCSV(text: string): { headers: string[]; rows: Record<string, strin
   return { headers, rows }
 }
 
+const colToLetter = (col: number): string => {
+  let letter = ''
+  let num = col
+  do {
+    letter = String.fromCharCode(65 + (num % 26)) + letter
+    num = Math.floor(num / 26) - 1
+  } while (num >= 0)
+  return letter
+}
+
+const letterToCol = (letter: string): number => {
+  let col = 0
+  for (let i = 0; i < letter.length; i++) {
+    col = col * 26 + (letter.charCodeAt(i) - 64)
+  }
+  return col - 1
+}
+
 export default function LeadGeneration() {
   const [files, setFiles] = useState<LeadFile[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,6 +108,12 @@ export default function LeadGeneration() {
   const [zoom, setZoom] = useState(100)
   const [draggedColumn, setDraggedColumn] = useState<number | null>(null)
   const [draggedRow, setDraggedRow] = useState<number | null>(null)
+  const [currentCellRef, setCurrentCellRef] = useState('A1')
+  const [formulaValue, setFormulaValue] = useState('')
+  const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [cellFormats, setCellFormats] = useState<Record<string, CellFormat>>({})
+  const [selectedRange, setSelectedRange] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number } | null>(null)
+  const [isSelecting, setIsSelecting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
@@ -276,16 +315,9 @@ export default function LeadGeneration() {
 
     setCreatingSpreadsheet(true)
     try {
-      // Generate 50 columns like Google Sheets (A, B, C, ..., Z, AA, AB, ...)
       const columns: string[] = []
       for (let i = 0; i < 50; i++) {
-        let colName = ''
-        let num = i
-        do {
-          colName = String.fromCharCode(65 + (num % 26)) + colName
-          num = Math.floor(num / 26) - 1
-        } while (num >= 0)
-        columns.push(colName)
+        columns.push(colToLetter(i))
       }
 
       const { data: fileData, error: fileError } = await supabase
@@ -296,7 +328,6 @@ export default function LeadGeneration() {
 
       if (fileError) throw fileError
 
-      // Create 50 empty rows
       const emptyRows = Array.from({ length: 50 }, (_, idx) => {
         const emptyRow = columns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
         return { file_id: fileData.id, row_index: idx, data: emptyRow }
@@ -327,9 +358,14 @@ export default function LeadGeneration() {
     setRows([])
     setEditingCell(null)
     setEditingHeader(null)
+    setCurrentCellRef('A1')
+    setFormulaValue('')
   }
 
-  const handleCellEdit = (row: LeadRow, col: string) => {
+  const handleCellClick = (row: LeadRow, col: string, rowIdx: number, colIdx: number) => {
+    const cellRef = `${col}${rowIdx + 1}`
+    setCurrentCellRef(cellRef)
+    setFormulaValue(row.data[col] || '')
     setEditingCell({ rowId: row.id, col })
     setEditValue(row.data[col] || '')
   }
@@ -428,7 +464,7 @@ export default function LeadGeneration() {
 
   const addColumn = async () => {
     if (!selectedFile || !supabase) return
-    const newName = `Column ${selectedFile.columns.length + 1}`
+    const newName = colToLetter(selectedFile.columns.length)
     const newColumns = [...selectedFile.columns, newName]
 
     const { error } = await supabase
@@ -529,7 +565,6 @@ export default function LeadGeneration() {
     const [movedRow] = newRows.splice(draggedRow, 1)
     newRows.splice(targetIdx, 0, movedRow)
 
-    // Update row_index for all rows
     const updates = newRows.map((row, idx) => ({
       id: row.id,
       row_index: idx,
@@ -554,75 +589,235 @@ export default function LeadGeneration() {
     setZoom(prev => Math.max(prev - 10, 50))
   }
 
+  const applyFormat = (format: Partial<CellFormat>) => {
+    if (!editingCell) return
+    const cellKey = `${editingCell.rowId}-${editingCell.col}`
+    setCellFormats(prev => ({
+      ...prev,
+      [cellKey]: { ...prev[cellKey], ...format }
+    }))
+  }
+
+  const getCurrentCellFormat = (): CellFormat => {
+    if (!editingCell) return {}
+    const cellKey = `${editingCell.rowId}-${editingCell.col}`
+    return cellFormats[cellKey] || {}
+  }
+
+  const menus = {
+    File: ['New', 'Open', 'Make a copy', 'Share', 'Download', 'Print'],
+    Edit: ['Undo', 'Redo', 'Cut', 'Copy', 'Paste', 'Delete', 'Select all'],
+    View: ['Zoom', 'Show gridlines', 'Show formula bar', 'Freeze', 'Hidden columns'],
+    Insert: ['Rows', 'Columns', 'Chart', 'Image', 'Drawing', 'Comment'],
+    Format: ['Text', 'Number', 'Conditional formatting', 'Alternating colors', 'Clear formatting'],
+    Data: ['Sort sheet', 'Sort range', 'Create a filter', 'Data validation', 'Group rows'],
+    Tools: ['Spelling', 'Macros', 'Notifications', 'Script editor'],
+    Extensions: ['Add-ons', 'Get add-ons'],
+    Help: ['Search menus', 'Help', 'Updates', 'Report a problem']
+  }
+
   if (selectedFile) {
+    const currentFormat = getCurrentCellFormat()
+
     return (
-      <div className="h-[calc(100vh-0px)] flex flex-col bg-white">
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-3">
-            <button onClick={closeFile} className="p-1.5 hover:bg-gray-100 rounded-lg transition">
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      <div className="h-screen flex flex-col bg-white">
+        {/* Menu Bar */}
+        <div className="flex items-center px-2 py-1 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2 mr-4">
+            <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: '#0f9d58' }}>
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#ff5900' }}>
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h1 className="text-lg font-bold text-gray-900">{selectedFile.name}</h1>
             </div>
+            <h1 className="text-sm font-medium text-gray-900">{selectedFile.name}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 border border-gray-300 rounded-lg">
-              <button onClick={zoomOut} className="px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition" title="Zoom out">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                </svg>
-              </button>
-              <span className="px-2 py-1.5 text-xs font-medium text-gray-700 min-w-[50px] text-center">{zoom}%</span>
-              <button onClick={zoomIn} className="px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition" title="Zoom in">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
-            </div>
-            <button onClick={exportCSV} className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Export CSV
-            </button>
-            <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: '#ff5900' }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Row
-            </button>
-            <button onClick={addColumn} className="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition flex items-center gap-1.5">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Column
-            </button>
+          <div className="flex items-center gap-1">
+            {Object.keys(menus).map(menu => (
+              <div key={menu} className="relative">
+                <button
+                  onClick={() => setActiveMenu(activeMenu === menu ? null : menu)}
+                  className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  {menu}
+                </button>
+                {activeMenu === menu && (
+                  <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+                    {menus[menu as keyof typeof menus].map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setActiveMenu(null)
+                          if (item === 'Download') exportCSV()
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
+        {/* Toolbar */}
+        <div className="flex items-center gap-1 px-2 py-1 border-b border-gray-200 bg-gray-50 flex-wrap">
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Undo">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Redo">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
+            </svg>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Print">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <div className="flex items-center gap-1 border border-gray-300 rounded px-2 py-1 bg-white">
+            <button onClick={zoomOut} className="text-gray-600 hover:text-gray-900">-</button>
+            <span className="text-xs text-gray-700 min-w-[40px] text-center">{zoom}%</span>
+            <button onClick={zoomIn} className="text-gray-600 hover:text-gray-900">+</button>
+          </div>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Currency">
+            <span className="text-sm text-gray-600">$</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Percent">
+            <span className="text-sm text-gray-600">%</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Decimal">
+            <span className="text-xs text-gray-600">.0</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Decimal">
+            <span className="text-xs text-gray-600">.00</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Number format">
+            <span className="text-xs text-gray-600">123</span>
+          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <select className="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+            <option>Default</option>
+            <option>Arial</option>
+            <option>Times New Roman</option>
+            <option>Courier New</option>
+            <option>Georgia</option>
+          </select>
+          <div className="flex items-center gap-1 border border-gray-300 rounded px-2 py-1 bg-white">
+            <button className="text-gray-600 hover:text-gray-900">-</button>
+            <span className="text-xs text-gray-700 min-w-[30px] text-center">{currentFormat.fontSize || 10}</span>
+            <button className="text-gray-600 hover:text-gray-900">+</button>
+          </div>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <button
+            onClick={() => applyFormat({ bold: !currentFormat.bold })}
+            className={`p-1.5 rounded font-bold ${currentFormat.bold ? 'bg-gray-300' : 'hover:bg-gray-200'}`}
+            title="Bold"
+          >
+            <span className="text-sm">B</span>
+          </button>
+          <button
+            onClick={() => applyFormat({ italic: !currentFormat.italic })}
+            className={`p-1.5 rounded italic ${currentFormat.italic ? 'bg-gray-300' : 'hover:bg-gray-200'}`}
+            title="Italic"
+          >
+            <span className="text-sm">I</span>
+          </button>
+          <button
+            onClick={() => applyFormat({ strikethrough: !currentFormat.strikethrough })}
+            className={`p-1.5 rounded ${currentFormat.strikethrough ? 'bg-gray-300' : 'hover:bg-gray-200'}`}
+            title="Strikethrough"
+          >
+            <span className="text-sm line-through">S</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Text color">
+            <span className="text-sm text-gray-600 border-b-2 border-red-500">A</span>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Fill color">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Borders">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+            </svg>
+          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Align left">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
+            </svg>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Align center">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M4 18h16" />
+            </svg>
+          </button>
+          <button className="p-1.5 hover:bg-gray-200 rounded" title="Align right">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M10 12h10M4 18h16" />
+            </svg>
+          </button>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <button onClick={exportCSV} className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-100 flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </button>
+          <button onClick={addRow} className="px-3 py-1.5 text-sm font-medium text-white rounded flex items-center gap-1.5" style={{ backgroundColor: '#0f9d58' }}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Row
+          </button>
+          <button onClick={addColumn} className="px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Column
+          </button>
+        </div>
+
+        {/* Formula Bar */}
+        <div className="flex items-center gap-2 px-2 py-1 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2 border border-gray-300 rounded px-3 py-1 min-w-[80px]">
+            <span className="text-sm text-gray-700 font-medium">{currentCellRef}</span>
+          </div>
+          <div className="flex-1 flex items-center border border-gray-300 rounded px-3 py-1">
+            <span className="text-gray-400 mr-2">fx</span>
+            <input
+              type="text"
+              value={formulaValue}
+              onChange={(e) => setFormulaValue(e.target.value)}
+              className="flex-1 text-sm outline-none"
+              placeholder="Enter value or formula"
+            />
+          </div>
+        </div>
+
+        {/* Spreadsheet Grid */}
         <div className="flex-1 overflow-auto">
           {rowsLoading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#ff5900' }}></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#0f9d58' }}></div>
             </div>
           ) : (
             <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left', width: `${10000 / zoom}%` }}>
               <table className="w-full border-collapse min-w-max">
-                <thead className="sticky top-0 z-10 bg-gray-50">
+                <thead>
                   <tr>
-                    <th className="w-12 border-b border-r border-gray-200 px-2 py-2 text-xs font-medium text-gray-400 text-center bg-gray-50">#</th>
+                    <th className="w-12 border-b border-r border-gray-300 px-2 py-1 text-xs font-medium text-gray-500 text-center bg-gray-100 sticky left-0 z-20">#</th>
                     {selectedFile.columns.map((col, colIdx) => (
                       <th
                         key={colIdx}
-                        className="border-b border-r border-gray-200 px-1 py-1 min-w-[100px] bg-gray-50 group relative"
+                        className="border-b border-r border-gray-300 px-1 py-1 min-w-[100px] bg-[#e8f0fe] group relative sticky top-0 z-10"
                         draggable
                         onDragStart={() => handleColumnDragStart(colIdx)}
                         onDragOver={(e) => e.preventDefault()}
@@ -637,13 +832,12 @@ export default function LeadGeneration() {
                               onBlur={saveHeaderEdit}
                               onKeyDown={(e) => { if (e.key === 'Enter') saveHeaderEdit(); if (e.key === 'Escape') setEditingHeader(null) }}
                               className="w-full px-2 py-1 text-xs font-semibold text-gray-700 bg-white border rounded outline-none"
-                              style={{ borderColor: '#ff5900' }}
                               autoFocus
                             />
                           ) : (
                             <span
                               onClick={() => handleHeaderEdit(colIdx)}
-                              className="flex-1 px-2 py-1 text-xs font-semibold text-gray-700 cursor-text hover:bg-gray-100 rounded truncate"
+                              className="flex-1 px-2 py-1 text-xs font-semibold text-gray-700 cursor-text hover:bg-blue-100 rounded truncate"
                             >
                               {col}
                             </span>
@@ -660,47 +854,60 @@ export default function LeadGeneration() {
                         </div>
                       </th>
                     ))}
-                    <th className="w-10 border-b border-gray-200 bg-gray-50"></th>
+                    <th className="w-10 border-b border-gray-300 bg-[#e8f0fe] sticky top-0 z-10"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row, rowIdx) => (
                     <tr
                       key={row.id}
-                      className="group hover:bg-orange-50/30"
+                      className="group hover:bg-blue-50"
                       draggable
                       onDragStart={() => handleRowDragStart(rowIdx)}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => handleRowDrop(rowIdx)}
                     >
-                      <td className="border-b border-r border-gray-200 px-2 py-1 text-xs text-gray-400 text-center bg-gray-50/50 cursor-move">
+                      <td className="border-b border-r border-gray-300 px-2 py-1 text-xs text-gray-500 text-center bg-gray-100 cursor-move sticky left-0 z-10">
                         {rowIdx + 1}
                       </td>
-                      {selectedFile.columns.map((col) => (
-                        <td
-                          key={col}
-                          className="border-b border-r border-gray-200 px-1 py-0.5 cursor-cell"
-                          onClick={() => handleCellEdit(row, col)}
-                        >
-                          {editingCell?.rowId === row.id && editingCell?.col === col ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={saveCellEdit}
-                              onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
-                              className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
-                              style={{ borderColor: '#ff5900' }}
-                              autoFocus
-                            />
-                          ) : (
-                            <div className="px-2 py-1 text-sm text-gray-700 min-h-[28px] hover:bg-white hover:border hover:border-gray-200 rounded">
-                              {row.data[col] || ''}
-                            </div>
-                          )}
-                        </td>
-                      ))}
-                      <td className="border-b border-gray-200 px-1">
+                      {selectedFile.columns.map((col) => {
+                        const cellKey = `${row.id}-${col}`
+                        const format = cellFormats[cellKey] || {}
+                        return (
+                          <td
+                            key={col}
+                            className="border-b border-r border-gray-300 px-1 py-0.5 cursor-cell"
+                            onClick={() => handleCellClick(row, col, rowIdx, selectedFile.columns.indexOf(col))}
+                            style={{
+                              fontWeight: format.bold ? 'bold' : 'normal',
+                              fontStyle: format.italic ? 'italic' : 'normal',
+                              textDecoration: format.strikethrough ? 'line-through' : 'none',
+                              fontSize: `${format.fontSize || 10}px`,
+                              color: format.textColor || 'inherit',
+                              backgroundColor: format.fillColor || 'inherit',
+                              textAlign: format.align || 'left',
+                            }}
+                          >
+                            {editingCell?.rowId === row.id && editingCell?.col === col ? (
+                              <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={saveCellEdit}
+                                onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
+                                className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
+                                style={{ borderColor: '#0f9d58' }}
+                                autoFocus
+                              />
+                            ) : (
+                              <div className="px-2 py-1 text-sm text-gray-700 min-h-[28px] hover:bg-white hover:border hover:border-gray-300 rounded">
+                                {row.data[col] || ''}
+                              </div>
+                            )}
+                          </td>
+                        )
+                      })}
+                      <td className="border-b border-gray-300 px-1">
                         <button
                           onClick={() => deleteRow(row.id)}
                           className="p-1 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition"
@@ -719,9 +926,20 @@ export default function LeadGeneration() {
           )}
         </div>
 
-        <div className="border-t border-gray-200 px-4 py-2 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>{rows.length} rows &middot; {selectedFile.columns.length} columns &middot; Zoom: {zoom}%</span>
-          <span>Click any cell to edit &middot; Drag column headers or row numbers to rearrange</span>
+        {/* Sheet Tabs */}
+        <div className="flex items-center gap-1 px-2 py-1 border-t border-gray-200 bg-gray-100">
+          <button className="px-3 py-1 text-sm font-medium bg-white border border-gray-300 rounded-t text-gray-900">
+            Sheet1
+          </button>
+          <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 rounded">
+            + Add sheet
+          </button>
+        </div>
+
+        {/* Status Bar */}
+        <div className="border-t border-gray-200 px-4 py-1 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
+          <span>{rows.length} rows × {selectedFile.columns.length} columns</span>
+          <span>Click cell to edit · Drag headers to rearrange</span>
         </div>
       </div>
     )
@@ -741,8 +959,8 @@ export default function LeadGeneration() {
             className={`
               relative border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all
               ${uploading
-                ? 'border-[#ff5900] bg-orange-50'
-                : 'border-gray-300 bg-white hover:border-[#ff5900] hover:bg-orange-50/30'
+                ? 'border-[#0f9d58] bg-green-50'
+                : 'border-gray-300 bg-white hover:border-[#0f9d58] hover:bg-green-50/30'
               }
             `}
           >
@@ -755,13 +973,13 @@ export default function LeadGeneration() {
             />
             {uploading ? (
               <div className="flex flex-col items-center gap-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#ff5900]"></div>
-                <p className="text-sm font-medium text-[#ff5900]">Uploading and parsing CSV...</p>
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0f9d58]"></div>
+                <p className="text-sm font-medium text-[#0f9d58]">Uploading and parsing CSV...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
-                  <svg className="w-7 h-7 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center">
+                  <svg className="w-7 h-7 text-[#0f9d58]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
@@ -775,11 +993,11 @@ export default function LeadGeneration() {
 
           <div
             onClick={() => setShowNewSpreadsheetModal(true)}
-            className="border-2 border-dashed border-gray-300 bg-white hover:border-[#ff5900] hover:bg-orange-50/30 rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all"
+            className="border-2 border-dashed border-gray-300 bg-white hover:border-[#0f9d58] hover:bg-green-50/30 rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all"
           >
             <div className="flex flex-col items-center gap-3">
-              <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center">
+                <svg className="w-7 h-7 text-[#0f9d58]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
@@ -811,7 +1029,7 @@ export default function LeadGeneration() {
                     value={newSpreadsheetName}
                     onChange={(e) => setNewSpreadsheetName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') createSpreadsheet() }}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0f9d58] focus:border-transparent outline-none transition"
                     placeholder="e.g., Q3 Lead List"
                     autoFocus
                   />
@@ -827,7 +1045,7 @@ export default function LeadGeneration() {
                 <button
                   onClick={createSpreadsheet}
                   disabled={!newSpreadsheetName.trim() || creatingSpreadsheet}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-[#ff5900] hover:bg-[#e55000] rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2 text-sm font-semibold text-white bg-[#0f9d58] hover:bg-[#0b8043] rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {creatingSpreadsheet && (
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -864,12 +1082,12 @@ export default function LeadGeneration() {
                 {files.filter(f => f.source === 'csv').map((file) => (
                   <div
                     key={file.id}
-                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-green-300 hover:shadow-md transition-all cursor-pointer"
                     onClick={() => openFile(file)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#0f9d58]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
@@ -916,12 +1134,12 @@ export default function LeadGeneration() {
                 {files.filter(f => f.source === 'spreadsheet').map((file) => (
                   <div
                     key={file.id}
-                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer"
+                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-green-300 hover:shadow-md transition-all cursor-pointer"
                     onClick={() => openFile(file)}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-[#ff5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#0f9d58]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                       </div>
