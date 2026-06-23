@@ -6,7 +6,7 @@ const teamMembers = [
   { name: 'Lisa Patel', role: 'Social Media & Comms', bio: 'Manages company social channels, employee advocacy, and internal communications.', initials: 'LP' },
   { name: 'James Wilson', role: 'Marketing Analytics', bio: 'Builds dashboards, tracks KPIs, and provides data-driven insights to the team and leadership.', initials: 'JW' },
   { name: 'Anna Kowalski', role: 'Event Coordinator', bio: 'Plans and executes company events, webinars, trade shows, and conference participation.', initials: 'AK' },
-  { name: 'Ryan Thompson', role: 'Marketing Operations', bio: 'Manages marketing tech stack, CRM integrations, and process automation for the department.', initials: 'RT' }
+  { name: 'Ryan Thompson', role: 'Marketing Operations', bio: 'Manages marketing tech stack, CRM integrations, and process automation for the department.', initials: 'RT' },
 ]
 
 export default function Team() {
@@ -40,10 +40,10 @@ export default function Team() {
           </p>
           <div className="flex flex-col gap-3 max-w-lg mx-auto">
             {[
-              { title: 'Marketing Coordinator', type: 'Full-time · Hybrid' },
-              { title: 'Senior Content Strategist', type: 'Full-time · Remote' },
-            ].map((role, i) => (
-              <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white border border-[#CACDD7] rounded-xl hover:border-[#CACDD7] hover:shadow-md transition gap-2 sm:gap-0">
+              { title: 'Marketing Coordinator', type: 'Full-time - Hybrid' },
+              { title: 'Senior Content Strategist', type: 'Full-time - Remote' },
+            ].map((role, index) => (
+              <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white border border-[#CACDD7] rounded-xl hover:border-[#CACDD7] hover:shadow-md transition gap-2 sm:gap-0">
                 <h4 className="font-semibold text-[#1B1A1C]">{role.title}</h4>
                 <span className="text-sm text-[#3E4048]">{role.type}</span>
               </div>

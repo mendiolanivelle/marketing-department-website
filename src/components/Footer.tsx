@@ -29,11 +29,11 @@ export default function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition">Brand Guidelines</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition">Template Library</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition">Campaign Calendar</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition">Performance Dashboard</a></li>
-              <li><a href="#" className="text-sm text-gray-400 hover:text-white transition">Team Wiki</a></li>
+              <li><Link to="/services" className="text-sm text-gray-400 hover:text-white transition">Brand Guidelines</Link></li>
+              <li><Link to="/templates" className="text-sm text-gray-400 hover:text-white transition">Template Library</Link></li>
+              <li><Link to="/calendar" className="text-sm text-gray-400 hover:text-white transition">Campaign Calendar</Link></li>
+              <li><Link to="/" className="text-sm text-gray-400 hover:text-white transition">Performance Dashboard</Link></li>
+              <li><Link to="/team" className="text-sm text-gray-400 hover:text-white transition">Team Wiki</Link></li>
             </ul>
           </div>
 

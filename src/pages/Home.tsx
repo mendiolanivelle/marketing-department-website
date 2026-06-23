@@ -10,12 +10,12 @@ const announcements = [
 ]
 
 const quickLinks = [
-  { label: 'Submit Campaign Request', icon: '&#128221;', href: '/contact' },
-  { label: 'Brand Assets & Guidelines', icon: '&#128193;', href: '#' },
-  { label: 'Campaign Calendar', icon: '&#128197;', href: '#' },
-  { label: 'Performance Dashboard', icon: '&#128200;', href: '#' },
-  { label: 'Content Templates', icon: '&#128196;', href: '#' },
-  { label: 'Team Wiki', icon: '&#128218;', href: '#' },
+  { label: 'Submit Campaign Request', icon: '&#128221;', to: '/contact' },
+  { label: 'Brand Assets & Guidelines', icon: '&#128193;', to: '/services' },
+  { label: 'Campaign Calendar', icon: '&#128197;', to: '/calendar' },
+  { label: 'Performance Dashboard', icon: '&#128200;', to: '/' },
+  { label: 'Content Templates', icon: '&#128196;', to: '/templates' },
+  { label: 'Team Wiki', icon: '&#128218;', to: '/team' },
 ]
 
 export default function Home() {
@@ -183,10 +183,10 @@ export default function Home() {
               <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: '#1B1A1C', fontWeight: 700 }}>&#128279; Quick Links</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {quickLinks.map((link, i) => (
-                  <a key={i} href={link.href} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048', fontWeight: 300 }}>
+                  <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition" style={{ backgroundColor: 'rgba(202,205,215,0.15)', color: '#3E4048', fontWeight: 300 }}>
                     <span className="text-lg" dangerouslySetInnerHTML={{ __html: link.icon }}></span>
                     <span>{link.label}</span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>

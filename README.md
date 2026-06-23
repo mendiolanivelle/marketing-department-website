@@ -65,13 +65,17 @@ npm run dev
 
 ```
 src/
-├── components/       # Reusable UI components
-├── contexts/         # React context providers
-├── lib/             # Utility libraries (Supabase client)
-├── pages/           # Page components
-├── providers/       # Third-party providers (TanStack Query)
-└── main.tsx         # Application entry point
+|-- components/       # Reusable UI components
+|-- contexts/         # React context providers
+|-- lib/              # Utility libraries (Supabase client)
+|-- pages/            # Page components
+|-- providers/        # Third-party providers (TanStack Query)
+`-- main.tsx          # Application entry point
 ```
+
+## AI Agent Context
+
+Generated output, installed dependencies, lockfile churn, logs, and local environment files are excluded from AI indexing in `.aiignore` and `.cursorignore`. This keeps future coding-agent context focused on source files.
 
 ## Features
 

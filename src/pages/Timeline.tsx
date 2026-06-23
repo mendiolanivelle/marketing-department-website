@@ -21,15 +21,15 @@ const columns: { key: LeadStatus; label: string; color: string }[] = [
   { key: 'second-meeting', label: '2nd Meeting', color: 'bg-indigo-500' },
   { key: 'third-meeting', label: '3rd Meeting', color: 'bg-violet-500' },
   { key: 'quotation', label: 'Quotation', color: 'bg-amber-500' },
-  { key: 'start-of-project', label: 'Start of Project', color: 'bg-[rgba(255,89,0,0.05)]0' },
-  { key: 'follow-up', label: 'Follow Up', color: 'bg-[rgba(202,205,215,0.15)]0' },
+  { key: 'start-of-project', label: 'Start of Project', color: 'bg-[#FF5900]' },
+  { key: 'follow-up', label: 'Follow Up', color: 'bg-[#3E4048]' },
 ]
 
 export default function Timeline() {
   const location = useLocation()
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
-  const [draggedLead, setDraggedLead] = useState<string | null>(null)
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null)
   const [moveLeadId, setMoveLeadId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
@@ -78,24 +78,24 @@ export default function Timeline() {
     }
   }, [fetchLeads, location.pathname])
 
-  const handleDragStart = (e: React.DragEvent, leadId: string) => {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', leadId)
-    setDraggedLead(leadId)
+  const handleDragStart = (event: React.DragEvent, leadId: string) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', leadId)
+    setDraggedLeadId(leadId)
   }
 
   const handleDragEnd = () => {
-    setDraggedLead(null)
+    setDraggedLeadId(null)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e: React.DragEvent, status: LeadStatus) => {
-    e.preventDefault()
-    const leadId = e.dataTransfer.getData('text/plain')
+  const handleDrop = async (event: React.DragEvent, status: LeadStatus) => {
+    event.preventDefault()
+    const leadId = event.dataTransfer.getData('text/plain')
     
     if (!leadId) return
     
@@ -110,7 +110,7 @@ export default function Timeline() {
         console.error('Error updating lead status:', err)
       }
     }
-    setDraggedLead(null)
+    setDraggedLeadId(null)
   }
 
   const handleMoveLead = async (leadId: string, status: LeadStatus) => {
@@ -349,7 +349,7 @@ export default function Timeline() {
                 key={column.key}
                 className="min-w-[260px] sm:min-w-[280px] flex-1 bg-[rgba(202,205,215,0.2)] rounded-2xl p-3 sm:p-4"
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop(column.key)}
+                onDrop={(event) => handleDrop(event, column.key)}
               >
                 <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div className="flex items-center gap-2">
@@ -366,12 +366,11 @@ export default function Timeline() {
                     <div
                       key={lead.id}
                       draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = 'move'
-                        e.dataTransfer.setData('text/plain', lead.id)
-                        handleDragStart(lead.id)
-                      }}
-                      className="bg-white rounded-xl p-3 sm:p-4 border border-[#CACDD7] cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#CACDD7] transition-all"
+                      onDragStart={(event) => handleDragStart(event, lead.id)}
+                      onDragEnd={handleDragEnd}
+                      className={`bg-white rounded-xl p-3 sm:p-4 border border-[#CACDD7] cursor-grab active:cursor-grabbing hover:shadow-md hover:border-[#CACDD7] transition-all ${
+                        draggedLeadId === lead.id ? 'opacity-60' : ''
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
