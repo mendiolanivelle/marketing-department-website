@@ -935,16 +935,35 @@ export default function Timeline() {
                     style={{
                       backgroundColor: 'var(--bg-secondary)',
                       opacity: isDraggedColumn ? 0.5 : 1,
-                      cursor: 'grab'
                     }}
-                    draggable
-                    onDragStart={(e) => handleColumnDragStart(e, table.id, col.key)}
-                    onDragEnd={handleColumnDragEnd}
-                    onDragOver={(e) => { handleColumnDragOver(e); handleDragOver(e) }}
-                    onDrop={(e) => { handleColumnDrop(e, table.id, col.key); handleDrop(e, table.id, col.key) }}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      // Check if it's a column drag or card drag
+                      const columnData = e.dataTransfer.getData('application/column')
+                      const cardId = e.dataTransfer.getData('text/plain')
+
+                      if (columnData) {
+                        handleColumnDrop(e, table.id, col.key)
+                      } else if (cardId) {
+                        handleDrop(e, table.id, col.key)
+                      }
+                    }}
                   >
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between mb-3">
+                    {/* Column Header - Draggable for reordering */}
+                    <div
+                      className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation()
+                        handleColumnDragStart(e, table.id, col.key)
+                      }}
+                      onDragEnd={handleColumnDragEnd}
+                      title="Drag to reorder column"
+                    >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colColor }}></div>
                         {editingColumnLabel?.tableId === table.id && editingColumnLabel?.colKey === col.key ? (
@@ -957,12 +976,17 @@ export default function Timeline() {
                             className="flex-1 text-xs px-1 py-0.5 border rounded outline-none"
                             style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 500 }}
                             autoFocus
+                            onClick={(e) => e.stopPropagation()}
                           />
                         ) : (
                           <h3
                             className="text-xs truncate cursor-pointer hover:underline"
                             style={{ color: 'var(--text-primary)', fontWeight: 500 }}
-                            onClick={() => { setEditingColumnLabel({ tableId: table.id, colKey: col.key }); setEditingColumnValue(col.label) }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingColumnLabel({ tableId: table.id, colKey: col.key })
+                              setEditingColumnValue(col.label)
+                            }}
                             title="Click to edit column name"
                           >
                             {col.label}
@@ -974,16 +998,19 @@ export default function Timeline() {
                       </span>
                     </div>
 
-                    {/* Cards */}
+                    {/* Cards - Draggable for moving between columns */}
                     <div className="space-y-2">
                       {colLeads.map((lead) => (
                         <div
                           key={lead.id}
                           draggable
-                          onDragStart={(e) => handleDragStart(e, lead.id)}
+                          onDragStart={(e) => {
+                            e.stopPropagation()
+                            handleDragStart(e, lead.id)
+                          }}
                           onDragEnd={handleDragEnd}
                           onClick={() => setSelectedLead(lead)}
-                          className={`bg-white rounded-xl p-3 border cursor-pointer transition-all group ${
+                          className={`bg-white rounded-xl p-3 border cursor-grab active:cursor-grabbing transition-all group ${
                             draggedLead === lead.id ? 'opacity-50' : 'hover:shadow-md'
                           }`}
                           style={{ borderColor: 'var(--border-primary)' }}
