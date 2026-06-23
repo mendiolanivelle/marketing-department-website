@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const announcements = [
   { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting' },
@@ -17,6 +19,105 @@ const quickLinks = [
 ]
 
 export default function Home() {
+  const [leadStats, setLeadStats] = useState({
+    totalLeads: 0,
+    emailsSent: 0,
+    replied: 0,
+    noReply: 0,
+    meetingsLeft: 0,
+  })
+
+  const fetchLeadStats = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return
+
+    try {
+      const { data: files, error: filesError } = await supabase
+        .from('lead_files')
+        .select('id, columns')
+
+      if (filesError) throw filesError
+      if (!files || files.length === 0) return
+
+      const { data: allRows, error: rowsError } = await supabase
+        .from('lead_rows')
+        .select('file_id, data')
+
+      if (rowsError) throw rowsError
+      if (!allRows) return
+
+      const totalLeads = allRows.length
+      let emailsSent = 0
+      let replied = 0
+      let meetingsLeft = 0
+
+      allRows.forEach((row) => {
+        const data = row.data as Record<string, string>
+        const file = files.find(f => f.id === row.file_id)
+        if (!file) return
+
+        const columns = file.columns as string[]
+        const emailCol = columns.find(col => col.toLowerCase().includes('email'))
+        const statusCol = columns.find(col =>
+          col.toLowerCase().includes('status') ||
+          col.toLowerCase().includes('reply') ||
+          col.toLowerCase().includes('response')
+        )
+        const meetingCol = columns.find(col => col.toLowerCase().includes('meeting'))
+
+        if (emailCol && data[emailCol]?.trim()) {
+          emailsSent++
+          if (statusCol) {
+            const status = data[statusCol]?.toLowerCase() || ''
+            if (status.includes('replied') || status.includes('yes') || status.includes('responded')) {
+              replied++
+            }
+          }
+        }
+
+        if (meetingCol && data[meetingCol]?.trim()) {
+          meetingsLeft++
+        }
+      })
+
+      const noReply = emailsSent - replied
+
+      setLeadStats({
+        totalLeads,
+        emailsSent,
+        replied,
+        noReply,
+        meetingsLeft,
+      })
+    } catch (err) {
+      console.error('Error fetching lead stats:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchLeadStats()
+
+    if (!isSupabaseConfigured || !supabase) return
+
+    const filesChannel = supabase
+      .channel('lead_files_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => {
+        fetchLeadStats()
+      })
+      .subscribe()
+
+    const rowsChannel = supabase
+      .channel('lead_rows_dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => {
+        fetchLeadStats()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(filesChannel)
+      supabase.removeChannel(rowsChannel)
+    }
+  }, [fetchLeadStats])
+
   return (
     <div className="min-h-screen">
       <section className="pt-20 pb-12 px-4 sm:px-6 text-center bg-white sm:pt-32 sm:pb-20">
@@ -40,36 +141,36 @@ export default function Home() {
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-8 mb-4 sm:mb-6">
+          <Link to="/leads" className="block bg-white rounded-2xl border border-gray-200 p-4 sm:p-8 mb-4 sm:mb-6 hover:border-orange-300 hover:shadow-md transition-all cursor-pointer">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 text-left">Lead Pipeline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
               <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="text-xs sm:text-sm text-gray-500 mb-1">Total Leads</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">247</div>
-                <div className="text-xs text-gray-400 mt-1">Generated this quarter</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.totalLeads}</div>
+                <div className="text-xs text-gray-400 mt-1">From all sources</div>
               </div>
               <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="text-xs sm:text-sm text-gray-500 mb-1">Emails Sent</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">189</div>
-                <div className="text-xs text-gray-400 mt-1">76% of total leads</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.emailsSent}</div>
+                <div className="text-xs text-gray-400 mt-1">{leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total</div>
               </div>
               <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="text-xs sm:text-sm text-gray-500 mb-1">Replied</div>
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">64</div>
-                <div className="text-xs text-gray-400 mt-1">34% response rate</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">{leadStats.replied}</div>
+                <div className="text-xs text-gray-400 mt-1">{leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate</div>
               </div>
               <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="text-xs sm:text-sm text-gray-500 mb-1">No Reply</div>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">125</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{leadStats.noReply}</div>
                 <div className="text-xs text-gray-400 mt-1">Follow-up needed</div>
               </div>
               <div className="p-3 sm:p-5 bg-gray-50 rounded-xl border border-gray-200 col-span-2 sm:col-span-1">
-                <div className="text-xs sm:text-sm text-gray-500 mb-1">Meetings Left</div>
-                <div className="text-2xl sm:text-3xl font-bold text-orange-500">18</div>
-                <div className="text-xs text-gray-400 mt-1">Target: 50 meetings</div>
+                <div className="text-xs sm:text-sm text-gray-500 mb-1">Meetings</div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-500">{leadStats.meetingsLeft}</div>
+                <div className="text-xs text-gray-400 mt-1">Scheduled</div>
               </div>
             </div>
-          </div>
+          </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-8">
