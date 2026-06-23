@@ -3,7 +3,6 @@ import { AuthProvider } from './contexts/AuthContext'
 import { QueryProvider } from './providers/QueryProvider'
 import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar from './components/Sidebar'
-import Footer from './components/Footer'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import About from './pages/About'
@@ -40,7 +39,6 @@ function App() {
                           <Route path="/contact" element={<Contact />} />
                         </Routes>
                       </main>
-                      <Footer />
                     </div>
                   </div>
                 </ProtectedRoute>
