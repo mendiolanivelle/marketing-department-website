@@ -12,6 +12,7 @@ import Team from './pages/Team'
 import Contact from './pages/Contact'
 import Timeline from './pages/Timeline'
 import MessageTemplates from './pages/MessageTemplates'
+import Calendar from './pages/Calendar'
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
                           <Route path="/team" element={<Team />} />
                           <Route path="/timeline" element={<Timeline />} />
                           <Route path="/templates" element={<MessageTemplates />} />
+                          <Route path="/calendar" element={<Calendar />} />
                           <Route path="/contact" element={<Contact />} />
                         </Routes>
                       </main>
