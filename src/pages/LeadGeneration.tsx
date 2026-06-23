@@ -120,6 +120,8 @@ export default function LeadGeneration() {
 
       if (headers.length === 0) { alert('CSV file is empty or invalid'); return }
 
+      const emailCol = headers.find(h => h.toLowerCase().includes('email'))
+
       const { data: fileData, error: fileError } = await supabase
         .from('lead_files')
         .insert([{ name: file.name.replace(/\.csv$/i, ''), columns: headers, source: 'csv' }])
@@ -129,13 +131,86 @@ export default function LeadGeneration() {
       if (fileError) throw fileError
 
       if (parsedRows.length > 0) {
-        const rowInserts = parsedRows.map((row, idx) => ({
-          file_id: fileData.id,
-          row_index: idx,
-          data: row,
-        }))
-        const { error: rowsError } = await supabase.from('lead_rows').insert(rowInserts)
-        if (rowsError) throw rowsError
+        let existingEmails = new Set<string>()
+
+        if (emailCol) {
+          const { data: allRows } = await supabase
+            .from('lead_rows')
+            .select('data')
+          if (allRows) {
+            allRows.forEach(r => {
+              const data = r.data as Record<string, string>
+              const email = Object.values(data).find(v => v && v.includes('@'))
+              if (email) existingEmails.add(email.toLowerCase().trim())
+            })
+          }
+        }
+
+        const uniqueRows: Record<string, string>[] = []
+        const duplicateRows: Record<string, string>[] = []
+
+        parsedRows.forEach(row => {
+          if (emailCol && row[emailCol]) {
+            const email = row[emailCol].toLowerCase().trim()
+            if (existingEmails.has(email)) {
+              duplicateRows.push(row)
+            } else {
+              uniqueRows.push(row)
+              existingEmails.add(email)
+            }
+          } else {
+            uniqueRows.push(row)
+          }
+        })
+
+        if (uniqueRows.length > 0) {
+          const rowInserts = uniqueRows.map((row, idx) => ({
+            file_id: fileData.id,
+            row_index: idx,
+            data: row,
+          }))
+          const { error: rowsError } = await supabase.from('lead_rows').insert(rowInserts)
+          if (rowsError) throw rowsError
+        }
+
+        if (duplicateRows.length > 0) {
+          let { data: dupFile } = await supabase
+            .from('lead_files')
+            .select('*')
+            .eq('name', 'Duplicate Leads')
+            .single()
+
+          if (!dupFile) {
+            const { data: newDupFile, error: dupFileError } = await supabase
+              .from('lead_files')
+              .insert([{ name: 'Duplicate Leads', columns: [...headers, 'Source File'], source: 'spreadsheet' }])
+              .select()
+              .single()
+            if (dupFileError) throw dupFileError
+            dupFile = newDupFile
+          }
+
+          const { data: existingDupRows } = await supabase
+            .from('lead_rows')
+            .select('row_index')
+            .eq('file_id', dupFile.id)
+            .order('row_index', { ascending: false })
+            .limit(1)
+
+          const startIdx = existingDupRows && existingDupRows.length > 0 ? existingDupRows[0].row_index + 1 : 0
+
+          const dupInserts = duplicateRows.map((row, idx) => ({
+            file_id: dupFile.id,
+            row_index: startIdx + idx,
+            data: { ...row, 'Source File': file.name.replace(/\.csv$/i, '') },
+          }))
+
+          const { error: dupRowsError } = await supabase.from('lead_rows').insert(dupInserts)
+          if (dupRowsError) throw dupRowsError
+
+          await fetchFiles()
+          alert(`${duplicateRows.length} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
+        }
       }
 
       await fetchFiles()
