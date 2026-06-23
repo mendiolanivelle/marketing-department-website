@@ -72,6 +72,9 @@ export default function LeadGeneration() {
   const [creatingSpreadsheet, setCreatingSpreadsheet] = useState(false)
   const [showNewSpreadsheetModal, setShowNewSpreadsheetModal] = useState(false)
   const [newSpreadsheetName, setNewSpreadsheetName] = useState('')
+  const [zoom, setZoom] = useState(100)
+  const [draggedColumn, setDraggedColumn] = useState<number | null>(null)
+  const [draggedRow, setDraggedRow] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
@@ -273,19 +276,35 @@ export default function LeadGeneration() {
 
     setCreatingSpreadsheet(true)
     try {
-      const defaultColumns = ['Name', 'Email', 'Company', 'Phone', 'Notes']
+      // Generate 50 columns like Google Sheets (A, B, C, ..., Z, AA, AB, ...)
+      const columns: string[] = []
+      for (let i = 0; i < 50; i++) {
+        let colName = ''
+        let num = i
+        do {
+          colName = String.fromCharCode(65 + (num % 26)) + colName
+          num = Math.floor(num / 26) - 1
+        } while (num >= 0)
+        columns.push(colName)
+      }
+
       const { data: fileData, error: fileError } = await supabase
         .from('lead_files')
-        .insert([{ name, columns: defaultColumns, source: 'spreadsheet' }])
+        .insert([{ name, columns, source: 'spreadsheet' }])
         .select()
         .single()
 
       if (fileError) throw fileError
 
-      const emptyRow = defaultColumns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
+      // Create 50 empty rows
+      const emptyRows = Array.from({ length: 50 }, (_, idx) => {
+        const emptyRow = columns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
+        return { file_id: fileData.id, row_index: idx, data: emptyRow }
+      })
+
       const { error: rowsError } = await supabase
         .from('lead_rows')
-        .insert([{ file_id: fileData.id, row_index: 0, data: emptyRow }])
+        .insert(emptyRows)
 
       if (rowsError) throw rowsError
 
@@ -477,6 +496,64 @@ export default function LeadGeneration() {
     URL.revokeObjectURL(url)
   }
 
+  const handleColumnDragStart = (colIdx: number) => {
+    setDraggedColumn(colIdx)
+  }
+
+  const handleColumnDrop = async (targetIdx: number) => {
+    if (draggedColumn === null || draggedColumn === targetIdx || !selectedFile || !supabase) return
+
+    const newColumns = [...selectedFile.columns]
+    const [movedCol] = newColumns.splice(draggedColumn, 1)
+    newColumns.splice(targetIdx, 0, movedCol)
+
+    const { error } = await supabase
+      .from('lead_files')
+      .update({ columns: newColumns })
+      .eq('id', selectedFile.id)
+
+    if (!error) {
+      setSelectedFile({ ...selectedFile, columns: newColumns })
+    }
+    setDraggedColumn(null)
+  }
+
+  const handleRowDragStart = (rowIdx: number) => {
+    setDraggedRow(rowIdx)
+  }
+
+  const handleRowDrop = async (targetIdx: number) => {
+    if (draggedRow === null || draggedRow === targetIdx || !selectedFile || !supabase) return
+
+    const newRows = [...rows]
+    const [movedRow] = newRows.splice(draggedRow, 1)
+    newRows.splice(targetIdx, 0, movedRow)
+
+    // Update row_index for all rows
+    const updates = newRows.map((row, idx) => ({
+      id: row.id,
+      row_index: idx,
+    }))
+
+    for (const update of updates) {
+      await supabase
+        .from('lead_rows')
+        .update({ row_index: update.row_index })
+        .eq('id', update.id)
+    }
+
+    setRows(newRows)
+    setDraggedRow(null)
+  }
+
+  const zoomIn = () => {
+    setZoom(prev => Math.min(prev + 10, 200))
+  }
+
+  const zoomOut = () => {
+    setZoom(prev => Math.max(prev - 10, 50))
+  }
+
   if (selectedFile) {
     return (
       <div className="h-[calc(100vh-0px)] flex flex-col bg-white">
@@ -497,6 +574,19 @@ export default function LeadGeneration() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 border border-gray-300 rounded-lg">
+              <button onClick={zoomOut} className="px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition" title="Zoom out">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </button>
+              <span className="px-2 py-1.5 text-xs font-medium text-gray-700 min-w-[50px] text-center">{zoom}%</span>
+              <button onClick={zoomIn} className="px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition" title="Zoom in">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <button onClick={exportCSV} className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -524,98 +614,114 @@ export default function LeadGeneration() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#ff5900' }}></div>
             </div>
           ) : (
-            <table className="w-full border-collapse min-w-max">
-              <thead className="sticky top-0 z-10 bg-gray-50">
-                <tr>
-                  <th className="w-12 border-b border-r border-gray-200 px-2 py-2 text-xs font-medium text-gray-400 text-center bg-gray-50">#</th>
-                  {selectedFile.columns.map((col, colIdx) => (
-                    <th key={colIdx} className="border-b border-r border-gray-200 px-1 py-1 min-w-[150px] bg-gray-50 group relative">
-                      <div className="flex items-center justify-between">
-                        {editingHeader === colIdx ? (
-                          <input
-                            type="text"
-                            value={headerValue}
-                            onChange={(e) => setHeaderValue(e.target.value)}
-                            onBlur={saveHeaderEdit}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveHeaderEdit(); if (e.key === 'Escape') setEditingHeader(null) }}
-                            className="w-full px-2 py-1 text-xs font-semibold text-gray-700 bg-white border rounded outline-none"
-                            style={{ borderColor: '#ff5900' }}
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            onClick={() => handleHeaderEdit(colIdx)}
-                            className="flex-1 px-2 py-1 text-xs font-semibold text-gray-700 cursor-text hover:bg-gray-100 rounded truncate"
+            <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left', width: `${10000 / zoom}%` }}>
+              <table className="w-full border-collapse min-w-max">
+                <thead className="sticky top-0 z-10 bg-gray-50">
+                  <tr>
+                    <th className="w-12 border-b border-r border-gray-200 px-2 py-2 text-xs font-medium text-gray-400 text-center bg-gray-50">#</th>
+                    {selectedFile.columns.map((col, colIdx) => (
+                      <th
+                        key={colIdx}
+                        className="border-b border-r border-gray-200 px-1 py-1 min-w-[100px] bg-gray-50 group relative"
+                        draggable
+                        onDragStart={() => handleColumnDragStart(colIdx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleColumnDrop(colIdx)}
+                      >
+                        <div className="flex items-center justify-between cursor-move">
+                          {editingHeader === colIdx ? (
+                            <input
+                              type="text"
+                              value={headerValue}
+                              onChange={(e) => setHeaderValue(e.target.value)}
+                              onBlur={saveHeaderEdit}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveHeaderEdit(); if (e.key === 'Escape') setEditingHeader(null) }}
+                              className="w-full px-2 py-1 text-xs font-semibold text-gray-700 bg-white border rounded outline-none"
+                              style={{ borderColor: '#ff5900' }}
+                              autoFocus
+                            />
+                          ) : (
+                            <span
+                              onClick={() => handleHeaderEdit(colIdx)}
+                              className="flex-1 px-2 py-1 text-xs font-semibold text-gray-700 cursor-text hover:bg-gray-100 rounded truncate"
+                            >
+                              {col}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => deleteColumn(colIdx)}
+                            className="p-0.5 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition mr-1"
+                            title="Delete column"
                           >
-                            {col}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => deleteColumn(colIdx)}
-                          className="p-0.5 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition mr-1"
-                          title="Delete column"
+                            <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </th>
+                    ))}
+                    <th className="w-10 border-b border-gray-200 bg-gray-50"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, rowIdx) => (
+                    <tr
+                      key={row.id}
+                      className="group hover:bg-orange-50/30"
+                      draggable
+                      onDragStart={() => handleRowDragStart(rowIdx)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => handleRowDrop(rowIdx)}
+                    >
+                      <td className="border-b border-r border-gray-200 px-2 py-1 text-xs text-gray-400 text-center bg-gray-50/50 cursor-move">
+                        {rowIdx + 1}
+                      </td>
+                      {selectedFile.columns.map((col) => (
+                        <td
+                          key={col}
+                          className="border-b border-r border-gray-200 px-1 py-0.5 cursor-cell"
+                          onClick={() => handleCellEdit(row, col)}
                         >
-                          <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          {editingCell?.rowId === row.id && editingCell?.col === col ? (
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={saveCellEdit}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
+                              className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
+                              style={{ borderColor: '#ff5900' }}
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="px-2 py-1 text-sm text-gray-700 min-h-[28px] hover:bg-white hover:border hover:border-gray-200 rounded">
+                              {row.data[col] || ''}
+                            </div>
+                          )}
+                        </td>
+                      ))}
+                      <td className="border-b border-gray-200 px-1">
+                        <button
+                          onClick={() => deleteRow(row.id)}
+                          className="p-1 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition"
+                          title="Delete row"
+                        >
+                          <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
-                      </div>
-                    </th>
-                  ))}
-                  <th className="w-10 border-b border-gray-200 bg-gray-50"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, rowIdx) => (
-                  <tr key={row.id} className="group hover:bg-orange-50/30">
-                    <td className="border-b border-r border-gray-200 px-2 py-1 text-xs text-gray-400 text-center bg-gray-50/50">
-                      {rowIdx + 1}
-                    </td>
-                    {selectedFile.columns.map((col) => (
-                      <td
-                        key={col}
-                        className="border-b border-r border-gray-200 px-1 py-0.5 cursor-cell"
-                        onClick={() => handleCellEdit(row, col)}
-                      >
-                        {editingCell?.rowId === row.id && editingCell?.col === col ? (
-                          <input
-                            type="text"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={saveCellEdit}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveCellEdit(); if (e.key === 'Escape') setEditingCell(null); if (e.key === 'Tab') { saveCellEdit() } }}
-                            className="w-full px-2 py-1 text-sm bg-white border-2 rounded outline-none"
-                            style={{ borderColor: '#ff5900' }}
-                            autoFocus
-                          />
-                        ) : (
-                          <div className="px-2 py-1 text-sm text-gray-700 min-h-[28px] hover:bg-white hover:border hover:border-gray-200 rounded">
-                            {row.data[col] || ''}
-                          </div>
-                        )}
                       </td>
-                    ))}
-                    <td className="border-b border-gray-200 px-1">
-                      <button
-                        onClick={() => deleteRow(row.id)}
-                        className="p-1 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition"
-                        title="Delete row"
-                      >
-                        <svg className="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
         <div className="border-t border-gray-200 px-4 py-2 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>{rows.length} rows &middot; {selectedFile.columns.length} columns</span>
-          <span>Click any cell to edit</span>
+          <span>{rows.length} rows &middot; {selectedFile.columns.length} columns &middot; Zoom: {zoom}%</span>
+          <span>Click any cell to edit &middot; Drag column headers or row numbers to rearrange</span>
         </div>
       </div>
     )
