@@ -8,7 +8,6 @@ Internal marketing department portal built with React, TypeScript, Tailwind CSS,
 - **TypeScript** - Type safety
 - **Tailwind CSS v4** - Utility-first styling
 - **React Router** - Client-side routing
-- **TanStack Query** - Data fetching and caching
 - **React Hook Form + Zod** - Form handling and validation
 - **Supabase** - Authentication and database
 - **Vite** - Build tool
@@ -69,7 +68,6 @@ src/
 |-- contexts/         # React context providers
 |-- lib/              # Utility libraries (Supabase client)
 |-- pages/            # Page components
-|-- providers/        # Third-party providers (TanStack Query)
 `-- main.tsx          # Application entry point
 ```
 
