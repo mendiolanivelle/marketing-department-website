@@ -67,6 +67,9 @@ export default function Timeline() {
   const [editingColumnValue, setEditingColumnValue] = useState('')
   const [showAddTable, setShowAddTable] = useState(false)
   const [newTableTitle, setNewTableTitle] = useState('')
+  const [showAddColumn, setShowAddColumn] = useState(false)
+  const [addColumnTableId, setAddColumnTableId] = useState<string>('')
+  const [newColumnName, setNewColumnName] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
@@ -206,6 +209,31 @@ export default function Timeline() {
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
     } catch (err) { console.error('Error updating column:', err) }
     setEditingColumnLabel(null)
+  }
+
+  const addColumn = async () => {
+    const label = newColumnName.trim()
+    if (!label || !supabase) return
+    const table = tables.find(t => t.id === addColumnTableId)
+    if (!table) return
+    // Generate a new column key
+    const maxColNum = table.columns.reduce((max, c) => {
+      const num = parseInt(c.key.replace('col-', ''))
+      return num > max ? num : max
+    }, 0)
+    const newKey = `col-${maxColNum + 1}`
+    const newColumn = { key: newKey, label }
+    const newColumns = [...table.columns, newColumn]
+    try {
+      const { error } = await supabase
+        .from('timeline_tables')
+        .update({ columns: newColumns })
+        .eq('id', table.id)
+      if (error) throw error
+      setTables(prev => prev.map(t => t.id === table.id ? { ...t, columns: newColumns } : t))
+      setShowAddColumn(false)
+      setNewColumnName('')
+    } catch (err) { console.error('Error adding column:', err) }
   }
 
   const addLead = async () => {
@@ -443,6 +471,30 @@ export default function Timeline() {
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowAddTable(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={addTimelineTable} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Column Modal */}
+      {showAddColumn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddColumn(false)} />
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add New Column</h3>
+            <input
+              type="text"
+              placeholder="Column name..."
+              value={newColumnName}
+              onChange={(e) => setNewColumnName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') addColumn() }}
+              className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowAddColumn(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={addColumn} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add Column</button>
             </div>
           </div>
         </div>
@@ -791,6 +843,16 @@ export default function Timeline() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Add Lead
+                </button>
+                <button
+                  onClick={() => { setAddColumnTableId(table.id); setNewColumnName(''); setShowAddColumn(true) }}
+                  className="px-3 py-1.5 text-xs text-white rounded-lg transition flex items-center gap-1"
+                  style={{ backgroundColor: 'var(--text-primary)', fontWeight: 500 }}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Add Column
                 </button>
                 <button
                   onClick={() => deleteTimelineTable(table.id)}
