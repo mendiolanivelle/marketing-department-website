@@ -204,7 +204,7 @@ export default function Sidebar() {
                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                   >
-                    <span className="text-lg">{darkMode ? '☀️' : ''}</span>
+                    <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
                     <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
                   </button>
                   <button
