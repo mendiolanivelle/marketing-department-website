@@ -30,7 +30,7 @@ export default function Home() {
   const [showPipeline, setShowPipeline] = useState(false)
   const [tasks, setTasks] = useState([
     { id: 1, text: 'Review Q3 campaign proposals', done: false },
-    { id: 2, text: 'Update brand guidelines document', done: true },
+    { id: 2, text: 'Update brand guidelines document', done: false },
     { id: 3, text: 'Schedule team meeting for July', done: false },
     { id: 4, text: 'Prepare presentation for stakeholders', done: false },
   ])
