@@ -34,6 +34,9 @@ export default function Home() {
     { id: 4, text: 'Prepare presentation for stakeholders', done: false },
   ])
   const [searchQuery, setSearchQuery] = useState('')
+  const [newTaskText, setNewTaskText] = useState('')
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+  const [editingTaskText, setEditingTaskText] = useState('')
 
   const fetchLeadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return
@@ -117,6 +120,33 @@ export default function Home() {
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  }
+
+  const addTask = () => {
+    if (!newTaskText.trim()) return
+    const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1
+    setTasks([...tasks, { id: newId, text: newTaskText.trim(), done: false }])
+    setNewTaskText('')
+  }
+
+  const deleteTask = (id: number) => {
+    setTasks(tasks.filter(t => t.id !== id))
+  }
+
+  const startEditingTask = (task: { id: number; text: string }) => {
+    setEditingTaskId(task.id)
+    setEditingTaskText(task.text)
+  }
+
+  const saveTaskEdit = () => {
+    if (editingTaskId === null) return
+    if (!editingTaskText.trim()) {
+      deleteTask(editingTaskId)
+    } else {
+      setTasks(tasks.map(t => t.id === editingTaskId ? { ...t, text: editingTaskText.trim() } : t))
+    }
+    setEditingTaskId(null)
+    setEditingTaskText('')
   }
 
   return (
@@ -215,30 +245,79 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
-              <ul className="space-y-2 sm:space-y-3">
+              <div className="flex items-center justify-between mb-4 sm:mb-5">
+                <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
+              </div>
+              <ul className="space-y-2 sm:space-y-3 mb-3">
                 {tasks.map((task) => (
-                  <li key={task.id} className="flex items-center gap-3 p-3 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <li key={task.id} className="group flex items-center gap-3 p-3 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <input
                       type="checkbox"
                       checked={task.done}
                       onChange={() => toggleTask(task.id)}
-                      className="w-4 h-4 rounded cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
                       style={{ accentColor: 'var(--accent)' }}
                     />
-                    <span
-                      className="text-sm flex-1"
-                      style={{
-                        color: task.done ? 'var(--accent)' : 'var(--text-secondary)',
-                        fontWeight: 300,
-                        textDecoration: task.done ? 'line-through' : 'none'
-                      }}
+                    {editingTaskId === task.id ? (
+                      <input
+                        type="text"
+                        value={editingTaskText}
+                        onChange={(e) => setEditingTaskText(e.target.value)}
+                        onBlur={saveTaskEdit}
+                        onKeyDown={(e) => { if (e.key === 'Enter') saveTaskEdit(); if (e.key === 'Escape') { setEditingTaskId(null); setEditingTaskText('') } }}
+                        className="flex-1 text-sm px-2 py-0.5 border rounded outline-none"
+                        style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                        autoFocus
+                      />
+                    ) : (
+                      <span
+                        className="text-sm flex-1 cursor-pointer"
+                        style={{
+                          color: task.done ? 'var(--accent)' : 'var(--text-secondary)',
+                          fontWeight: 300,
+                          textDecoration: task.done ? 'line-through' : 'none'
+                        }}
+                        onDoubleClick={() => startEditingTask(task)}
+                        title="Double-click to edit"
+                      >
+                        {task.text}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 flex-shrink-0"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Delete task"
                     >
-                      {task.text}
-                    </span>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </li>
                 ))}
               </ul>
+              {/* Add Task Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a new task..."
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+                  className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
+                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                />
+                <button
+                  onClick={addTask}
+                  className="px-3 py-2 rounded-lg transition flex items-center justify-center"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  title="Add task"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Quick Links */}
