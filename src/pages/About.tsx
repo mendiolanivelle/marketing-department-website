@@ -100,18 +100,20 @@ export default function About() {
     if (!cropImage || uploadTarget === null) return
     const img = new Image()
     img.onload = () => {
-      const size = Math.min(img.width, img.height)
       const canvas = document.createElement('canvas')
       canvas.width = 200
       canvas.height = 200
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      const cx = (img.width - size) / 2 + cropPos.x * (img.width / cropZoom) / 4
-      const cy = (img.height - size) / 2 + cropPos.y * (img.height / cropZoom) / 4
-      const s = size / cropZoom
-      ctx.drawImage(img, cx, cy, s, s, 0, 0, 200, 200)
-      const cropped = canvas.toDataURL()
-      setTeamMembers(prev => prev.map(m => m.id === uploadTarget ? { ...m, photoUrl: cropped } : m))
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, 200, 200)
+      const fitScale = Math.min(200 / img.width, 200 / img.height)
+      const w = img.width * fitScale * cropZoom
+      const h = img.height * fitScale * cropZoom
+      const x = (200 - w) / 2 + cropPos.x
+      const y = (200 - h) / 2 + cropPos.y
+      ctx.drawImage(img, x, y, w, h)
+      setTeamMembers(prev => prev.map(m => m.id === uploadTarget ? { ...m, photoUrl: canvas.toDataURL() } : m))
       setCropImage(null)
       setUploadTarget(null)
     }
@@ -450,12 +452,12 @@ export default function About() {
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Adjust Photo</h3>
             <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-black cursor-move"
               style={{ maxHeight: '300px' }}
-              onMouseDown={(e) => { const r = (e.target as HTMLElement).getBoundingClientRect(); setCropDrag({ startX: e.clientX - r.left, startY: e.clientY - r.top, posX: cropPos.x, posY: cropPos.y }) }}
-              onMouseMove={(e) => { if (!cropDrag) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); const dx = (e.clientX - r.left - cropDrag.startX) / (r.width / cropZoom); const dy = (e.clientY - r.top - cropDrag.startY) / (r.height / cropZoom); setCropPos({ x: cropDrag.posX + dx, y: cropDrag.posY + dy }) }}
+              onMouseDown={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setCropDrag({ startX: e.clientX - r.left, startY: e.clientY - r.top, posX: cropPos.x, posY: cropPos.y }) }}
+              onMouseMove={(e) => { if (!cropDrag) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setCropPos({ x: cropDrag.posX + ((e.clientX - r.left) - cropDrag.startX) / (3 * cropZoom), y: cropDrag.posY + ((e.clientY - r.top) - cropDrag.startY) / (3 * cropZoom) }) }}
               onMouseUp={() => setCropDrag(null)}
               onMouseLeave={() => setCropDrag(null)}
             >
-              <img src={cropImage} className="w-full h-full pointer-events-none" style={{ objectFit: 'cover', transform: `scale(${cropZoom})`, transformOrigin: `${50 - cropPos.x * 5}% ${50 - cropPos.y * 5}%` }} />
+              <img src={cropImage} className="w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', transform: `scale(${cropZoom}) translate(${cropPos.x}px, ${cropPos.y}px)` }} />
               <div className="absolute inset-0 border-2 border-white/60 rounded-xl pointer-events-none" />
             </div>
             <div className="flex items-center gap-3 mb-4">
