@@ -55,6 +55,11 @@ const columnColors: Record<string, string> = {
   'col-8': '#EF4444',
 }
 
+const isSowCostingColumn = (label: string) => {
+  const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
+  return ['sow', 'costing', 'creation'].every(term => normalized.includes(term))
+}
+
 export default function Timeline() {
   const [tables, setTables] = useState<TimelineTable[]>([])
   const [leads, setLeads] = useState<TimelineLead[]>([])
@@ -88,6 +93,89 @@ export default function Timeline() {
   const [lastEmailSent, setLastEmailSent] = useState('')
   const [editingLastEmail, setEditingLastEmail] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const syncLeadToSalesMarketing = useCallback(async (lead: TimelineLead, tableId: string, columnKey: string) => {
+    if (!supabase) return
+
+    const targetTable = tables.find(table => table.id === tableId)
+    const targetColumn = targetTable?.columns.find(column => column.key === columnKey)
+    if (!targetColumn || !isSowCostingColumn(targetColumn.label)) return
+
+    try {
+      const { data: existingClient, error: clientLookupError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('email', lead.email)
+        .maybeSingle()
+
+      if (clientLookupError) throw clientLookupError
+
+      let clientId = existingClient?.id
+      const clientPayload = {
+        name: lead.contact,
+        company: lead.company,
+        email: lead.email,
+        phone: '',
+        project_type: 'SOW and Costing',
+        budget: lead.value,
+        status: 'proposal',
+        assigned_to: 'marketing',
+        updated_at: new Date().toISOString(),
+      }
+
+      if (clientId) {
+        const { error: clientUpdateError } = await supabase
+          .from('clients')
+          .update(clientPayload)
+          .eq('id', clientId)
+        if (clientUpdateError) throw clientUpdateError
+      } else {
+        const { data: newClient, error: clientInsertError } = await supabase
+          .from('clients')
+          .insert([clientPayload])
+          .select('id')
+          .single()
+        if (clientInsertError) throw clientInsertError
+        clientId = newClient?.id
+      }
+
+      if (!clientId) return
+
+      const { data: existingForward, error: forwardLookupError } = await supabase
+        .from('marketing_forwards')
+        .select('id')
+        .eq('client_id', clientId)
+        .maybeSingle()
+
+      if (forwardLookupError) throw forwardLookupError
+
+      const { data: { user } } = await supabase.auth.getUser()
+      const forwardPayload = {
+        client_id: clientId,
+        forwarded_by: user?.email || 'Marketing Timeline',
+        marketing_notes: [
+          `Auto-synced from marketing timeline stage: ${targetColumn.label}`,
+          lead.notes,
+        ].filter(Boolean).join('\n\n'),
+        status: 'pending',
+      }
+
+      if (existingForward?.id) {
+        const { error: forwardUpdateError } = await supabase
+          .from('marketing_forwards')
+          .update(forwardPayload)
+          .eq('id', existingForward.id)
+        if (forwardUpdateError) throw forwardUpdateError
+      } else {
+        const { error: forwardInsertError } = await supabase
+          .from('marketing_forwards')
+          .insert([forwardPayload])
+        if (forwardInsertError) throw forwardInsertError
+      }
+    } catch (err) {
+      console.error('Error syncing lead to sales marketing leads:', err)
+    }
+  }, [tables])
 
   const fetchData = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) { setLoading(false); return }
@@ -149,6 +237,7 @@ export default function Timeline() {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('text/plain')
     if (!leadId || !supabase) return
+    const movedLead = leads.find(lead => lead.id === leadId)
     
     // Update local state immediately for instant visual feedback
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_key: columnKey, table_id: tableId } : l))
@@ -160,6 +249,9 @@ export default function Timeline() {
         .update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() })
         .eq('id', leadId)
       if (error) throw error
+      if (movedLead) {
+        await syncLeadToSalesMarketing({ ...movedLead, column_key: columnKey, table_id: tableId }, tableId, columnKey)
+      }
     } catch (err) { console.error('Error moving lead:', err) }
   }
 
@@ -346,7 +438,15 @@ export default function Timeline() {
         .single()
       if (error) throw error
       // Replace temp lead with real one
-      if (data) setLeads(prev => prev.map(l => l.id === tempId ? data : l))
+      if (data) {
+        setLeads(prev => prev.map(l => l.id === tempId ? data : l))
+        await syncLeadToSalesMarketing({
+          ...data,
+          attachments: typeof data.attachments === 'string' ? JSON.parse(data.attachments) : (data.attachments || []),
+          email_history: typeof data.email_history === 'string' ? JSON.parse(data.email_history) : (data.email_history || []),
+          last_email_sent: data.last_email_sent || '',
+        }, addLeadTableId, addLeadColumnKey)
+      }
     } catch (err) { console.error('Error adding lead:', err); alert('Failed to add lead') }
   }
 
@@ -362,6 +462,7 @@ export default function Timeline() {
         .update({ ...editingLead, updated_at: new Date().toISOString() })
         .eq('id', editingLead.id)
       if (error) throw error
+      await syncLeadToSalesMarketing(editingLead, editingLead.table_id, editingLead.column_key)
     } catch (err) { console.error('Error updating lead:', err) }
   }
 
