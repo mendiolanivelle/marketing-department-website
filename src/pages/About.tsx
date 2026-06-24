@@ -71,6 +71,21 @@ export default function About() {
     setEditingMember(null)
   }
 
+  const handlePhotoUpload = (member: TeamMember) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = (ev) => {
+      const file = (ev.target as HTMLInputElement).files?.[0]
+      if (file) {
+        const r = new FileReader()
+        r.onloadend = () => { setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, photoUrl: r.result as string } : m)) }
+        r.readAsDataURL(file)
+      }
+    }
+    input.click()
+  }
+
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) { const r = new FileReader(); r.onloadend = () => setNewMemberPhoto(r.result as string); r.readAsDataURL(file) }
@@ -219,15 +234,21 @@ export default function About() {
                 </div>
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5 overflow-hidden relative cursor-pointer group/avatar"
                   style={{ backgroundColor: 'var(--btn-primary-bg)' }}
-                  onClick={(e) => { e.stopPropagation(); if (member.photoUrl) { if (confirm('Remove photo?')) removeMemberPhoto(member) } else { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = (ev) => { const file = (ev.target as HTMLInputElement).files?.[0]; if (file) { const r = new FileReader(); r.onloadend = () => { setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, photoUrl: r.result as string } : m)) }; r.readAsDataURL(file) } }; input.click() } }}
                 >
                   {member.photoUrl ? (
                     <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-lg sm:text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{member.initials}</span>
                   )}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                    <button onClick={(e) => { e.stopPropagation(); handlePhotoUpload(member) }} className="p-1 rounded-full hover:bg-white/20 transition" title={member.photoUrl ? 'Change photo' : 'Add photo'}>
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    </button>
+                    {member.photoUrl && (
+                      <button onClick={(e) => { e.stopPropagation(); removeMemberPhoto(member) }} className="p-1 rounded-full hover:bg-white/20 transition" title="Remove photo">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
                 <h3 className="text-base sm:text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{member.name}</h3>
