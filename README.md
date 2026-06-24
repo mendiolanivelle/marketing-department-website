@@ -75,6 +75,8 @@ src/
 
 Generated output, installed dependencies, lockfile churn, logs, and local environment files are excluded from AI indexing in `.aiignore`, `.cursorignore`, `.codexignore`, `.aiderignore`, `.continueignore`, `.windsurfignore`, and `.claudeignore`. This keeps future coding-agent context focused on source files.
 
+Use `AGENTS.md` as the shared context packet for AI models. It contains the project map, token-saving workflow, coding rules, and GitHub push flow. A human-facing website assessment is available in `docs/WEBSITE_ANALYSIS.md`.
+
 ## Features
 
 - **Authentication** - Secure login with Supabase Auth
@@ -87,6 +89,16 @@ Generated output, installed dependencies, lockfile churn, logs, and local enviro
 ## Deployment
 
 The project is configured for deployment on Coolify. Push to the `master` branch to trigger automatic deployment.
+
+## AI-Assisted Pushes
+
+After an AI-assisted change is ready, run:
+
+```bash
+npm run ai:push -- "short commit message"
+```
+
+This runs checks, stages changes, commits, and pushes the current branch to GitHub. For documentation-only changes, use `-SkipChecks` after the message.
 
 ## Environment Variables
 
