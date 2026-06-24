@@ -27,21 +27,36 @@ export default function Home() {
   })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
   const [showPipeline, setShowPipeline] = useState(false)
-  const [announcementsList, setAnnouncementsList] = useState(announcements)
+  const [announcementsList, setAnnouncementsList] = useState(() => {
+    const saved = localStorage.getItem('exodia-announcements')
+    return saved ? JSON.parse(saved) : announcements
+  })
   const [readAnnouncementIds, setReadAnnouncementIds] = useState<number[]>([])
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: '', tag: 'Update', content: '' })
-  const [tasks, setTasks] = useState([
-    { id: 1, text: 'Review Q3 campaign proposals', done: false },
-    { id: 2, text: 'Update brand guidelines document', done: false },
-    { id: 3, text: 'Schedule team meeting for July', done: false },
-    { id: 4, text: 'Prepare presentation for stakeholders', done: false },
-  ])
+  const [tasks, setTasks] = useState(() => {
+    const saved = localStorage.getItem('exodia-tasks')
+    return saved ? JSON.parse(saved) : [
+      { id: 1, text: 'Review Q3 campaign proposals', done: false },
+      { id: 2, text: 'Update brand guidelines document', done: false },
+      { id: 3, text: 'Schedule team meeting for July', done: false },
+      { id: 4, text: 'Prepare presentation for stakeholders', done: false },
+    ]
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
+
+  // Persist tasks and announcements to localStorage
+  useEffect(() => {
+    localStorage.setItem('exodia-tasks', JSON.stringify(tasks))
+  }, [tasks])
+
+  useEffect(() => {
+    localStorage.setItem('exodia-announcements', JSON.stringify(announcementsList))
+  }, [announcementsList])
 
   const fetchLeadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return
@@ -313,10 +328,32 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
               </div>
-              <ul className="space-y-2 sm:space-y-3 mb-3">
+              {/* Add Task Input - moved below title */}
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="Add a new task..."
+                  value={newTaskText}
+                  onChange={(e) => setNewTaskText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+                  className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
+                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                />
+                <button
+                  onClick={addTask}
+                  className="px-3 py-2 rounded-lg transition flex items-center justify-center"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  title="Add task"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <ul className="space-y-2 sm:space-y-3 max-h-[300px] overflow-y-auto pr-1">
                 {tasks.map((task) => (
                   <li key={task.id} className="group flex items-center gap-3 p-3 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <input
@@ -364,28 +401,6 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              {/* Add Task Input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Add a new task..."
-                  value={newTaskText}
-                  onChange={(e) => setNewTaskText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
-                  className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
-                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
-                />
-                <button
-                  onClick={addTask}
-                  className="px-3 py-2 rounded-lg transition flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-                  title="Add task"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
             </div>
 
             {/* Quick Links */}
