@@ -1,6 +1,85 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+
+interface TeamMember {
+  id: number
+  name: string
+  role: string
+  bio: string
+  initials: string
+}
+
+interface OpenRole {
+  id: number
+  title: string
+  type: string
+}
+
+function getInitials(name: string) {
+  return name.split(' ').map(w => w.charAt(0)).join('').toUpperCase()
+}
 
 export default function About() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
+    const saved = localStorage.getItem('exodia-team')
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Sarah Chen', role: 'VP of Marketing', bio: 'Leads department strategy and oversees all marketing operations. 15 years of B2B marketing experience.', initials: 'SC' },
+      { id: 2, name: 'Marcus Johnson', role: 'Creative Director', bio: 'Manages the brand and creative team. Ensures visual consistency across all company materials.', initials: 'MJ' },
+      { id: 3, name: 'Emily Rodriguez', role: 'Digital Marketing Manager', bio: 'Owns paid media, SEO, and marketing automation. Drives our demand generation engine.', initials: 'ER' },
+      { id: 4, name: 'David Kim', role: 'Content Lead', bio: 'Oversees blog, whitepapers, case studies, and sales enablement content across all channels.', initials: 'DK' },
+    ]
+  })
+
+  const [openRoles, setOpenRoles] = useState<OpenRole[]>(() => {
+    const saved = localStorage.getItem('exodia-roles')
+    return saved ? JSON.parse(saved) : [
+      { id: 1, title: 'Marketing Coordinator', type: 'Full-time - Hybrid' },
+      { id: 2, title: 'Senior Content Strategist', type: 'Full-time - Remote' },
+    ]
+  })
+
+  useEffect(() => { localStorage.setItem('exodia-team', JSON.stringify(teamMembers)) }, [teamMembers])
+  useEffect(() => { localStorage.setItem('exodia-roles', JSON.stringify(openRoles)) }, [openRoles])
+
+  const [showAddMember, setShowAddMember] = useState(false)
+  const [showAddRole, setShowAddRole] = useState(false)
+  const [newMember, setNewMember] = useState({ name: '', role: '', bio: '' })
+  const [newRole, setNewRole] = useState({ title: '', type: 'Full-time - Hybrid' })
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
+  const [editingRole, setEditingRole] = useState<OpenRole | null>(null)
+
+  const addMember = () => {
+    if (!newMember.name.trim()) return
+    const id = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 1
+    setTeamMembers([...teamMembers, { ...newMember, id, initials: getInitials(newMember.name) }])
+    setNewMember({ name: '', role: '', bio: '' })
+    setShowAddMember(false)
+  }
+
+  const deleteMember = (id: number) => { setTeamMembers(teamMembers.filter(m => m.id !== id)) }
+
+  const saveMemberEdit = () => {
+    if (!editingMember) return
+    setTeamMembers(teamMembers.map(m => m.id === editingMember.id ? { ...editingMember, initials: getInitials(editingMember.name) } : m))
+    setEditingMember(null)
+  }
+
+  const addRole = () => {
+    if (!newRole.title.trim()) return
+    const id = openRoles.length > 0 ? Math.max(...openRoles.map(r => r.id)) + 1 : 1
+    setOpenRoles([...openRoles, { ...newRole, id }])
+    setNewRole({ title: '', type: 'Full-time - Hybrid' })
+    setShowAddRole(false)
+  }
+
+  const deleteRole = (id: number) => { setOpenRoles(openRoles.filter(r => r.id !== id)) }
+
+  const saveRoleEdit = () => {
+    if (!editingRole) return
+    setOpenRoles(openRoles.map(r => r.id === editingRole.id ? editingRole : r))
+    setEditingRole(null)
+  }
+
   return (
     <div>
       {/* Hero Section with Photo Background */}
@@ -58,11 +137,7 @@ export default function About() {
               { icon: '&#128221;', title: 'Content & Comms', desc: 'Blog, social media, internal communications, PR, and content strategy.' },
               { icon: '&#128202;', title: 'Analytics & Ops', desc: 'Marketing analytics, reporting, budget management, and tool administration.' },
             ].map((team, i) => (
-              <div
-                key={i}
-                className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg"
-                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-              >
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: team.icon }}></div>
                 <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{team.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{team.desc}</p>
@@ -73,7 +148,7 @@ export default function About() {
       </section>
 
       {/* Our Values */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Values</h2>
           <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
@@ -86,11 +161,7 @@ export default function About() {
               { icon: '&#127919;', title: 'Impact', desc: 'Every initiative we undertake is tied to measurable business outcomes and company goals.' },
               { icon: '&#128172;', title: 'Transparency', desc: 'We share our plans, results, and learnings openly with the entire organization.' },
             ].map((value, i) => (
-              <div
-                key={i}
-                className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg text-center"
-                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-              >
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: value.icon }}></div>
                 <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{value.desc}</p>
@@ -100,42 +171,162 @@ export default function About() {
         </div>
       </section>
 
+      {/* Our Team & Open Roles */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-7xl mx-auto">
+          {/* Team Members */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl sm:text-4xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Team</h2>
+              <p className="text-base sm:text-lg mt-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Meet the people behind the work</p>
+            </div>
+            <button onClick={() => setShowAddMember(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Add Member
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+            {teamMembers.map((member) => (
+              <div key={member.id} className="group p-6 sm:p-8 rounded-2xl border text-center transition-all hover:shadow-lg relative" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingMember(member)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} title="Edit">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => deleteMember(member.id)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} title="Delete">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
+                  <span className="text-lg sm:text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{member.initials}</span>
+                </div>
+                <h3 className="text-base sm:text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{member.name}</h3>
+                <span className="block text-xs sm:text-sm mb-2 sm:mb-3" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{member.role}</span>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{member.bio}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Open Roles */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl sm:text-3xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Open Roles</h3>
+            <button onClick={() => setShowAddRole(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Add Role
+            </button>
+          </div>
+          <div className="flex flex-col gap-3 max-w-3xl">
+            {openRoles.map((role) => (
+              <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div>
+                  <h4 className="text-sm sm:text-base" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{role.title}</h4>
+                  <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{role.type}</span>
+                </div>
+                <div className="flex gap-1 mt-2 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => setEditingRole(role)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => deleteRole(role.id)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddMember(false)}>
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Team Member</h3>
+            <input type="text" placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
+            <input type="text" placeholder="Role (e.g. Creative Director)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
+            <textarea placeholder="Bio" value={newMember.bio} onChange={e => setNewMember({ ...newMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowAddMember(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={addMember} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Modal */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingMember(null)}>
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Team Member</h3>
+            <input type="text" placeholder="Full Name" value={editingMember.name} onChange={e => setEditingMember({ ...editingMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
+            <input type="text" placeholder="Role" value={editingMember.role} onChange={e => setEditingMember({ ...editingMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
+            <textarea placeholder="Bio" value={editingMember.bio} onChange={e => setEditingMember({ ...editingMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setEditingMember(null)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={saveMemberEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Role Modal */}
+      {showAddRole && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddRole(false)}>
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Open Role</h3>
+            <input type="text" placeholder="Role Title" value={newRole.title} onChange={e => setNewRole({ ...newRole, title: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
+            <select value={newRole.type} onChange={e => setNewRole({ ...newRole, type: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }}>
+              <option>Full-time - Hybrid</option>
+              <option>Full-time - Remote</option>
+              <option>Full-time - Onsite</option>
+              <option>Part-time</option>
+              <option>Contract</option>
+            </select>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowAddRole(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={addRole} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Role Modal */}
+      {editingRole && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingRole(null)}>
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Open Role</h3>
+            <input type="text" placeholder="Role Title" value={editingRole.title} onChange={e => setEditingRole({ ...editingRole, title: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
+            <select value={editingRole.type} onChange={e => setEditingRole({ ...editingRole, type: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }}>
+              <option>Full-time - Hybrid</option>
+              <option>Full-time - Remote</option>
+              <option>Full-time - Onsite</option>
+              <option>Part-time</option>
+              <option>Contract</option>
+            </select>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setEditingRole(null)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={saveRoleEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CTA + Working Hours */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--accent)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
-          {/* CTA */}
           <div>
-            <h2 className="text-2xl sm:text-4xl text-white mb-4 sm:mb-5" style={{ fontWeight: 700 }}>
-              Ready to work with us?
-            </h2>
-            <p className="text-white/80 text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed" style={{ fontWeight: 300 }}>
-              Have a campaign idea or need marketing support? Contact us today and let's build something great together.
-            </p>
-            <Link
-              to="/contact"
-              className="inline-block px-8 py-3.5 rounded-xl text-white border-2 border-white hover:bg-white transition font-medium"
-              style={{ fontWeight: 500 }}
+            <h2 className="text-2xl sm:text-4xl text-white mb-4 sm:mb-5" style={{ fontWeight: 700 }}>Ready to work with us?</h2>
+            <p className="text-white/80 text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed" style={{ fontWeight: 300 }}>Have a campaign idea or need marketing support? Contact us today and let's build something great together.</p>
+            <Link to="/contact" className="inline-block px-8 py-3.5 rounded-xl text-white border-2 border-white hover:bg-white transition font-medium" style={{ fontWeight: 500 }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#FF5900')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#FFFFFF')}
-            >
-              Get in Touch
-            </Link>
+            >Get in Touch</Link>
           </div>
-
-          {/* Working Hours */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 sm:p-10 border border-white/20">
             <h3 className="text-xl sm:text-2xl text-white mb-5 sm:mb-6" style={{ fontWeight: 700 }}>Working Hours</h3>
             <div className="space-y-3">
-              {[
-                { day: 'Monday', hours: '9:00 AM – 6:00 PM' },
-                { day: 'Tuesday', hours: '9:00 AM – 6:00 PM' },
-                { day: 'Wednesday', hours: '9:00 AM – 6:00 PM' },
-                { day: 'Thursday', hours: '9:00 AM – 6:00 PM' },
-                { day: 'Friday', hours: '9:00 AM – 6:00 PM' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
-                  <span className="text-white text-sm sm:text-base" style={{ fontWeight: 500 }}>{item.day}</span>
-                  <span className="text-white/80 text-sm sm:text-base" style={{ fontWeight: 300 }}>{item.hours}</span>
+              {['Monday','Tuesday','Wednesday','Thursday','Friday'].map((day) => (
+                <div key={day} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
+                  <span className="text-white text-sm sm:text-base" style={{ fontWeight: 500 }}>{day}</span>
+                  <span className="text-white/80 text-sm sm:text-base" style={{ fontWeight: 300 }}>9:00 AM – 6:00 PM</span>
                 </div>
               ))}
               <div className="flex items-center justify-between py-2 pt-3 mt-3 border-t border-white/20">
