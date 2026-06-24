@@ -315,6 +315,22 @@ export default function Timeline() {
 
   const addLead = async () => {
     if (!leadForm.company || !leadForm.contact || !leadForm.email || !supabase) { alert('Please fill in all fields'); return }
+    const tempId = `temp-${Date.now()}`
+    const newLead: TimelineLead = {
+      id: tempId,
+      table_id: addLeadTableId,
+      column_key: addLeadColumnKey,
+      ...leadForm,
+      notes: '',
+      attachments: [],
+      email_history: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    // Add immediately to local state
+    setLeads(prev => [...prev, newLead])
+    setShowAddLead(false)
+    setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
     try {
       const { data, error } = await supabase
         .from('timeline_leads')
@@ -329,29 +345,33 @@ export default function Timeline() {
         .select()
         .single()
       if (error) throw error
-      setShowAddLead(false)
-      setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
+      // Replace temp lead with real one
+      if (data) setLeads(prev => prev.map(l => l.id === tempId ? data : l))
     } catch (err) { console.error('Error adding lead:', err); alert('Failed to add lead') }
   }
 
   const updateLead = async () => {
     if (!editingLead || !supabase) return
+    // Update local state immediately
+    setLeads(prev => prev.map(l => l.id === editingLead.id ? { ...editingLead, updated_at: new Date().toISOString() } : l))
+    if (selectedLead?.id === editingLead.id) setSelectedLead(editingLead)
+    setEditingLead(null)
     try {
       const { error } = await supabase
         .from('timeline_leads')
         .update({ ...editingLead, updated_at: new Date().toISOString() })
         .eq('id', editingLead.id)
       if (error) throw error
-      setEditingLead(null)
     } catch (err) { console.error('Error updating lead:', err) }
   }
 
   const deleteLead = async (leadId: string) => {
     if (!confirm('Delete this lead?') || !supabase) return
+    setLeads(prev => prev.filter(l => l.id !== leadId))
+    setSelectedLead(null)
     try {
       const { error } = await supabase.from('timeline_leads').delete().eq('id', leadId)
       if (error) throw error
-      setSelectedLead(null)
     } catch (err) { console.error('Error deleting lead:', err) }
   }
 
