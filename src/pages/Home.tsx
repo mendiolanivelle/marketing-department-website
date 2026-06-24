@@ -31,7 +31,10 @@ export default function Home() {
     const saved = localStorage.getItem('exodia-announcements')
     return saved ? JSON.parse(saved) : announcements
   })
-  const [readAnnouncementIds, setReadAnnouncementIds] = useState<number[]>([])
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('exodia-read-announcements')
+    return saved ? JSON.parse(saved) : []
+  })
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: '', tag: 'Update', content: '' })
@@ -57,6 +60,10 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('exodia-announcements', JSON.stringify(announcementsList))
   }, [announcementsList])
+
+  useEffect(() => {
+    localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
+  }, [readAnnouncementIds])
 
   const fetchLeadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return
