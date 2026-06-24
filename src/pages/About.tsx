@@ -100,24 +100,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Mission & Vision */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          <div className="p-8 sm:p-12 rounded-2xl text-white" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-            <h3 className="text-2xl sm:text-3xl mb-4 sm:mb-5" style={{ fontWeight: 700 }}>Our Mission</h3>
-            <p className="text-white/80 leading-relaxed text-base sm:text-lg" style={{ fontWeight: 300 }}>
-              To drive growth and brand awareness through data-driven marketing strategies that support every team in the organization and deliver measurable business impact.
-            </p>
-          </div>
-          <div className="p-8 sm:p-12 rounded-2xl text-white" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-            <h3 className="text-2xl sm:text-3xl mb-4 sm:mb-5" style={{ fontWeight: 700 }}>Our Vision</h3>
-            <p className="text-white/80 leading-relaxed text-base sm:text-lg" style={{ fontWeight: 300 }}>
-              To be recognized as a strategic partner within the company, setting the standard for marketing excellence and contributing directly to company-wide success.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* CTA + Working Hours */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--accent)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
