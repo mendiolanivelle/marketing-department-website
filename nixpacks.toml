@@ -1,2 +1,5 @@
 [phases.setup]
-nixpkgsArchive = "ba913eda2df8eb72147259189d55932012df6301"
+nixpkgsArchive = "51ad838b03a05b1de6f9f2a0fffecee64a9788ee"
+
+[phases.install]
+cmds = ["npm ci --include=optional"]
