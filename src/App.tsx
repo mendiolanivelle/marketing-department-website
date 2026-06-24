@@ -8,8 +8,6 @@ import Sidebar from './components/Sidebar'
 const Login = lazy(() => import('./pages/Login'))
 const Home = lazy(() => import('./pages/Home'))
 const About = lazy(() => import('./pages/About'))
-const Services = lazy(() => import('./pages/Services'))
-const Team = lazy(() => import('./pages/Team'))
 const Timeline = lazy(() => import('./pages/Timeline'))
 const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))

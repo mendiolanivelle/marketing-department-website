@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 
 interface TeamMember {
@@ -391,70 +390,89 @@ export default function About() {
         </div>
       )}
 
-      {/* Contact & Reaching Us */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16">
-          <div>
-            <h2 className="text-2xl sm:text-4xl mb-5 sm:mb-6" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Reach Out</h2>
-            <p className="text-base sm:text-lg mb-8 leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              Need marketing support? Have a question about brand guidelines? Want to discuss a campaign idea? Reach us through the channels below.
-            </p>
-            <div className="space-y-5">
-              {[
-                { icon: '📧', title: 'Email', info: 'marketing@exodiagamedev.com' },
-                { icon: '💬', title: 'Slack Channel', info: '#marketing-requests' },
-                { icon: '📍', title: 'Office Location', info: 'Floor 4, Room 412' },
-                { icon: '📅', title: 'Book a Meeting', info: 'calendly.com/exodia/marketing' },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-4 items-start">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>{item.icon}</div>
-                  <div>
-                    <h4 className="text-sm mb-0.5" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.title}</h4>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.info}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border p-6 sm:p-10" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <h3 className="text-xl sm:text-2xl mb-5" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Submit a Request</h3>
-            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted! We\'ll get back to you within 1-2 business days.'); form.reset() }} className="space-y-4">
-              <input name="name" required placeholder="Your Name" className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-              <input name="department" required placeholder="Your Department (e.g. Sales, Product)" className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-              <select name="requestType" required className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                <option value="">Select request type</option>
-                <option value="campaign">Campaign Support</option>
-                <option value="content">Content / Copywriting</option>
-                <option value="brand">Brand Assets / Guidelines</option>
-                <option value="social">Social Media</option>
-                <option value="event">Event / Webinar</option>
-                <option value="other">Other</option>
-              </select>
-              <select name="priority" required className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                <option value="">Select priority</option>
-                <option value="low">Low - No rush</option>
-                <option value="medium">Medium - Within 2 weeks</option>
-                <option value="high">High - Within 1 week</option>
-                <option value="urgent">Urgent - ASAP</option>
-              </select>
-              <textarea name="message" required rows={4} placeholder="Describe your request, goals, timeline..." className="w-full px-4 py-3 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-              <button type="submit" className="w-full py-3 text-sm text-white rounded-lg transition" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Submit Request</button>
-            </form>
+      {/* Department Services */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Services</h2>
+          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>What the Marketing team can do for you and your team</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { icon: '&#127919;', title: 'Brand Guidelines & Assets', desc: 'Access approved brand templates, logos, color palettes, typography, and usage guidelines.', features: ['Logo Files', 'Template Library', 'Style Guides', 'Presentation Templates'] },
+              { icon: '&#128187;', title: 'Campaign Support', desc: 'Our team helps plan, create, and execute marketing campaigns for your initiatives.', features: ['Campaign Planning', 'Asset Creation', 'Channel Strategy', 'Launch Support'] },
+              { icon: '&#128241;', title: 'Social Media', desc: 'We manage all company social channels. Submit content requests for announcements.', features: ['Content Requests', 'LinkedIn Posts', 'Employee Advocacy', 'Crisis Comms'] },
+              { icon: '&#9997;', title: 'Content & Copywriting', desc: 'Blog posts, whitepapers, case studies, and sales collateral for every stage of the funnel.', features: ['Blog Posts', 'Case Studies', 'Sales Collateral', 'Whitepapers'] },
+              { icon: '&#128200;', title: 'Analytics & Reporting', desc: 'Access marketing dashboards, request custom reports, and track KPIs.', features: ['Performance Dashboards', 'Custom Reports', 'KPI Tracking', 'Data Walkthroughs'] },
+              { icon: '&#127758;', title: 'Event & Webinar Support', desc: 'Promotion, logistics, and post-event follow-up for internal events and conferences.', features: ['Event Promotion', 'Webinar Setup', 'Conference Planning', 'Post-Event Reports'] },
+            ].map((service, i) => (
+              <div key={i} className="p-6 sm:p-9 rounded-2xl border transition-all hover:-translate-y-1 hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: service.icon }}></div>
+                <h3 className="text-lg sm:text-xl mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{service.title}</h3>
+                <p className="text-sm leading-relaxed mb-4 sm:mb-5" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{service.desc}</p>
+                <ul className="flex flex-wrap gap-2">
+                  {service.features.map((feature, i) => (
+                    <li key={i} className="px-3 py-1 rounded-md text-xs font-medium" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA + Working Hours */}
+      {/* How to Request Our Help */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>How to Request Our Help</h2>
+          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Our standard workflow for handling internal requests</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { num: '01', title: 'Submit a Request', desc: 'Fill out the contact form with details about your project, timeline, and goals.' },
+              { num: '02', title: 'Intake Meeting', desc: "We'll schedule a brief call to align on scope, deliverables, and expectations." },
+              { num: '03', title: 'Execution', desc: "Our team gets to work. You'll receive regular updates and review checkpoints." },
+              { num: '04', title: 'Delivery & Review', desc: 'We deliver final assets and gather feedback to improve future collaborations.' },
+            ].map((step, i) => (
+              <div key={i} className="text-center p-6 sm:p-8">
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" style={{ color: 'var(--text-muted)', fontWeight: 700 }}>{step.num}</div>
+                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{step.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA + Working Hours - Reach Out beside Working Hours */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--accent)' }}>
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
           <div>
-            <h2 className="text-2xl sm:text-4xl text-white mb-4 sm:mb-5" style={{ fontWeight: 700 }}>Ready to work with us?</h2>
-            <p className="text-white/80 text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed" style={{ fontWeight: 300 }}>Have a campaign idea or need marketing support? Contact us today and let's build something great together.</p>
-            <Link to="/contact" className="inline-block px-8 py-3.5 rounded-xl text-white border-2 border-white hover:bg-white transition font-medium" style={{ fontWeight: 500 }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#FF5900')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#FFFFFF')}
-            >Get in Touch</Link>
+            <h2 className="text-2xl sm:text-4xl text-white mb-4" style={{ fontWeight: 700 }}>Reach Out</h2>
+            <p className="text-white/80 text-sm sm:text-base mb-5 leading-relaxed" style={{ fontWeight: 300 }}>
+              Need marketing support? Have a question about brand guidelines? Reach us through the channels below.
+            </p>
+            <div className="space-y-3 mb-6">
+              {[
+                { icon: '📧', title: 'Email', info: 'marketing@exodiagamedev.com' },
+                { icon: '💬', title: 'Slack', info: '#marketing-requests' },
+                { icon: '📍', title: 'Office', info: 'Floor 4, Room 412' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-3 items-center">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base bg-white/10 backdrop-blur-sm">{item.icon}</div>
+                  <div>
+                    <p className="text-sm" style={{ color: '#FFFFFF', fontWeight: 500 }}>{item.title}</p>
+                    <p className="text-xs text-white/70" style={{ fontWeight: 300 }}>{item.info}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted!'); form.reset() }} className="space-y-2.5">
+              <input name="name" required placeholder="Your Name" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder:text-white/50" />
+              <input name="email" required placeholder="Your Email" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder:text-white/50" />
+              <textarea name="message" required rows={2} placeholder="Briefly describe your request..." className="w-full px-3.5 py-2 rounded-lg outline-none text-sm bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder:text-white/50 resize-none" />
+              <button type="submit" className="px-5 py-2 text-sm rounded-lg transition border-2 border-white hover:bg-white" style={{ color: '#FFFFFF', fontWeight: 500 }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#FF5900'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#FFFFFF'}
+              >Send Message</button>
+            </form>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 sm:p-10 border border-white/20">
             <h3 className="text-xl sm:text-2xl text-white mb-5 sm:mb-6" style={{ fontWeight: 700 }}>Working Hours</h3>
