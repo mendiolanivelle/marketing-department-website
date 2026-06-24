@@ -12,10 +12,9 @@ const Services = lazy(() => import('./pages/Services'))
 const Team = lazy(() => import('./pages/Team'))
 const Contact = lazy(() => import('./pages/Contact'))
 const Timeline = lazy(() => import('./pages/Timeline'))
-const MessageTemplates = lazy(() => import('./pages/MessageTemplates'))
+const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
-const ReachOut = lazy(() => import('./pages/ReachOut'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
   return (
@@ -63,10 +62,9 @@ function App() {
                             <Route path="/services" element={<Services />} />
                             <Route path="/team" element={<Team />} />
                             <Route path="/timeline" element={<Timeline />} />
-                            <Route path="/templates" element={<MessageTemplates />} />
+                            <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
                             <Route path="/leads" element={<LeadGeneration />} />
-                            <Route path="/reach-out" element={<ReachOut />} />
                             <Route path="/contact" element={<Contact />} />
                           </Routes>
                         </Suspense>
