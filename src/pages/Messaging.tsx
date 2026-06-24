@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +12,7 @@ interface OutreachLead {
   status: 'pending' | 'sent' | 'replied' | 'follow-up'
   lastContacted: string
   notes: string
+  photoUrl?: string
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -23,13 +24,13 @@ const defaultLeads: OutreachLead[] = [
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   'pending': { label: 'Pending', color: '#3E4048' },
-  'sent': { label: 'Sent', color: '#4A90D9' },
-  'replied': { label: 'Replied', color: '#0B8043' },
-  'follow-up': { label: 'Follow Up', color: '#FF5900' },
+  'sent': { label: 'Sent', color: '#0B8043' },
+  'follow-up': { label: 'Follow Up', color: '#4A90D9' },
+  'replied': { label: 'Replied', color: '#FF5900' },
 }
 
 const sortLeads = (leads: OutreachLead[]) => {
-  const priority: Record<string, number> = { 'follow-up': 0, 'pending': 1, 'sent': 2, 'replied': 3 }
+  const priority: Record<string, number> = { 'pending': 0, 'sent': 1, 'follow-up': 2, 'replied': 3 }
   return [...leads].sort((a, b) => (priority[a.status] ?? 99) - (priority[b.status] ?? 99))
 }
 
@@ -131,6 +132,9 @@ export default function Messaging() {
   const [emailBody, setEmailBody] = useState('')
   const [editingLead, setEditingLead] = useState<OutreachLead | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const memberFileRef = useRef<HTMLInputElement>(null)
+  const [photoTarget, setPhotoTarget] = useState<number | 'edit' | null>(null)
 
   // === Reach Out Functions ===
   const addLead = () => {
@@ -173,7 +177,21 @@ export default function Messaging() {
     setLeads(leads.map(l => l.id === id ? { ...l, notes: l.notes ? `${l.notes}\n${note.trim()}` : note.trim() } : l))
   }
 
-  const filtered = filterStatus === 'all' ? leads : leads.filter(l => l.status === filterStatus)
+  const statusCycle: OutreachLead['status'][] = ['pending', 'sent', 'follow-up', 'replied']
+
+  const moveToNextStatus = (lead: OutreachLead) => {
+    const idx = statusCycle.indexOf(lead.status)
+    if (idx < statusCycle.length - 1) updateStatus(lead.id, statusCycle[idx + 1])
+  }
+
+  const moveToPrevStatus = (lead: OutreachLead) => {
+    const idx = statusCycle.indexOf(lead.status)
+    if (idx > 0) updateStatus(lead.id, statusCycle[idx - 1])
+  }
+
+  const filtered = (filterStatus === 'all' ? leads : leads.filter(l => l.status === filterStatus)).filter(l =>
+    !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.company.toLowerCase().includes(searchQuery.toLowerCase()) || l.email.toLowerCase().includes(searchQuery.toLowerCase()) || l.notes.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   // === Message Templates State ===
   const [templates, setTemplates] = useState<MessageTemplate[]>(fallbackTemplates)
@@ -356,13 +374,28 @@ export default function Messaging() {
           </button>
         </div>
 
+        {/* Search */}
+        <div className="relative mb-4">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search leads by name, company, email, or notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border rounded-xl text-sm outline-none transition"
+            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+          />
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Follow Up', count: leads.filter(l => l.status === 'follow-up').length, color: 'var(--accent)' },
-            { label: 'Pending', count: leads.filter(l => l.status === 'pending').length, color: 'var(--text-secondary)' },
-            { label: 'Sent', count: leads.filter(l => l.status === 'sent').length },
-            { label: 'Replied', count: leads.filter(l => l.status === 'replied').length },
+            { label: 'Pending', count: leads.filter(l => l.status === 'pending').length, color: '#3E4048' },
+            { label: 'Sent', count: leads.filter(l => l.status === 'sent').length, color: '#0B8043' },
+            { label: 'Follow Up', count: leads.filter(l => l.status === 'follow-up').length, color: '#4A90D9' },
+            { label: 'Replied', count: leads.filter(l => l.status === 'replied').length, color: '#FF5900' },
           ].map((stat, i) => (
             <div key={i} className="p-4 rounded-xl border text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="text-2xl sm:text-3xl mb-1" style={{ color: stat.color || 'var(--text-primary)', fontWeight: 700 }}>{stat.count}</div>
@@ -373,7 +406,7 @@ export default function Messaging() {
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'follow-up', 'pending', 'sent', 'replied'].map((s) => (
+          {['all', 'pending', 'sent', 'follow-up', 'replied'].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -391,7 +424,23 @@ export default function Messaging() {
         </div>
 
         {/* Lead List */}
-        <div className="space-y-3">
+        <input type="file" accept="image/*" ref={memberFileRef} className="hidden" onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const reader = new FileReader()
+          reader.onload = (ev) => {
+            const dataUrl = ev.target?.result as string
+            if (photoTarget === 'edit') {
+              if (editingLead) setEditingLead({ ...editingLead, photoUrl: dataUrl })
+            } else if (typeof photoTarget === 'number') {
+              setLeads(leads.map(l => l.id === photoTarget ? { ...l, photoUrl: dataUrl } : l))
+            }
+            setPhotoTarget(null)
+          }
+          reader.readAsDataURL(file)
+          e.target.value = ''
+        }} />
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
           {filtered.map((lead) => {
             const status = statusConfig[lead.status]
             return (
@@ -403,8 +452,15 @@ export default function Messaging() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-                        <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}{lead.company.charAt(0)}</span>
+                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={() => { setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
+                        {lead.photoUrl ? (
+                          <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}{lead.company.charAt(0)}</span>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-sm sm:text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.name}</h3>
@@ -435,6 +491,8 @@ export default function Messaging() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     Email
                   </button>
+                  <button onClick={() => moveToPrevStatus(lead)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Previous status">&larr;</button>
+                  <button onClick={() => moveToNextStatus(lead)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Next status">&rarr;</button>
                   <select
                     value={lead.status}
                     onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
@@ -484,6 +542,18 @@ export default function Messaging() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingLead(null)}>
             <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
               <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Lead</h3>
+              <div className="flex justify-center mb-4">
+                <div className="relative w-20 h-20 rounded-full flex items-center justify-center overflow-hidden cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={() => { setPhotoTarget('edit'); memberFileRef.current?.click() }}>
+                  {editingLead.photoUrl ? (
+                    <img src={editingLead.photoUrl} alt={editingLead.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{editingLead.name.charAt(0)}{editingLead.company.charAt(0)}</span>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
+                </div>
+              </div>
               <input type="text" placeholder="Full Name" value={editingLead.name} onChange={e => setEditingLead({ ...editingLead, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
               <input type="email" placeholder="Email" value={editingLead.email} onChange={e => setEditingLead({ ...editingLead, email: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
               <input type="text" placeholder="Company" value={editingLead.company} onChange={e => setEditingLead({ ...editingLead, company: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
