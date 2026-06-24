@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function About() {
   return (
     <div>
@@ -70,6 +72,34 @@ export default function About() {
         </div>
       </section>
 
+      {/* Our Values */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Values</h2>
+          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+            The principles that guide how we work and make decisions every day
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { icon: '&#128161;', title: 'Innovation', desc: 'We experiment with new channels, tools, and approaches to stay ahead of market trends.' },
+              { icon: '&#129309;', title: 'Collaboration', desc: 'We work cross-functionally and believe the best results come from diverse perspectives.' },
+              { icon: '&#127919;', title: 'Impact', desc: 'Every initiative we undertake is tied to measurable business outcomes and company goals.' },
+              { icon: '&#128172;', title: 'Transparency', desc: 'We share our plans, results, and learnings openly with the entire organization.' },
+            ].map((value, i) => (
+              <div
+                key={i}
+                className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg text-center"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+              >
+                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: value.icon }}></div>
+                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{value.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Mission & Vision */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
@@ -99,13 +129,15 @@ export default function About() {
             <p className="text-white/80 text-base sm:text-lg mb-6 sm:mb-8 leading-relaxed" style={{ fontWeight: 300 }}>
               Have a campaign idea or need marketing support? Contact us today and let's build something great together.
             </p>
-            <a
-              href="/contact"
-              className="inline-block px-8 py-3.5 rounded-xl text-white border-2 border-white hover:bg-white hover:text-[#FF5900] transition font-medium"
+            <Link
+              to="/contact"
+              className="inline-block px-8 py-3.5 rounded-xl text-white border-2 border-white hover:bg-white transition font-medium"
               style={{ fontWeight: 500 }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#FF5900')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#FFFFFF')}
             >
               Get in Touch
-            </a>
+            </Link>
           </div>
 
           {/* Working Hours */}
