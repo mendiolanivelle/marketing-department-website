@@ -14,7 +14,7 @@ export default function About() {
       >
         <div className="relative z-10 max-w-3xl mx-auto">
           <h1 className="text-4xl sm:text-6xl text-white mb-4 sm:mb-6 tracking-tight" style={{ fontWeight: 700 }}>
-            About Our Department
+            Welcome to Marketing Department
           </h1>
           <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto" style={{ fontWeight: 300 }}>
             Learn about the Marketing department's mission, structure, and how we support the organization
@@ -34,7 +34,7 @@ export default function About() {
               We partner with Sales, Product, Customer Success, and Leadership to develop strategies that align with company objectives and deliver measurable results.
             </p>
           </div>
-          <div className="rounded-2xl overflow-hidden shadow-lg" style={{ height: '400px' }}>
+          <div className="rounded-2xl overflow-hidden shadow-lg" style={{ height: '500px' }}>
             <img
               src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80"
               alt="Marketing Team"
