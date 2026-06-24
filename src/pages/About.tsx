@@ -442,7 +442,7 @@ export default function About() {
       </section>
 
       {/* CTA + Working Hours - Reach Out beside Working Hours */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--accent)' }}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
           <div>
             <h2 className="text-2xl sm:text-4xl text-white mb-4" style={{ fontWeight: 700 }}>Reach Out</h2>
@@ -456,7 +456,7 @@ export default function About() {
                 { icon: '📍', title: 'Office', info: 'Floor 4, Room 412' },
               ].map((item, i) => (
                 <div key={i} className="flex gap-3 items-center">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base bg-white/10 backdrop-blur-sm">{item.icon}</div>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-base" style={{ backgroundColor: 'var(--accent)' }}>{item.icon}</div>
                   <div>
                     <p className="text-sm" style={{ color: '#FFFFFF', fontWeight: 500 }}>{item.title}</p>
                     <p className="text-xs text-white/70" style={{ fontWeight: 300 }}>{item.info}</p>
@@ -474,7 +474,7 @@ export default function About() {
               >Send Message</button>
             </form>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 sm:p-10 border border-white/20">
+          <div className="rounded-2xl p-6 sm:p-10" style={{ backgroundColor: 'var(--accent)' }}>
             <h3 className="text-xl sm:text-2xl text-white mb-5 sm:mb-6" style={{ fontWeight: 700 }}>Working Hours</h3>
             <div className="space-y-3">
               {['Monday','Tuesday','Wednesday','Thursday','Friday'].map((day) => (
