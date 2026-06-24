@@ -18,6 +18,11 @@
    - L.Grey:   #CACDD7  (15%)
    - D.Grey:   #3E4048  (15%)
    - Orange:   #FF5900  (10%)
+   
+   Rules:
+   - Dark bg → white text
+   - Light bg → black text
+   - Headers/sub-headers/titles → #1B1A1C (light mode) / #FFFFFF (dark mode for visibility)
    ============================================ */
 
 :root {
@@ -28,7 +33,7 @@
   --bg-hover: rgba(27, 26, 28, 0.05);
   --bg-overlay: rgba(27, 26, 28, 0.3);
 
-  /* Text Colors */
+  /* Text Colors - black on light bg */
   --text-primary: #1B1A1C;
   --text-secondary: #1B1A1C;
   --text-tertiary: #3E4048;
@@ -75,9 +80,9 @@
   --bg-hover: rgba(255, 255, 255, 0.08);
   --bg-overlay: rgba(0, 0, 0, 0.6);
 
-  /* Text Colors */
+  /* Text Colors - white on dark bg for visibility */
   --text-primary: #FFFFFF;
-  --text-secondary: #1B1A1C;
+  --text-secondary: #FFFFFF;
   --text-tertiary: #CACDD7;
   --text-muted: #3E4048;
   --text-inverse: #1B1A1C;
