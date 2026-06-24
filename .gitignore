@@ -27,3 +27,4 @@ coverage
 *.sw?
 
 .env
+supabase/.temp/

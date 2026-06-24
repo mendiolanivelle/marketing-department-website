@@ -101,85 +101,12 @@ export default function Timeline() {
     const targetColumn = targetTable?.columns.find(column => column.key === columnKey)
     if (!targetColumn || !isSowCostingColumn(targetColumn.label)) return
 
-    const clientKey = `${lead.company.trim()}|${lead.contact.trim()}`.toLowerCase()
-    const syncedNotes = [
-      `Auto-synced from marketing timeline stage: ${targetColumn.label}`,
-      `Lead value: ${lead.value || ''}`,
-      `Lead date: ${lead.date || ''}`,
-      lead.notes,
-    ].filter(Boolean).join('\n\n')
-
     try {
-      const { data: existingClient, error: clientLookupError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('client_key', clientKey)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
+      const { error } = await supabase.functions.invoke('sync-sow-timeline-lead', {
+        body: { leadId: lead.id },
+      })
 
-      if (clientLookupError) throw clientLookupError
-
-      let clientId = existingClient?.id
-      const clientPayload = {
-        client_key: clientKey,
-        contact_name: lead.contact,
-        contact_email: lead.email || null,
-        company_name: lead.company,
-        updated_at: new Date().toISOString(),
-      }
-
-      if (clientId) {
-        const { error: clientUpdateError } = await supabase
-          .from('clients')
-          .update(clientPayload)
-          .eq('id', clientId)
-        if (clientUpdateError) throw clientUpdateError
-      } else {
-        const { data: newClient, error: clientInsertError } = await supabase
-          .from('clients')
-          .insert([clientPayload])
-          .select('id')
-          .single()
-        if (clientInsertError) throw clientInsertError
-        clientId = newClient?.id
-      }
-
-      if (!clientId) return
-
-      const { data: existingForward, error: forwardLookupError } = await supabase
-        .from('marketing_forwards')
-        .select('id')
-        .eq('client_id', clientId)
-        .order('forwarded_at', { ascending: true })
-        .limit(1)
-        .maybeSingle()
-
-      if (forwardLookupError) throw forwardLookupError
-
-      const { data: { user } } = await supabase.auth.getUser()
-      const forwardPayload = {
-        client_id: clientId,
-        forwarded_by: user?.email || 'Marketing Timeline',
-        marketing_notes: syncedNotes,
-        status: 'pending',
-      }
-
-      if (existingForward?.id) {
-        const { error: forwardUpdateError } = await supabase
-          .from('marketing_forwards')
-          .update({
-            forwarded_by: forwardPayload.forwarded_by,
-            marketing_notes: forwardPayload.marketing_notes,
-          })
-          .eq('id', existingForward.id)
-        if (forwardUpdateError) throw forwardUpdateError
-      } else {
-        const { error: forwardInsertError } = await supabase
-          .from('marketing_forwards')
-          .insert([forwardPayload])
-        if (forwardInsertError) throw forwardInsertError
-      }
+      if (error) throw error
     } catch (err) {
       console.error('Error syncing lead to sales marketing leads:', err)
     }
