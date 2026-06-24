@@ -51,6 +51,11 @@ export default function About() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [uploadTarget, setUploadTarget] = useState<number | null>(null)
+  const [cropData, setCropData] = useState<string | null>(null)
+  const [cropImage, setCropImage] = useState<string | null>(null)
+  const [cropZoom, setCropZoom] = useState(1)
+  const [cropPos, setCropPos] = useState({ x: 0, y: 0 })
+  const [cropDrag, setCropDrag] = useState<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
   const memberFileRef = useRef<HTMLInputElement>(null)
   const editFileRef = useRef<HTMLInputElement>(null)
 
@@ -79,11 +84,38 @@ export default function About() {
       const file = (ev.target as HTMLInputElement).files?.[0]
       if (file) {
         const r = new FileReader()
-        r.onloadend = () => { setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, photoUrl: r.result as string } : m)) }
+        r.onloadend = () => {
+          setCropImage(r.result as string)
+          setCropZoom(1)
+          setCropPos({ x: 0, y: 0 })
+          setUploadTarget(member.id)
+        }
         r.readAsDataURL(file)
       }
     }
     input.click()
+  }
+
+  const applyCrop = () => {
+    if (!cropImage || uploadTarget === null) return
+    const img = new Image()
+    img.onload = () => {
+      const size = Math.min(img.width, img.height)
+      const canvas = document.createElement('canvas')
+      canvas.width = 200
+      canvas.height = 200
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const cx = (img.width - size) / 2 + cropPos.x * (img.width / cropZoom) / 4
+      const cy = (img.height - size) / 2 + cropPos.y * (img.height / cropZoom) / 4
+      const s = size / cropZoom
+      ctx.drawImage(img, cx, cy, s, s, 0, 0, 200, 200)
+      const cropped = canvas.toDataURL()
+      setTeamMembers(prev => prev.map(m => m.id === uploadTarget ? { ...m, photoUrl: cropped } : m))
+      setCropImage(null)
+      setUploadTarget(null)
+    }
+    img.src = cropImage
   }
 
   const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,6 +438,34 @@ export default function About() {
             <div className="flex gap-3 justify-end">
               <button onClick={() => setEditingRole(null)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={saveRoleEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Crop Modal */}
+      {cropImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setCropImage(null); setUploadTarget(null) }}>
+          <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Adjust Photo</h3>
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-black cursor-move"
+              style={{ maxHeight: '300px' }}
+              onMouseDown={(e) => { const r = (e.target as HTMLElement).getBoundingClientRect(); setCropDrag({ startX: e.clientX - r.left, startY: e.clientY - r.top, posX: cropPos.x, posY: cropPos.y }) }}
+              onMouseMove={(e) => { if (!cropDrag) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); const dx = (e.clientX - r.left - cropDrag.startX) / (r.width / cropZoom); const dy = (e.clientY - r.top - cropDrag.startY) / (r.height / cropZoom); setCropPos({ x: cropDrag.posX + dx, y: cropDrag.posY + dy }) }}
+              onMouseUp={() => setCropDrag(null)}
+              onMouseLeave={() => setCropDrag(null)}
+            >
+              <img src={cropImage} className="w-full h-full pointer-events-none" style={{ objectFit: 'cover', transform: `scale(${cropZoom})`, transformOrigin: `${50 - cropPos.x * 5}% ${50 - cropPos.y * 5}%` }} />
+              <div className="absolute inset-0 border-2 border-white/60 rounded-xl pointer-events-none" />
+            </div>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Zoom:</span>
+              <input type="range" min="0.5" max="3" step="0.05" value={cropZoom} onChange={e => setCropZoom(parseFloat(e.target.value))} className="flex-1" />
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{Math.round(cropZoom * 100)}%</span>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setCropImage(null); setUploadTarget(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={applyCrop} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save Photo</button>
             </div>
           </div>
         </div>
