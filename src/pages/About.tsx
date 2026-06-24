@@ -207,30 +207,29 @@ export default function About() {
           </div>
 
           {/* Open Roles */}
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl sm:text-3xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Open Roles</h3>
-            <button onClick={() => setShowAddRole(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Add Role
-            </button>
-          </div>
-          <div className="flex flex-col gap-3 max-w-3xl">
-            {openRoles.map((role) => (
-              <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div>
-                  <h4 className="text-sm sm:text-base" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{role.title}</h4>
-                  <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{role.type}</span>
+          <div className="text-center">
+            <h3 className="text-2xl sm:text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Open Roles</h3>
+            <p className="text-sm sm:text-base mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              We're currently hiring — reach out to HR for more details.
+            </p>
+            <div className="inline-flex flex-col gap-3 max-w-xl w-full">
+              {openRoles.map((role) => (
+                <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                  <div className="text-left">
+                    <h4 className="text-sm sm:text-base" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{role.title}</h4>
+                    <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{role.type}</span>
+                  </div>
+                  <div className="flex gap-1 mt-2 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => setEditingRole(role)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                    <button onClick={() => deleteRole(role.id)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1 mt-2 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setEditingRole(role)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button onClick={() => deleteRole(role.id)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
