@@ -575,6 +575,16 @@ export default function LeadGeneration() {
         {/* Menu Bar */}
         <div className="flex items-center px-2 py-1 border-b border-[#CACDD7] bg-white">
           <div className="flex items-center gap-2 mr-4">
+            <button
+              onClick={() => { setSelectedFile(null); setRows([]); setEditingCell(null); setEditingHeader(null) }}
+              className="p-1.5 rounded-lg hover:bg-[rgba(202,205,215,0.3)] transition"
+              style={{ color: 'var(--text-secondary)' }}
+              title="Back to files"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
             <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
