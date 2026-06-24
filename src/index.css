@@ -21,23 +21,23 @@
    ============================================ */
 
 :root {
-  /* Backgrounds */
+  /* Light Mode Colors */
   --bg-primary: #FFFFFF;
-  --bg-secondary: #F5F6F8;
+  --bg-secondary: #FFFFFF;
   --bg-card: #FFFFFF;
-  --bg-hover: rgba(202, 205, 215, 0.25);
+  --bg-hover: rgba(27, 26, 28, 0.05);
   --bg-overlay: rgba(27, 26, 28, 0.3);
 
-  /* Text - proper contrast hierarchy */
+  /* Text Colors */
   --text-primary: #1B1A1C;
-  --text-secondary: #3E4048;
-  --text-tertiary: #6B6E78;
+  --text-secondary: #1B1A1C;
+  --text-tertiary: #3E4048;
   --text-muted: #CACDD7;
   --text-inverse: #FFFFFF;
 
   /* Borders */
-  --border-primary: #CACDD7;
-  --border-secondary: #E2E4E9;
+  --border-primary: #1B1A1C;
+  --border-secondary: #CACDD7;
   --border-focus: #FF5900;
 
   /* Buttons */
@@ -46,8 +46,8 @@
   --btn-accent-bg: #FF5900;
   --btn-accent-text: #FFFFFF;
   --btn-ghost-bg: transparent;
-  --btn-ghost-text: #3E4048;
-  --btn-ghost-hover: rgba(202, 205, 215, 0.3);
+  --btn-ghost-text: #1B1A1C;
+  --btn-ghost-hover: rgba(27, 26, 28, 0.1);
 
   /* Accents */
   --accent: #FF5900;
@@ -68,26 +68,26 @@
    DARK MODE
    ============================================ */
 .dark {
-  /* Backgrounds - deep and rich */
+  /* Dark Mode Colors */
   --bg-primary: #1B1A1C;
-  --bg-secondary: #252426;
+  --bg-secondary: #1B1A1C;
   --bg-card: #1B1A1C;
   --bg-hover: rgba(255, 255, 255, 0.08);
   --bg-overlay: rgba(0, 0, 0, 0.6);
 
-  /* Text - inverted for contrast */
+  /* Text Colors */
   --text-primary: #FFFFFF;
-  --text-secondary: #FFFFFF;
+  --text-secondary: #1B1A1C;
   --text-tertiary: #CACDD7;
   --text-muted: #3E4048;
   --text-inverse: #1B1A1C;
 
-  /* Borders - white on dark */
+  /* Borders */
   --border-primary: #FFFFFF;
-  --border-secondary: #CACDD7;
+  --border-secondary: #3E4048;
   --border-focus: #FF5900;
 
-  /* Buttons - adapted for dark */
+  /* Buttons */
   --btn-primary-bg: #FFFFFF;
   --btn-primary-text: #1B1A1C;
   --btn-accent-bg: #FF5900;
@@ -96,12 +96,12 @@
   --btn-ghost-text: #FFFFFF;
   --btn-ghost-hover: rgba(255, 255, 255, 0.1);
 
-  /* Accents - same orange, pops on dark */
+  /* Accents */
   --accent: #FF5900;
   --accent-light: rgba(255, 89, 0, 0.15);
   --accent-hover: #FF6B1A;
 
-  /* Shadows - darker, more subtle */
+  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
