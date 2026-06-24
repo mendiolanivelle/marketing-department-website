@@ -10,11 +10,10 @@ const announcements = [
 ]
 
 const quickLinks = [
-  { label: 'Submit Campaign Request', icon: '&#128221;', to: '/contact' },
+  { label: 'Submit Request', icon: '&#128221;', to: '/contact' },
   { label: 'Brand Assets & Guidelines', icon: '&#128193;', to: '/services' },
-  { label: 'Campaign Calendar', icon: '&#128197;', to: '/calendar' },
-  { label: 'Performance Dashboard', icon: '&#128200;', to: '/' },
-  { label: 'Content Templates', icon: '&#128196;', to: '/templates' },
+  { label: 'Calendar', icon: '&#128197;', to: '/calendar' },
+  { label: 'Message Templates', icon: '&#128196;', to: '/templates' },
   { label: 'Team Wiki', icon: '&#128218;', to: '/team' },
 ]
 
@@ -163,6 +162,32 @@ export default function Home() {
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
+          {/* Announcements - Full Width */}
+          <div className="rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
+            <ul className="space-y-2 sm:space-y-3">
+              {announcements.map((item) => (
+                <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <div className="flex items-center gap-2.5 flex-1">
+                    <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
+                      {item.tag}
+                    </span>
+                    <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.title}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
+                    <button
+                      onClick={() => setSelectedAnnouncement(item)}
+                      className="px-3 py-1 text-xs rounded transition exodia-btn-accent"
+                    >
+                      View
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Lead Pipeline - Clickable */}
           <div
             onClick={() => setShowPipeline(true)}
@@ -187,7 +212,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
@@ -211,32 +236,6 @@ export default function Home() {
                     >
                       {task.text}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Announcements */}
-            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
-              <ul className="space-y-2 sm:space-y-3">
-                {announcements.map((item) => (
-                  <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <div className="flex items-center gap-2.5 flex-1">
-                      <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
-                        {item.tag}
-                      </span>
-                      <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.title}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
-                      <button
-                        onClick={() => setSelectedAnnouncement(item)}
-                        className="px-3 py-1 text-xs rounded transition exodia-btn-accent"
-                      >
-                        View
-                      </button>
-                    </div>
                   </li>
                 ))}
               </ul>
