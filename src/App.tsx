@@ -56,13 +56,10 @@ function App() {
                           <Routes>
                             <Route path="/" element={<Home />} />
                             <Route path="/about" element={<About />} />
-                            <Route path="/services" element={<Services />} />
-                            <Route path="/team" element={<Team />} />
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
                             <Route path="/leads" element={<LeadGeneration />} />
-                            <Route path="/contact" element={<About />} />
                           </Routes>
                         </Suspense>
                       </main>
