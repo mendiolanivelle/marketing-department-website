@@ -951,9 +951,10 @@ export default function Timeline() {
                     key={col.key}
                     className="min-w-[240px] sm:min-w-[260px] flex-1 rounded-xl p-3"
                     style={{
-                      backgroundColor: 'var(--bg-secondary)',
+                      backgroundColor: 'var(--bg-card)',
                       opacity: isDraggedColumn ? 0.5 : 1,
-                      border: draggedColumn?.tableId === table.id && draggedColumn?.colKey !== col.key ? '2px dashed var(--accent)' : 'none',
+                      border: `2px solid ${colColor}`,
+                      borderTop: `4px solid ${colColor}`,
                     }}
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -1052,10 +1053,10 @@ export default function Timeline() {
                           }}
                           onDragEnd={handleDragEnd}
                           onClick={() => setSelectedLead(lead)}
-                          className={`bg-white rounded-xl p-3 border cursor-pointer transition-all group ${
+                          className={`rounded-xl p-3 border cursor-pointer transition-all group ${
                             draggedLead === lead.id ? 'opacity-50' : 'hover:shadow-md'
                           }`}
-                          style={{ borderColor: 'var(--border-primary)' }}
+                          style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
