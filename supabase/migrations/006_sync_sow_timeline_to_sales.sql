@@ -22,6 +22,7 @@ AS $$
 DECLARE
   target_table RECORD;
   target_column_label TEXT;
+  sales_client_key TEXT;
   sales_client_id UUID;
   sales_forward_id UUID;
   synced_notes TEXT;
@@ -48,53 +49,42 @@ BEGIN
   SELECT id
   INTO sales_client_id
   FROM public.clients
-  WHERE LOWER(email) = LOWER(NEW.email)
+  WHERE (NEW.email IS NOT NULL AND LOWER(contact_email) = LOWER(NEW.email))
+    OR client_key = LOWER(CONCAT_WS('|', NEW.company, NEW.contact))
   ORDER BY created_at ASC
   LIMIT 1;
+
+  sales_client_key := LOWER(CONCAT_WS('|', NEW.company, NEW.contact));
 
   synced_notes := CONCAT_WS(
     E'\n\n',
     'Auto-synced from marketing timeline stage: ' || COALESCE(target_column_label, 'SOW and Costing Creation'),
+    'Lead value: ' || COALESCE(NEW.value, ''),
+    'Lead date: ' || COALESCE(NEW.date, ''),
     NULLIF(NEW.notes, '')
   );
 
   IF sales_client_id IS NULL THEN
     INSERT INTO public.clients (
-      name,
-      email,
-      company,
-      phone,
-      project_type,
-      budget,
-      status,
-      notes,
-      assigned_to
+      client_key,
+      contact_name,
+      contact_email,
+      company_name
     )
     VALUES (
+      sales_client_key,
       NEW.contact,
       NEW.email,
-      NEW.company,
-      '',
-      'SOW and Costing',
-      NEW.value,
-      'proposal',
-      synced_notes,
-      'marketing'
+      NEW.company
     )
     RETURNING id INTO sales_client_id;
   ELSE
     UPDATE public.clients
     SET
-      name = NEW.contact,
-      company = NEW.company,
-      project_type = 'SOW and Costing',
-      budget = NEW.value,
-      status = CASE
-        WHEN status IN ('closed_won', 'closed_lost') THEN status
-        ELSE 'proposal'
-      END,
-      notes = synced_notes,
-      assigned_to = 'marketing',
+      client_key = sales_client_key,
+      contact_name = NEW.contact,
+      contact_email = NEW.email,
+      company_name = NEW.company,
       updated_at = NOW()
     WHERE id = sales_client_id;
   END IF;
