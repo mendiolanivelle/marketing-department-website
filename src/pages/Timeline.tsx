@@ -149,6 +149,11 @@ export default function Timeline() {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('text/plain')
     if (!leadId || !supabase) return
+    
+    // Update local state immediately for instant visual feedback
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_key: columnKey, table_id: tableId } : l))
+    setDraggedLead(null)
+    
     try {
       const { error } = await supabase
         .from('timeline_leads')
@@ -156,7 +161,6 @@ export default function Timeline() {
         .eq('id', leadId)
       if (error) throw error
     } catch (err) { console.error('Error moving lead:', err) }
-    setDraggedLead(null)
   }
 
   // Column drag handlers
