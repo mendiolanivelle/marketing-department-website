@@ -291,6 +291,24 @@ export default function Timeline() {
     } catch (err) { console.error('Error adding column:', err) }
   }
 
+  const deleteColumn = async (tableId: string, colKey: string) => {
+    if (!confirm('Delete this column and all its leads?')) return
+    const table = tables.find(t => t.id === tableId)
+    if (!table) return
+    
+    // Update UI immediately
+    const newColumns = table.columns.filter(c => c.key !== colKey)
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
+    
+    // Delete leads in this column
+    if (supabase) {
+      try {
+        await supabase.from('timeline_leads').delete().eq('table_id', tableId).eq('column_key', colKey)
+        await supabase.from('timeline_tables').update({ columns: newColumns }).eq('id', tableId)
+      } catch (err) { console.error('Error deleting column:', err) }
+    }
+  }
+
   const addLead = async () => {
     if (!leadForm.company || !leadForm.contact || !leadForm.email || !supabase) { alert('Please fill in all fields'); return }
     try {
@@ -956,7 +974,7 @@ export default function Timeline() {
                   >
                     {/* Column Header - Draggable for reordering */}
                     <div
-                      className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
+                      className="group flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
                       draggable
                       onDragStart={(e) => {
                         e.stopPropagation()
@@ -999,9 +1017,24 @@ export default function Timeline() {
                           </h3>
                         )}
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full ml-2 flex-shrink-0" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                        {colLeads.length}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          {colLeads.length}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteColumn(table.id, col.key)
+                          }}
+                          className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100"
+                          style={{ color: 'var(--border-primary)' }}
+                          title="Delete column"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Cards - Draggable for moving between columns */}
