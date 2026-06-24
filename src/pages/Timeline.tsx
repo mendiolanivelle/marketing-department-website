@@ -378,14 +378,12 @@ export default function Timeline() {
   const addNote = async () => {
     if (!selectedLead || !newNote.trim() || !supabase) return
     const updatedNotes = selectedLead.notes ? `${selectedLead.notes}\n${newNote.trim()}` : newNote.trim()
+    const updated = { ...selectedLead, notes: updatedNotes }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setNewNote('')
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ notes: updatedNotes })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, notes: updatedNotes })
-      setNewNote('')
+      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error adding note:', err) }
   }
 
@@ -394,13 +392,11 @@ export default function Timeline() {
     const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
     notes.splice(noteIndex, 1)
     const updatedNotes = notes.join('\n')
+    const updated = { ...selectedLead, notes: updatedNotes }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ notes: updatedNotes })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, notes: updatedNotes })
+      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error deleting note:', err) }
   }
 
@@ -409,77 +405,65 @@ export default function Timeline() {
     const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
     notes[noteIndex] = editingNoteValue.trim()
     const updatedNotes = notes.join('\n')
+    const updated = { ...selectedLead, notes: updatedNotes }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setEditingNoteIndex(null)
+    setEditingNoteValue('')
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ notes: updatedNotes })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, notes: updatedNotes })
-      setEditingNoteIndex(null)
-      setEditingNoteValue('')
+      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error updating note:', err) }
   }
 
   const addAttachment = async () => {
     if (!selectedLead || !newAttachment.trim() || !supabase) return
     const updatedAttachments = [...selectedLead.attachments, newAttachment.trim()]
+    const updated = { ...selectedLead, attachments: updatedAttachments }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setNewAttachment('')
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ attachments: updatedAttachments })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, attachments: updatedAttachments })
-      setNewAttachment('')
+      await supabase.from('timeline_leads').update({ attachments: updatedAttachments }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error adding attachment:', err) }
   }
 
   const deleteAttachment = async (attIndex: number) => {
     if (!selectedLead || !supabase) return
     const updatedAttachments = selectedLead.attachments.filter((_, i) => i !== attIndex)
+    const updated = { ...selectedLead, attachments: updatedAttachments }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ attachments: updatedAttachments })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, attachments: updatedAttachments })
+      await supabase.from('timeline_leads').update({ attachments: updatedAttachments }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error deleting attachment:', err) }
   }
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim() || !supabase) return
-    // Open mailto link
     const mailtoLink = `mailto:${selectedLead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
     window.open(mailtoLink, '_blank')
-    // Update last email sent date
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ last_email_sent: today })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, last_email_sent: today })
-      setLastEmailSent(today)
-    } catch (err) { console.error('Error updating email date:', err) }
+    const updated = { ...selectedLead, last_email_sent: today }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setLastEmailSent(today)
     setShowSendEmail(false)
     setEmailSubject('')
     setEmailBody('')
+    try {
+      await supabase.from('timeline_leads').update({ last_email_sent: today }).eq('id', selectedLead.id)
+    } catch (err) { console.error('Error updating email date:', err) }
   }
 
   const saveLastEmailSent = async () => {
     if (!selectedLead || !supabase) return
-    try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ last_email_sent: lastEmailSent })
-        .eq('id', selectedLead.id)
-      if (error) throw error
-      setSelectedLead({ ...selectedLead, last_email_sent: lastEmailSent })
-    } catch (err) { console.error('Error saving email date:', err) }
+    const updated = { ...selectedLead, last_email_sent: lastEmailSent }
+    setSelectedLead(updated)
+    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     setEditingLastEmail(false)
+    try {
+      await supabase.from('timeline_leads').update({ last_email_sent: lastEmailSent }).eq('id', selectedLead.id)
+    } catch (err) { console.error('Error saving email date:', err) }
   }
 
   const filteredTables = searchQuery
