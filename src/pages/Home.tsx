@@ -27,6 +27,10 @@ export default function Home() {
   })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
   const [showPipeline, setShowPipeline] = useState(false)
+  const [announcementsList, setAnnouncementsList] = useState(announcements)
+  const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
+  const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: '', tag: 'Update', content: '' })
   const [tasks, setTasks] = useState([
     { id: 1, text: 'Review Q3 campaign proposals', done: false },
     { id: 2, text: 'Update brand guidelines document', done: false },
@@ -149,6 +153,28 @@ export default function Home() {
     setEditingTaskText('')
   }
 
+  const addAnnouncement = () => {
+    if (!newAnnouncement.title.trim()) return
+    const newId = announcementsList.length > 0 ? Math.max(...announcementsList.map(a => a.id)) + 1 : 1
+    setAnnouncementsList([{ ...newAnnouncement, id: newId }, ...announcementsList])
+    setNewAnnouncement({ title: '', date: '', tag: 'Update', content: '' })
+    setShowAddAnnouncement(false)
+  }
+
+  const deleteAnnouncement = (id: number) => {
+    setAnnouncementsList(announcementsList.filter(a => a.id !== id))
+  }
+
+  const startEditingAnnouncement = (announcement: any) => {
+    setEditingAnnouncement({ ...announcement })
+  }
+
+  const saveAnnouncementEdit = () => {
+    if (!editingAnnouncement) return
+    setAnnouncementsList(announcementsList.map(a => a.id === editingAnnouncement.id ? editingAnnouncement : a))
+    setEditingAnnouncement(null)
+  }
+
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Global Search Bar */}
@@ -194,10 +220,22 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Announcements - Full Width */}
           <div className="rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
+            <div className="flex items-center justify-between mb-4 sm:mb-5">
+              <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
+              <button
+                onClick={() => setShowAddAnnouncement(true)}
+                className="p-2 rounded-lg transition flex items-center justify-center"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                title="Add announcement"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
             <ul className="space-y-2 sm:space-y-3">
-              {announcements.map((item) => (
-                <li key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+              {announcementsList.map((item) => (
+                <li key={item.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   <div className="flex items-center gap-2.5 flex-1">
                     <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
                       {item.tag}
@@ -211,6 +249,26 @@ export default function Home() {
                       className="px-3 py-1 text-xs rounded transition exodia-btn-accent"
                     >
                       View
+                    </button>
+                    <button
+                      onClick={() => startEditingAnnouncement(item)}
+                      className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Edit announcement"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => deleteAnnouncement(item.id)}
+                      className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
+                      style={{ color: 'var(--text-muted)' }}
+                      title="Delete announcement"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     </button>
                   </div>
                 </li>
@@ -395,6 +453,140 @@ export default function Home() {
                 className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
               >
                 Mark as Read
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Announcement Modal */}
+      {showAddAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }}
+            onClick={() => setShowAddAnnouncement(false)}
+          />
+          <div className="relative rounded-2xl border p-6 max-w-lg w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="text-xl mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add New Announcement</h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Title"
+                value={newAnnouncement.title}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+              <input
+                type="text"
+                placeholder="Date (e.g., Jun 25, 2026)"
+                value={newAnnouncement.date}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, date: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+              <select
+                value={newAnnouncement.tag}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, tag: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              >
+                <option value="Meeting">Meeting</option>
+                <option value="Update">Update</option>
+                <option value="Event">Event</option>
+                <option value="Deadline">Deadline</option>
+              </select>
+              <textarea
+                placeholder="Content"
+                value={newAnnouncement.content}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+            </div>
+            <div className="flex gap-3 justify-end mt-4">
+              <button
+                onClick={() => setShowAddAnnouncement(false)}
+                className="px-4 py-2 text-sm rounded-lg"
+                style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addAnnouncement}
+                className="px-4 py-2 text-sm rounded-lg"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+              >
+                Add Announcement
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Announcement Modal */}
+      {editingAnnouncement && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }}
+            onClick={() => setEditingAnnouncement(null)}
+          />
+          <div className="relative rounded-2xl border p-6 max-w-lg w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 className="text-xl mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Announcement</h3>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Title"
+                value={editingAnnouncement.title}
+                onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, title: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+              <input
+                type="text"
+                placeholder="Date (e.g., Jun 25, 2026)"
+                value={editingAnnouncement.date}
+                onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, date: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+              <select
+                value={editingAnnouncement.tag}
+                onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, tag: e.target.value })}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              >
+                <option value="Meeting">Meeting</option>
+                <option value="Update">Update</option>
+                <option value="Event">Event</option>
+                <option value="Deadline">Deadline</option>
+              </select>
+              <textarea
+                placeholder="Content"
+                value={editingAnnouncement.content}
+                onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, content: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+              />
+            </div>
+            <div className="flex gap-3 justify-end mt-4">
+              <button
+                onClick={() => setEditingAnnouncement(null)}
+                className="px-4 py-2 text-sm rounded-lg"
+                style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveAnnouncementEdit}
+                className="px-4 py-2 text-sm rounded-lg"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+              >
+                Save Changes
               </button>
             </div>
           </div>
