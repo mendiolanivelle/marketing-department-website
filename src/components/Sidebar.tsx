@@ -17,10 +17,10 @@ const navItems = [
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
-    // Load avatar from localStorage on mount
     const saved = localStorage.getItem('user-avatar')
     return saved || null
   })
@@ -38,7 +38,6 @@ export default function Sidebar() {
       reader.onloadend = () => {
         const result = reader.result as string
         setAvatarUrl(result)
-        // Save to localStorage for persistence
         localStorage.setItem('user-avatar', result)
       }
       reader.readAsDataURL(file)
@@ -85,30 +84,156 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 h-screen w-64 border-r z-40 theme-transition
-        transform transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 h-screen border-r z-40 theme-transition
+        transform transition-all duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:sticky lg:top-0 lg:translate-x-0 lg:z-0
+        ${isCollapsed ? 'w-16' : 'w-64'}
       `} style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="px-6 py-6 border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md"
-                style={{ backgroundColor: 'var(--logo-bg)' }}
+          {/* Logo + Profile section */}
+          <div className="px-4 py-6 border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                  style={{ backgroundColor: 'var(--logo-bg)' }}
+                >
+                  <span className="text-white text-xl" style={{ fontWeight: 700 }}>&#9670;</span>
+                </div>
+                {!isCollapsed && (
+                  <div className="min-w-0">
+                    <h1 className="text-lg truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Internal Portal</p>
+                  </div>
+                )}
+              </div>
+              {/* Collapse toggle - only visible on desktop */}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="hidden lg:flex p-1.5 rounded-lg transition flex-shrink-0"
+                style={{ color: 'var(--text-muted)' }}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <span className="text-white text-xl" style={{ fontWeight: 700 }}>&#9670;</span>
-              </div>
-              <div>
-                <h1 className="text-lg" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Internal Portal</p>
-              </div>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? 'M13 5l7 7-7 7' : 'M11 19l-7-7 7-7'} />
+                </svg>
+              </button>
             </div>
+
+            {/* Profile - moved below logo */}
+            {user && (
+              <div className="relative">
+                <div
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className={`flex items-center gap-3 rounded-lg cursor-pointer transition-all theme-transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-3 py-2'}`}
+                  style={{ backgroundColor: 'var(--bg-hover)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+                >
+                  <div className="relative flex-shrink-0">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="w-8 h-8 rounded-full object-cover cursor-pointer border-2"
+                        style={{ borderColor: 'var(--accent)' }}
+                        onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-2"
+                        style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}
+                        onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
+                      >
+                        <span className="text-sm" style={{ color: 'var(--btn-primary-text)', fontWeight: 500 }}>
+                          {getDisplayName().charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                  </div>
+                  {!isCollapsed && (
+                    <>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                          {getDisplayName()}
+                        </p>
+                      </div>
+                      <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showProfileDropdown ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+                      </svg>
+                    </>
+                  )}
+                </div>
+
+                {/* Avatar Modal */}
+                {showAvatarModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowAvatarModal(false)}>
+                    <div className="relative rounded-2xl border p-6 max-w-sm w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
+                      <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Profile Photo</h3>
+                      <div className="flex justify-center mb-4">
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt="Current Avatar" className="w-24 h-24 rounded-full object-cover border-4" style={{ borderColor: 'var(--accent)' }} />
+                        ) : (
+                          <div className="w-24 h-24 rounded-full flex items-center justify-center border-4" style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}>
+                            <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{getDisplayName().charAt(0).toUpperCase()}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <button onClick={() => { fileInputRef.current?.click(); setShowAvatarModal(false) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'var(--accent)', color: 'white', fontWeight: 500 }}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          {avatarUrl ? 'Change Photo' : 'Upload Photo'}
+                        </button>
+                        {avatarUrl && (
+                          <button onClick={handleRemoveAvatar} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Remove Photo
+                          </button>
+                        )}
+                        <button onClick={() => setShowAvatarModal(false)} className="w-full px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontWeight: 500 }}>Cancel</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Profile Dropdown */}
+                {showProfileDropdown && (
+                  <div
+                    className="absolute top-full left-4 right-4 mt-2 rounded-lg border shadow-lg theme-transition z-50"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
+                  >
+                    <button
+                      onClick={toggleDarkMode}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all"
+                      style={{ color: 'var(--text-secondary)', fontWeight: 300 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
+                      <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                    </button>
+                    <button
+                      onClick={signOut}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all"
+                      style={{ color: 'var(--accent)', fontWeight: 500 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-2 py-6 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const active = isActive(item.path)
               return (
@@ -116,10 +241,10 @@ export default function Sidebar() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all theme-transition"
+                  className={`flex items-center gap-3 rounded-lg transition-all theme-transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3'}`}
                   style={active
                     ? {
-                        borderLeft: '3px solid var(--accent)',
+                        borderLeft: isCollapsed ? 'none' : '3px solid var(--accent)',
                         color: 'var(--text-primary)',
                         backgroundColor: 'var(--accent-light)',
                         fontWeight: 500,
@@ -141,184 +266,16 @@ export default function Sidebar() {
                       e.currentTarget.style.color = 'var(--text-secondary)'
                     }
                   }}
+                  title={isCollapsed ? item.label : undefined}
                 >
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                   </svg>
-                  <span>{item.label}</span>
+                  {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               )
             })}
           </nav>
-
-          {/* Profile section */}
-          {user && (
-            <div className="px-4 py-4 border-t relative theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
-              <div
-                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all theme-transition"
-                style={{ backgroundColor: 'var(--bg-hover)' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-              >
-                <div className="relative">
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt="Avatar"
-                      className="w-8 h-8 rounded-full object-cover cursor-pointer border-2"
-                      style={{ borderColor: 'var(--accent)' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowAvatarModal(true)
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-2"
-                      style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowAvatarModal(true)
-                      }}
-                    >
-                      <span className="text-sm" style={{ color: 'var(--btn-primary-text)', fontWeight: 500 }}>
-                        {getDisplayName().charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                    {getDisplayName()}
-                  </p>
-                </div>
-                <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showProfileDropdown ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
-                </svg>
-              </div>
-
-              {/* Avatar Modal */}
-              {showAvatarModal && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  style={{ backgroundColor: 'var(--bg-overlay)' }}
-                  onClick={() => setShowAvatarModal(false)}
-                >
-                  <div
-                    className="relative rounded-2xl border p-6 max-w-sm w-full theme-transition"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Profile Photo</h3>
-                    
-                    {/* Current Avatar Preview */}
-                    <div className="flex justify-center mb-4">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt="Current Avatar"
-                          className="w-24 h-24 rounded-full object-cover border-4"
-                          style={{ borderColor: 'var(--accent)' }}
-                        />
-                      ) : (
-                        <div
-                          className="w-24 h-24 rounded-full flex items-center justify-center border-4"
-                          style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}
-                        >
-                          <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>
-                            {getDisplayName().charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => {
-                          fileInputRef.current?.click()
-                          setShowAvatarModal(false)
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all theme-transition"
-                        style={{ backgroundColor: 'var(--accent)', color: 'white', fontWeight: 500 }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-hover)' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent)' }}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {avatarUrl ? 'Change Photo' : 'Upload Photo'}
-                      </button>
-                      
-                      {avatarUrl && (
-                        <button
-                          onClick={handleRemoveAvatar}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all theme-transition"
-                          style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Remove Photo
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => setShowAvatarModal(false)}
-                        className="w-full px-4 py-2.5 rounded-lg transition-all theme-transition"
-                        style={{ backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontWeight: 500 }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Dropdown */}
-              {showProfileDropdown && (
-                <div
-                  className="absolute bottom-full left-4 right-4 mb-2 rounded-lg border shadow-lg theme-transition"
-                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
-                >
-                  <button
-                    onClick={toggleDarkMode}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all theme-transition"
-                    style={{ color: 'var(--text-secondary)', fontWeight: 300 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-                  >
-                    <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
-                    <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                  </button>
-                  <button
-                    onClick={signOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all theme-transition"
-                    style={{ color: 'var(--accent)', fontWeight: 500 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </aside>
     </>
