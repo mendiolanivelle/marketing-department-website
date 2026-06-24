@@ -47,6 +47,7 @@ export default function About() {
   const [newRole, setNewRole] = useState({ title: '', type: 'Full-time - Hybrid' })
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [editingRole, setEditingRole] = useState<OpenRole | null>(null)
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
 
   const addMember = () => {
     if (!newMember.name.trim()) return
@@ -187,8 +188,8 @@ export default function About() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
             {teamMembers.map((member) => (
-              <div key={member.id} className="group p-6 sm:p-8 rounded-2xl border text-center transition-all hover:shadow-lg relative" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div key={member.id} onClick={() => setSelectedMember(member)} className="group p-6 sm:p-8 rounded-2xl border text-center transition-all hover:shadow-lg relative cursor-pointer" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => setEditingMember(member)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} title="Edit">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
@@ -245,6 +246,39 @@ export default function About() {
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowAddMember(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={addMember} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team Member Detail Popup */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedMember(null)}>
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-lg w-full text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedMember(null)} className="absolute top-4 right-4 p-1 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
+              <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{selectedMember.initials}</span>
+            </div>
+            <h2 className="text-2xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedMember.name}</h2>
+            <p className="text-sm mb-4" style={{ color: 'var(--accent)', fontWeight: 500 }}>{selectedMember.role}</p>
+            <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedMember.bio}</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => { setEditingMember(selectedMember); setSelectedMember(null) }}
+                className="px-5 py-2 text-sm text-white rounded-lg transition"
+                style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => { deleteMember(selectedMember.id); setSelectedMember(null) }}
+                className="px-5 py-2 text-sm rounded-lg transition"
+                style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
