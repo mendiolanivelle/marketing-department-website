@@ -28,6 +28,7 @@ export default function Home() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
   const [showPipeline, setShowPipeline] = useState(false)
   const [announcementsList, setAnnouncementsList] = useState(announcements)
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<number[]>([])
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: '', tag: 'Update', content: '' })
@@ -240,7 +241,16 @@ export default function Home() {
                     <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
                       {item.tag}
                     </span>
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.title}</span>
+                    <span
+                      className="text-sm cursor-pointer"
+                      style={{
+                        color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-secondary)',
+                        fontWeight: readAnnouncementIds.includes(item.id) ? 300 : 700,
+                      }}
+                      onClick={() => setSelectedAnnouncement(item)}
+                    >
+                      {item.title}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
@@ -449,7 +459,12 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
               <button
-                onClick={() => setSelectedAnnouncement(null)}
+                onClick={() => {
+                  if (!readAnnouncementIds.includes(selectedAnnouncement.id)) {
+                    setReadAnnouncementIds([...readAnnouncementIds, selectedAnnouncement.id])
+                  }
+                  setSelectedAnnouncement(null)
+                }}
                 className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
               >
                 Mark as Read
