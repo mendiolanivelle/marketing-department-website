@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useTheme } from '../contexts/ThemeContext'
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -27,7 +26,6 @@ export default function Sidebar() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const location = useLocation()
   const { user, signOut } = useAuth()
-  const { darkMode, toggleDarkMode } = useTheme()
 
   const isActive = (path: string) => location.pathname === path
 
@@ -205,18 +203,8 @@ export default function Sidebar() {
                     style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
                   >
                     <button
-                      onClick={toggleDarkMode}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-t-lg transition-all"
-                      style={{ color: 'var(--text-secondary)', fontWeight: 300 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-                    >
-                      <span className="text-lg">{darkMode ? '☀️' : '🌙'}</span>
-                      <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                    </button>
-                    <button
                       onClick={signOut}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-b-lg transition-all"
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all"
                       style={{ color: 'var(--accent)', fontWeight: 500 }}
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
