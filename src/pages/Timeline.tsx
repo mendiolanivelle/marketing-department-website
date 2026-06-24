@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 interface TimelineColumn {
   key: string
@@ -40,7 +41,7 @@ const defaultColumns = (): TimelineColumn[] => [
   { key: 'col-1', label: 'Initial Contact' },
   { key: 'col-2', label: 'Discovery Call' },
   { key: 'col-3', label: 'Proposal Sent' },
-  { key: 'col-4', label: 'Negotiation' },
+  { key: 'col-4', label: 'SOW & Pricing Finalization' },
   { key: 'col-5', label: 'Closed Won' },
 ]
 
@@ -55,16 +56,11 @@ const columnColors: Record<string, string> = {
   'col-8': '#EF4444',
 }
 
-const isSowCostingColumn = (label: string) => {
-  const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
-  return ['sow', 'costing', 'creation'].every(term => normalized.includes(term))
-}
-
 export default function Timeline() {
+  const { user } = useAuth()
   const [tables, setTables] = useState<TimelineTable[]>([])
   const [leads, setLeads] = useState<TimelineLead[]>([])
   const [loading, setLoading] = useState(true)
-  const [draggedLead, setDraggedLead] = useState<string | null>(null)
   const [draggedColumn, setDraggedColumn] = useState<{ tableId: string; colKey: string } | null>(null)
   const [selectedLead, setSelectedLead] = useState<TimelineLead | null>(null)
   const [editingTableTitle, setEditingTableTitle] = useState<string | null>(null)
@@ -93,24 +89,6 @@ export default function Timeline() {
   const [lastEmailSent, setLastEmailSent] = useState('')
   const [editingLastEmail, setEditingLastEmail] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
-
-  const syncLeadToSalesMarketing = useCallback(async (lead: TimelineLead, tableId: string, columnKey: string) => {
-    if (!supabase) return
-
-    const targetTable = tables.find(table => table.id === tableId)
-    const targetColumn = targetTable?.columns.find(column => column.key === columnKey)
-    if (!targetColumn || !isSowCostingColumn(targetColumn.label)) return
-
-    try {
-      const { error } = await supabase.functions.invoke('sync-sow-timeline-lead', {
-        body: { leadId: lead.id },
-      })
-
-      if (error) throw error
-    } catch (err) {
-      console.error('Error syncing lead to sales marketing leads:', err)
-    }
-  }, [tables])
 
   const fetchData = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) { setLoading(false); return }
@@ -158,10 +136,9 @@ export default function Timeline() {
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', leadId)
-    setDraggedLead(leadId)
   }
 
-  const handleDragEnd = () => { setDraggedLead(null) }
+  const handleDragEnd = () => {}
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -172,23 +149,36 @@ export default function Timeline() {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('text/plain')
     if (!leadId || !supabase) return
-    const movedLead = leads.find(lead => lead.id === leadId)
-    
-    // Update local state immediately for instant visual feedback
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_key: columnKey, table_id: tableId } : l))
-    setDraggedLead(null)
-    
     try {
-      const { error } = await supabase
-        .from('timeline_leads')
-        .update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() })
-        .eq('id', leadId)
-      if (error) throw error
-      if (movedLead) {
-        await syncLeadToSalesMarketing({ ...movedLead, column_key: columnKey, table_id: tableId }, tableId, columnKey)
-      }
+      await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() }).eq('id', leadId)
     } catch (err) { console.error('Error moving lead:', err) }
   }
+
+  const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
+    const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
+    if (currentIdx === -1 || currentIdx >= table.columns.length - 1) return
+    const nextCol = table.columns[currentIdx + 1]
+
+    const sowTerms = ['sow', 'pricing', 'finalization', 'costing', 'creation']
+    const nextLabel = nextCol.label.toLowerCase()
+    const isSowCol = sowTerms.filter(t => nextLabel.includes(t)).length >= 2
+
+    if (isSowCol) {
+      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
+      if (!isSales) {
+        alert('Only sales@exodiagamedev.com can move leads beyond SOW & Pricing Finalization.')
+        return
+      }
+    }
+
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: nextCol.key } : l))
+    if (supabase) {
+      try {
+        await supabase.from('timeline_leads').update({ column_key: nextCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+      } catch (err) { console.error('Error moving lead:', err) }
+    }
+}
 
   // Column drag handlers
   const handleColumnDragStart = (e: React.DragEvent, tableId: string, colKey: string) => {
@@ -375,12 +365,6 @@ export default function Timeline() {
       // Replace temp lead with real one
       if (data) {
         setLeads(prev => prev.map(l => l.id === tempId ? data : l))
-        await syncLeadToSalesMarketing({
-          ...data,
-          attachments: typeof data.attachments === 'string' ? JSON.parse(data.attachments) : (data.attachments || []),
-          email_history: typeof data.email_history === 'string' ? JSON.parse(data.email_history) : (data.email_history || []),
-          last_email_sent: data.last_email_sent || '',
-        }, addLeadTableId, addLeadColumnKey)
       }
     } catch (err) { console.error('Error adding lead:', err); alert('Failed to add lead') }
   }
@@ -397,7 +381,6 @@ export default function Timeline() {
         .update({ ...editingLead, updated_at: new Date().toISOString() })
         .eq('id', editingLead.id)
       if (error) throw error
-      await syncLeadToSalesMarketing(editingLead, editingLead.table_id, editingLead.column_key)
     } catch (err) { console.error('Error updating lead:', err) }
   }
 
@@ -1083,23 +1066,13 @@ export default function Timeline() {
                       </div>
                     </div>
 
-                    {/* Cards - Draggable for moving between columns */}
+                    {/* Cards */}
                     <div className="space-y-2">
                       {colLeads.map((lead) => (
                         <div
                           key={lead.id}
-                          draggable
-                          onDragStart={(e) => {
-                            e.stopPropagation()
-                            // Only set text/plain for card drags
-                            e.dataTransfer.setData('text/plain', lead.id)
-                            handleDragStart(e, lead.id)
-                          }}
-                          onDragEnd={handleDragEnd}
                           onClick={() => setSelectedLead(lead)}
-                          className={`rounded-xl p-3 border cursor-pointer transition-all group ${
-                            draggedLead === lead.id ? 'opacity-50' : 'hover:shadow-md'
-                          }`}
+                          className="rounded-xl p-3 border cursor-pointer transition-all group hover:shadow-md"
                           style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -1113,6 +1086,16 @@ export default function Timeline() {
                             </div>
                             {/* Action icons - only visible on hover */}
                             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
+                                className="p-1 rounded-lg transition"
+                                style={{ color: 'var(--accent)' }}
+                                title="Move to next column"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                              </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setEditingLead({ ...lead }) }}
                                 className="p-1 rounded-lg transition"
