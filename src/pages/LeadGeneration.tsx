@@ -371,35 +371,19 @@ export default function LeadGeneration() {
   }
 
   const saveCellEdit = async () => {
-    if (!editingCell || !supabase || !selectedFile) return
+    if (!editingCell || !selectedFile) return
     const row = rows.find(r => r.id === editingCell.rowId)
     if (!row) return
 
     const newData = { ...row.data, [editingCell.col]: editValue }
-    const { error } = await supabase
-      .from('lead_rows')
-      .update({ data: newData })
-      .eq('id', editingCell.rowId)
-
-    if (!error) {
-      setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData } : r))
-
-      const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
-      if (emailCol && editingCell.col === emailCol && editValue.trim()) {
-        const duplicateCount = await checkAndRouteDuplicates(
-          [newData],
-          selectedFile.id,
-          selectedFile.name,
-          selectedFile.columns
-        )
-
-        if (duplicateCount > 0) {
-          await fetchRows(selectedFile.id)
-          alert(`Duplicate email detected. This lead has been moved to "Duplicate Leads" file.`)
-        }
-      }
-    }
+    setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData } : r))
     setEditingCell(null)
+
+    if (supabase) {
+      try {
+        await supabase.from('lead_rows').update({ data: newData }).eq('id', editingCell.rowId)
+      } catch (err) { console.error('Error saving cell:', err) }
+    }
   }
 
   const handleHeaderEdit = (index: number) => {
@@ -408,98 +392,65 @@ export default function LeadGeneration() {
   }
 
   const saveHeaderEdit = async () => {
-    if (editingHeader === null || !selectedFile || !supabase) return
+    if (editingHeader === null || !selectedFile) return
     const oldName = selectedFile.columns[editingHeader]
     const newColumns = [...selectedFile.columns]
-    newColumns[editingHeader] = headerValue
-    newColumns[editingHeader] = newColumns[editingHeader].trim() || oldName
-
-    const { error } = await supabase
-      .from('lead_files')
-      .update({ columns: newColumns })
-      .eq('id', selectedFile.id)
-
-    if (!error) {
-      const updatedRows = rows.map(r => {
-        const newData: Record<string, string> = {}
-        newColumns.forEach(col => {
-          if (col === newColumns[editingHeader]) {
-            newData[col] = r.data[oldName] || ''
-          } else {
-            newData[col] = r.data[col] || ''
-          }
-        })
-        return { ...r, data: newData }
-      })
-      setRows(updatedRows)
-      setSelectedFile({ ...selectedFile, columns: newColumns })
-    }
+    newColumns[editingHeader] = headerValue.trim() || oldName
+    const updatedRows = rows.map(r => {
+      const newData: Record<string, string> = {}
+      newColumns.forEach(col => { newData[col] = col === newColumns[editingHeader] ? r.data[oldName] || '' : r.data[col] || '' })
+      return { ...r, data: newData }
+    })
+    setRows(updatedRows)
+    setSelectedFile({ ...selectedFile, columns: newColumns })
     setEditingHeader(null)
+    if (supabase) {
+      try { await supabase.from('lead_files').update({ columns: newColumns }).eq('id', selectedFile.id) } catch (err) {}
+    }
   }
 
   const addRow = async () => {
-    if (!selectedFile || !supabase) return
+    if (!selectedFile) return
+    const tempId = `temp-${Date.now()}`
     const newRowData: Record<string, string> = {}
     selectedFile.columns.forEach(col => { newRowData[col] = '' })
     const newIndex = rows.length > 0 ? Math.max(...rows.map(r => r.row_index)) + 1 : 0
-
-    const { data, error } = await supabase
-      .from('lead_rows')
-      .insert([{ file_id: selectedFile.id, row_index: newIndex, data: newRowData }])
-      .select()
-      .single()
-
-    if (!error && data) {
-      setRows(prev => [...prev, data])
+    const tempRow: LeadRow = { id: tempId, file_id: selectedFile.id, row_index: newIndex, data: newRowData, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+    setRows(prev => [...prev, tempRow])
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('lead_rows').insert([{ file_id: selectedFile.id, row_index: newIndex, data: newRowData }]).select().single()
+        if (data) setRows(prev => prev.map(r => r.id === tempId ? data : r))
+      } catch (err) { console.error('Error adding row:', err) }
     }
   }
 
   const deleteRow = async (rowId: string) => {
-    if (!supabase) return
-    const { error } = await supabase.from('lead_rows').delete().eq('id', rowId)
-    if (!error) {
-      setRows(prev => prev.filter(r => r.id !== rowId))
+    setRows(prev => prev.filter(r => r.id !== rowId))
+    if (supabase) {
+      try { await supabase.from('lead_rows').delete().eq('id', rowId) } catch (err) {}
     }
   }
 
   const addColumn = async () => {
-    if (!selectedFile || !supabase) return
+    if (!selectedFile) return
     const newName = colToLetter(selectedFile.columns.length)
     const newColumns = [...selectedFile.columns, newName]
-
-    const { error } = await supabase
-      .from('lead_files')
-      .update({ columns: newColumns })
-      .eq('id', selectedFile.id)
-
-    if (!error) {
-      setSelectedFile({ ...selectedFile, columns: newColumns })
-      const updatedRows = rows.map(r => ({
-        ...r,
-        data: { ...r.data, [newName]: '' },
-      }))
-      setRows(updatedRows)
+    setSelectedFile({ ...selectedFile, columns: newColumns })
+    setRows(prev => prev.map(r => ({ ...r, data: { ...r.data, [newName]: '' } })))
+    if (supabase) {
+      try { await supabase.from('lead_files').update({ columns: newColumns }).eq('id', selectedFile.id) } catch (err) {}
     }
   }
 
   const deleteColumn = async (colIndex: number) => {
-    if (!selectedFile || !supabase || selectedFile.columns.length <= 1) return
+    if (!selectedFile || selectedFile.columns.length <= 1) return
     const colName = selectedFile.columns[colIndex]
     const newColumns = selectedFile.columns.filter((_, i) => i !== colIndex)
-
-    const { error } = await supabase
-      .from('lead_files')
-      .update({ columns: newColumns })
-      .eq('id', selectedFile.id)
-
-    if (!error) {
-      setSelectedFile({ ...selectedFile, columns: newColumns })
-      const updatedRows = rows.map(r => {
-        const newData = { ...r.data }
-        delete newData[colName]
-        return { ...r, data: newData }
-      })
-      setRows(updatedRows)
+    setSelectedFile({ ...selectedFile, columns: newColumns })
+    setRows(prev => prev.map(r => { const d = { ...r.data }; delete d[colName]; return { ...r, data: d } }))
+    if (supabase) {
+      try { await supabase.from('lead_files').update({ columns: newColumns }).eq('id', selectedFile.id) } catch (err) {}
     }
   }
 
@@ -939,7 +890,14 @@ export default function LeadGeneration() {
         {/* Status Bar */}
         <div className="border-t border-[#CACDD7] px-4 py-1 bg-[rgba(202,205,215,0.15)] flex items-center justify-between text-xs text-[#3E4048]">
           <span>{rows.length} rows x {selectedFile.columns.length} columns</span>
-          <span>Click cell to edit - drag headers to rearrange</span>
+          <div className="flex items-center gap-2">
+            <span>Click cell to edit</span>
+            <div className="flex items-center gap-1 border-l border-[#CACDD7] pl-3 ml-1">
+              <button onClick={zoomOut} className="px-1.5 py-0.5 rounded hover:bg-[rgba(202,205,215,0.3)] transition" style={{ color: 'var(--text-muted)' }} title="Zoom out">-</button>
+              <span className="min-w-[40px] text-center">{zoom}%</span>
+              <button onClick={zoomIn} className="px-1.5 py-0.5 rounded hover:bg-[rgba(202,205,215,0.3)] transition" style={{ color: 'var(--text-muted)' }} title="Zoom in">+</button>
+            </div>
+          </div>
         </div>
       </div>
     )
