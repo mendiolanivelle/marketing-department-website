@@ -126,7 +126,7 @@ export default function Sidebar() {
                   onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                   className={`flex items-center gap-3 rounded-lg cursor-pointer transition-all theme-transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-3 py-2'}`}
                   style={{ backgroundColor: 'var(--bg-hover)' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
                 >
                   <div className="relative flex-shrink-0">
