@@ -20,9 +20,9 @@
    - Orange:   #FF5900  (10%)
    
    Rules:
-   - Dark bg → white text
-   - Light bg → black text
-   - Headers/sub-headers/titles → #1B1A1C (light mode) / #FFFFFF (dark mode for visibility)
+   - Dark bg -> white text
+   - Light bg -> black text
+   - Headers/sub-headers/titles -> #1B1A1C (light mode) / #FFFFFF (dark mode for visibility)
    ============================================ */
 
 :root {
