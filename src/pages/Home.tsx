@@ -234,7 +234,7 @@ export default function Home() {
                 </svg>
               </button>
             </div>
-            <ul className="space-y-2 sm:space-y-3">
+            <ul className="space-y-2 sm:space-y-3 max-h-[320px] overflow-y-auto pr-1">
               {announcementsList.map((item) => (
                 <li key={item.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   <div className="flex items-center gap-2.5 flex-1">
@@ -460,14 +460,16 @@ export default function Home() {
               <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
               <button
                 onClick={() => {
-                  if (!readAnnouncementIds.includes(selectedAnnouncement.id)) {
+                  if (readAnnouncementIds.includes(selectedAnnouncement.id)) {
+                    setReadAnnouncementIds(readAnnouncementIds.filter(id => id !== selectedAnnouncement.id))
+                  } else {
                     setReadAnnouncementIds([...readAnnouncementIds, selectedAnnouncement.id])
                   }
                   setSelectedAnnouncement(null)
                 }}
                 className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
               >
-                Mark as Read
+                {readAnnouncementIds.includes(selectedAnnouncement.id) ? 'Mark as Unread' : 'Mark as Read'}
               </button>
             </div>
           </div>
