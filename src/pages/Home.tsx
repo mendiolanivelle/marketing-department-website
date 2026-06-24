@@ -125,7 +125,7 @@ export default function Home() {
   const addTask = () => {
     if (!newTaskText.trim()) return
     const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1
-    setTasks([...tasks, { id: newId, text: newTaskText.trim(), done: false }])
+    setTasks([{ id: newId, text: newTaskText.trim(), done: false }, ...tasks])
     setNewTaskText('')
   }
 
