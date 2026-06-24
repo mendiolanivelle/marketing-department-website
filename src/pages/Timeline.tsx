@@ -155,7 +155,7 @@ export default function Timeline() {
     } catch (err) { console.error('Error moving lead:', err) }
   }
 
-  const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
+const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
     if (currentIdx === -1 || currentIdx >= table.columns.length - 1) return
     const nextCol = table.columns[currentIdx + 1]
@@ -178,7 +178,19 @@ export default function Timeline() {
         await supabase.from('timeline_leads').update({ column_key: nextCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
       } catch (err) { console.error('Error moving lead:', err) }
     }
-}
+  }
+
+  const moveToPrevColumn = async (lead: TimelineLead, table: TimelineTable) => {
+    const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
+    if (currentIdx <= 0) return
+    const prevCol = table.columns[currentIdx - 1]
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: prevCol.key } : l))
+    if (supabase) {
+      try {
+        await supabase.from('timeline_leads').update({ column_key: prevCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+      } catch (err) { console.error('Error moving lead:', err) }
+    }
+  }
 
   // Column drag handlers
   const handleColumnDragStart = (e: React.DragEvent, tableId: string, colKey: string) => {
@@ -1086,6 +1098,16 @@ export default function Timeline() {
                             </div>
                             {/* Action icons - only visible on hover */}
                             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
+                                className="p-1 rounded-lg transition"
+                                style={{ color: 'var(--text-muted)' }}
+                                title="Move to previous column"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                                </svg>
+                              </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
                                 className="p-1 rounded-lg transition"
