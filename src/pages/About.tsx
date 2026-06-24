@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface TeamMember {
   id: number
@@ -7,6 +7,7 @@ interface TeamMember {
   role: string
   bio: string
   initials: string
+  photoUrl?: string
 }
 
 interface OpenRole {
@@ -44,16 +45,22 @@ export default function About() {
   const [showAddMember, setShowAddMember] = useState(false)
   const [showAddRole, setShowAddRole] = useState(false)
   const [newMember, setNewMember] = useState({ name: '', role: '', bio: '' })
+  const [newMemberPhoto, setNewMemberPhoto] = useState<string | null>(null)
   const [newRole, setNewRole] = useState({ title: '', type: 'Full-time - Hybrid' })
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [editingRole, setEditingRole] = useState<OpenRole | null>(null)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [uploadTarget, setUploadTarget] = useState<number | null>(null)
+  const memberFileRef = useRef<HTMLInputElement>(null)
+  const editFileRef = useRef<HTMLInputElement>(null)
 
   const addMember = () => {
     if (!newMember.name.trim()) return
     const id = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 1
-    setTeamMembers([...teamMembers, { ...newMember, id, initials: getInitials(newMember.name) }])
+    setTeamMembers([...teamMembers, { ...newMember, id, initials: getInitials(newMember.name), photoUrl: newMemberPhoto || undefined }])
     setNewMember({ name: '', role: '', bio: '' })
+    setNewMemberPhoto(null)
     setShowAddMember(false)
   }
 
@@ -63,6 +70,20 @@ export default function About() {
     if (!editingMember) return
     setTeamMembers(teamMembers.map(m => m.id === editingMember.id ? { ...editingMember, initials: getInitials(editingMember.name) } : m))
     setEditingMember(null)
+  }
+
+  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) { const r = new FileReader(); r.onloadend = () => setNewMemberPhoto(r.result as string); r.readAsDataURL(file) }
+  }
+
+  const handleEditPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) { const r = new FileReader(); r.onloadend = () => { if (editingMember) setEditingMember({ ...editingMember, photoUrl: r.result as string }) }; r.readAsDataURL(file) }
+  }
+
+  const removeMemberPhoto = (member: TeamMember) => {
+    setTeamMembers(teamMembers.map(m => m.id === member.id ? { ...m, photoUrl: undefined } : m))
   }
 
   const addRole = () => {
@@ -85,7 +106,7 @@ export default function About() {
     <div>
       {/* Hero Section with Photo Background */}
       <section
-        className="relative h-[800px] flex items-center justify-center px-4 sm:px-6 text-center overflow-hidden"
+        className="relative h-[300px] flex items-center justify-center px-4 sm:px-6 text-center overflow-hidden"
         style={{
           backgroundImage: 'linear-gradient(rgba(27,26,28,0.6), rgba(27,26,28,0.5)), url("https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80")',
           backgroundSize: 'cover',
@@ -197,8 +218,18 @@ export default function About() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-                  <span className="text-lg sm:text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{member.initials}</span>
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5 overflow-hidden relative cursor-pointer group/avatar"
+                  style={{ backgroundColor: 'var(--btn-primary-bg)' }}
+                  onClick={(e) => { e.stopPropagation(); if (member.photoUrl) { if (confirm('Remove photo?')) removeMemberPhoto(member) } else { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = (ev) => { const file = (ev.target as HTMLInputElement).files?.[0]; if (file) { const r = new FileReader(); r.onloadend = () => { setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, photoUrl: r.result as string } : m)) }; r.readAsDataURL(file) } }; input.click() } }}
+                >
+                  {member.photoUrl ? (
+                    <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-lg sm:text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{member.initials}</span>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
                 </div>
                 <h3 className="text-base sm:text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{member.name}</h3>
                 <span className="block text-xs sm:text-sm mb-2 sm:mb-3" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{member.role}</span>
@@ -240,6 +271,13 @@ export default function About() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddMember(false)}>
           <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Team Member</h3>
+            <div className="flex justify-center mb-4">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden cursor-pointer" style={{ backgroundColor: 'var(--btn-primary-bg)' }}
+                onClick={() => memberFileRef.current?.click()}>
+                {newMemberPhoto ? <img src={newMemberPhoto} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>+</span>}
+              </div>
+              <input ref={memberFileRef} type="file" accept="image/*" onChange={handleAddPhoto} className="hidden" />
+            </div>
             <input type="text" placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
             <input type="text" placeholder="Role (e.g. Creative Director)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
             <textarea placeholder="Bio" value={newMember.bio} onChange={e => setNewMember({ ...newMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
@@ -258,8 +296,10 @@ export default function About() {
             <button onClick={() => setSelectedMember(null)} className="absolute top-4 right-4 p-1 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-              <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{selectedMember.initials}</span>
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-5 overflow-hidden" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
+              {selectedMember.photoUrl
+                ? <img src={selectedMember.photoUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
+                : <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{selectedMember.initials}</span>}
             </div>
             <h2 className="text-2xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedMember.name}</h2>
             <p className="text-sm mb-4" style={{ color: 'var(--accent)', fontWeight: 500 }}>{selectedMember.role}</p>
@@ -289,6 +329,15 @@ export default function About() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingMember(null)}>
           <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Team Member</h3>
+            <div className="flex justify-center mb-4">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden cursor-pointer" style={{ backgroundColor: 'var(--btn-primary-bg)' }}
+                onClick={() => editFileRef.current?.click()}>
+                {editingMember.photoUrl
+                  ? <img src={editingMember.photoUrl} className="w-full h-full object-cover" />
+                  : <span className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{editingMember.initials}</span>}
+              </div>
+              <input ref={editFileRef} type="file" accept="image/*" onChange={handleEditPhoto} className="hidden" />
+            </div>
             <input type="text" placeholder="Full Name" value={editingMember.name} onChange={e => setEditingMember({ ...editingMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
             <input type="text" placeholder="Role" value={editingMember.role} onChange={e => setEditingMember({ ...editingMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
             <textarea placeholder="Bio" value={editingMember.bio} onChange={e => setEditingMember({ ...editingMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
