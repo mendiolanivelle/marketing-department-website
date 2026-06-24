@@ -10,7 +10,6 @@ const Home = lazy(() => import('./pages/Home'))
 const About = lazy(() => import('./pages/About'))
 const Services = lazy(() => import('./pages/Services'))
 const Team = lazy(() => import('./pages/Team'))
-const Contact = lazy(() => import('./pages/Contact'))
 const Timeline = lazy(() => import('./pages/Timeline'))
 const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
@@ -65,7 +64,7 @@ function App() {
                             <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
                             <Route path="/leads" element={<LeadGeneration />} />
-                            <Route path="/contact" element={<Contact />} />
+                            <Route path="/contact" element={<About />} />
                           </Routes>
                         </Suspense>
                       </main>

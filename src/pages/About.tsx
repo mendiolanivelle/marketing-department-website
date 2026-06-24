@@ -342,6 +342,60 @@ export default function About() {
         </div>
       )}
 
+      {/* Contact & Reaching Us */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16">
+          <div>
+            <h2 className="text-2xl sm:text-4xl mb-5 sm:mb-6" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Reach Out</h2>
+            <p className="text-base sm:text-lg mb-8 leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              Need marketing support? Have a question about brand guidelines? Want to discuss a campaign idea? Reach us through the channels below.
+            </p>
+            <div className="space-y-5">
+              {[
+                { icon: '📧', title: 'Email', info: 'marketing@exodiagamedev.com' },
+                { icon: '💬', title: 'Slack Channel', info: '#marketing-requests' },
+                { icon: '📍', title: 'Office Location', info: 'Floor 4, Room 412' },
+                { icon: '📅', title: 'Book a Meeting', info: 'calendly.com/exodia/marketing' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4 items-start">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}>{item.icon}</div>
+                  <div>
+                    <h4 className="text-sm mb-0.5" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.title}</h4>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.info}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border p-6 sm:p-10" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h3 className="text-xl sm:text-2xl mb-5" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Submit a Request</h3>
+            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted! We\'ll get back to you within 1-2 business days.'); form.reset() }} className="space-y-4">
+              <input name="name" required placeholder="Your Name" className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+              <input name="department" required placeholder="Your Department (e.g. Sales, Product)" className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+              <select name="requestType" required className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                <option value="">Select request type</option>
+                <option value="campaign">Campaign Support</option>
+                <option value="content">Content / Copywriting</option>
+                <option value="brand">Brand Assets / Guidelines</option>
+                <option value="social">Social Media</option>
+                <option value="event">Event / Webinar</option>
+                <option value="other">Other</option>
+              </select>
+              <select name="priority" required className="w-full px-4 py-3 border rounded-lg outline-none text-sm" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                <option value="">Select priority</option>
+                <option value="low">Low - No rush</option>
+                <option value="medium">Medium - Within 2 weeks</option>
+                <option value="high">High - Within 1 week</option>
+                <option value="urgent">Urgent - ASAP</option>
+              </select>
+              <textarea name="message" required rows={4} placeholder="Describe your request, goals, timeline..." className="w-full px-4 py-3 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+              <button type="submit" className="w-full py-3 text-sm text-white rounded-lg transition" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Submit Request</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* CTA + Working Hours */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--accent)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center">
