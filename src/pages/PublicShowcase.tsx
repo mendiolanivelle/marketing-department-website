@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const SLIDE_COUNT = 85
-const AUTO_ADVANCE_MS = 4000
+const AUTO_ADVANCE_MS = 15000
 
 const styles = `
 @keyframes float1 {
@@ -58,6 +58,10 @@ const styles = `
   0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+@keyframes folderClose {
+  0% { transform: perspective(800px) rotateX(-120deg); }
+  100% { transform: perspective(800px) rotateX(0deg); }
+}
 `
 
 type Phase = 'intro' | 'opening' | 'slideshow' | 'closing' | 'flash' | 'ended'
@@ -104,20 +108,17 @@ export default function PublicShowcase() {
   // Start sequence
   useEffect(() => {
     preloadAll()
-    const t1 = setTimeout(() => setPhase('opening'), 1200)
-    const t2 = setTimeout(() => setPhase('slideshow'), 2400)
+    const t1 = setTimeout(() => setPhase('opening'), 2000)
+    const t2 = setTimeout(() => setPhase('slideshow'), 3200)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [restartCount, preloadAll])
 
-  // Auto-advance during slideshow
+  // Auto-advance during slideshow — stays on last slide, does not auto-close
   useEffect(() => {
     if (phase !== 'slideshow' || autoPaused) return
     const timer = setInterval(() => {
       setCurrent(prev => {
-        if (prev >= SLIDE_COUNT) {
-          setPhase('closing')
-          return prev
-        }
+        if (prev >= SLIDE_COUNT) return prev
         const next = prev + 1
         preloadAdjacent(next)
         return next
@@ -126,7 +127,14 @@ export default function PublicShowcase() {
     return () => clearInterval(timer)
   }, [phase, autoPaused, preloadAdjacent])
 
-  // After closing animation, do flash, then show button
+  // After last slide, wait 5s then close
+  useEffect(() => {
+    if (phase !== 'slideshow' || current < SLIDE_COUNT) return
+    const timer = setTimeout(() => setPhase('closing'), 5000)
+    return () => clearTimeout(timer)
+  }, [phase, current])
+
+  // Closing animation timing → flash → ended
   useEffect(() => {
     if (phase !== 'closing') return
     const t1 = setTimeout(() => setPhase('flash'), 1500)
@@ -350,7 +358,7 @@ export default function PublicShowcase() {
               style={{
                 backgroundColor: '#FF5900',
                 color: '#1B1A1C',
-                animation: 'btnAppear 0.8s ease-out',
+                animation: 'btnAppear 2s ease-out',
                 boxShadow: '0 0 40px rgba(255,89,0,0.3)',
               }}
             >
@@ -362,9 +370,8 @@ export default function PublicShowcase() {
         {/* Secret login hotspot */}
         <div
           onClick={handleSecretClick}
-          className="fixed bottom-0 right-0 z-40 w-8 h-8 flex items-center justify-center cursor-crosshair"
+          className="fixed bottom-0 right-0 z-50 w-8 h-8 flex items-center justify-center cursor-crosshair"
           title=""
-          style={{ display: phase === 'ended' ? 'none' : undefined }}
         >
           <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">◈</span>
         </div>
