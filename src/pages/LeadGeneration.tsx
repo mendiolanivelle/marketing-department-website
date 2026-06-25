@@ -122,7 +122,6 @@ export default function LeadGeneration() {
     noReply: 0,
     meetingsLeft: 0,
   })
-  const [showPipeline, setShowPipeline] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
@@ -1017,8 +1016,7 @@ export default function LeadGeneration() {
 
         {/* Lead Pipeline Dashboard */}
         <div
-          onClick={() => setShowPipeline(true)}
-          className="block rounded-2xl border p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all cursor-pointer theme-transition"
+          className="block rounded-2xl border p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all theme-transition"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
         >
           <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
@@ -1193,46 +1191,7 @@ export default function LeadGeneration() {
             )}
           </div>
         </div>
-
-      {/* Lead Pipeline Popup */}
-      {showPipeline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setShowPipeline(false)}
-          />
-          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-4xl w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
-            <div className="flex items-start justify-between mb-6">
-              <h3 className="text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline Overview</h3>
-              <button
-                onClick={() => setShowPipeline(false)}
-                className="p-1 rounded-lg transition"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-              {[
-                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
-                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
-                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
-                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
-                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
-              ].map((stat, i) => (
-                <div key={i} className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
-                  <div className="text-4xl mb-2" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
-                  <div className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
