@@ -491,8 +491,6 @@ export default function Messaging() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     Email
                   </button>
-                  <button onClick={() => moveToPrevStatus(lead)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Previous status">&larr;</button>
-                  <button onClick={() => moveToNextStatus(lead)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Next status">&rarr;</button>
                   <select
                     value={lead.status}
                     onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
