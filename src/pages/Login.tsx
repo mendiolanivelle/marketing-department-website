@@ -48,9 +48,12 @@ const styles = `
   90% { transform: translate(10%, 5%); }
 }
 @keyframes shardFloat {
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,89,0,0.3)); }
-  20% { transform: translate(var(--dx), var(--dy)) rotate(var(--rz)) scale(1.05); opacity: 0.9; filter: drop-shadow(0 0 20px rgba(255,89,0,0.7)); }
-  40% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; filter: drop-shadow(0 0 6px rgba(255,89,0,0.3)); }
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; filter: drop-shadow(0 0 4px rgba(255,89,0,0.2)); }
+  50% { transform: translate(0, 0) rotate(0deg) scale(1.08); opacity: 1; filter: drop-shadow(0 0 14px rgba(255,89,0,0.6)); }
+}
+@keyframes shardFloat2 {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
 }
 `
 
@@ -74,7 +77,7 @@ export default function Login() {
     if (error) {
       setError(error.message)
     } else {
-      navigate('/home')
+      navigate('/')
     }
   }
 
@@ -221,51 +224,24 @@ export default function Login() {
               boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,89,0,0.1), 0 0 80px rgba(255,89,0,0.05)',
             }}
           >
-            {/* Animated Exodia Logo */}
-            <div className="flex items-center gap-4 mb-10">
-              <div className="relative w-14 h-14 flex-shrink-0 flex items-center justify-center">
-                <svg viewBox="0 0 100 100" className="w-14 h-14" style={{ filter: 'drop-shadow(0 0 10px rgba(255,89,0,0.3))' }}>
-                  {/* Top-left shard */}
-                  <polygon points="50,8 26,30 50,30"
-                    fill="#FF5900"
-                    style={{ '--dx': '-18px', '--dy': '-16px', '--rz': '-8deg', animation: 'shardFloat 5s ease-in-out infinite 0s' } as React.CSSProperties} />
-                  {/* Top-right shard */}
-                  <polygon points="50,8 74,30 50,30"
-                    fill="#FF5900"
-                    style={{ '--dx': '18px', '--dy': '-16px', '--rz': '8deg', animation: 'shardFloat 5s ease-in-out infinite 0.3s' } as React.CSSProperties} />
-                  {/* Upper-left shard */}
-                  <polygon points="26,30 50,30 40,50 18,42"
-                    fill="#FF5900"
-                    style={{ '--dx': '-22px', '--dy': '-8px', '--rz': '-6deg', animation: 'shardFloat 5s ease-in-out infinite 0.6s' } as React.CSSProperties} />
-                  {/* Upper-right shard */}
-                  <polygon points="74,30 50,30 60,50 82,42"
-                    fill="#FF5900"
-                    style={{ '--dx': '22px', '--dy': '-8px', '--rz': '6deg', animation: 'shardFloat 5s ease-in-out infinite 0.9s' } as React.CSSProperties} />
-                  {/* Center-left shard */}
-                  <polygon points="18,42 40,50 35,65 12,58"
-                    fill="#FF5900"
-                    style={{ '--dx': '-20px', '--dy': '4px', '--rz': '-10deg', animation: 'shardFloat 5s ease-in-out infinite 1.2s' } as React.CSSProperties} />
-                  {/* Center-right shard */}
-                  <polygon points="82,42 60,50 65,65 88,58"
-                    fill="#FF5900"
-                    style={{ '--dx': '20px', '--dy': '4px', '--rz': '10deg', animation: 'shardFloat 5s ease-in-out infinite 1.5s' } as React.CSSProperties} />
-                  {/* Lower-left shard */}
-                  <polygon points="12,58 35,65 30,82 50,92"
-                    fill="#FF5900"
-                    style={{ '--dx': '-16px', '--dy': '14px', '--rz': '-7deg', animation: 'shardFloat 5s ease-in-out infinite 1.8s' } as React.CSSProperties} />
-                  {/* Lower-right shard */}
-                  <polygon points="88,58 65,65 70,82 50,92"
-                    fill="#FF5900"
-                    style={{ '--dx': '16px', '--dy': '14px', '--rz': '7deg', animation: 'shardFloat 5s ease-in-out infinite 2.1s' } as React.CSSProperties} />
-                  {/* Center diamond core */}
-                  <polygon points="40,50 60,50 55,60 45,60"
-                    fill="#FF5900"
-                    style={{ '--dx': '0px', '--dy': '0px', '--rz': '0deg', animation: 'shardFloat 5s ease-in-out infinite 2.4s', opacity: 0.9 } as React.CSSProperties} />
+            {/* Animated Megaphone Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="relative w-12 h-12 flex-shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="#FF5900" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {/* Megaphone body */}
+                  <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
+                    style={{ animation: 'shardFloat 4s ease-in-out infinite 0s' } as React.CSSProperties} />
+                  {/* Sound wave left */}
+                  <path d="M2 10h1" strokeWidth="2"
+                    style={{ animation: 'shardFloat2 3s ease-in-out infinite 0.4s', opacity: 0.7 } as React.CSSProperties} />
+                  {/* Sound wave right */}
+                  <path d="M21 10h1" strokeWidth="2"
+                    style={{ animation: 'shardFloat2 3s ease-in-out infinite 0.8s', opacity: 0.7 } as React.CSSProperties} />
                 </svg>
               </div>
               <div>
-                <span className="text-lg font-bold tracking-wide" style={{ color: '#CACDD7' }}>EXODIA</span>
-                <p className="text-[10px] tracking-[0.2em] uppercase" style={{ color: '#CACDD7', opacity: 0.4 }}>Game Development</p>
+                <span className="text-lg font-bold" style={{ color: '#CACDD7' }}>Marketing Department</span>
+                <p className="text-[10px] tracking-[0.2em] uppercase" style={{ color: '#CACDD7', opacity: 0.4 }}>Internal Portal</p>
               </div>
             </div>
 

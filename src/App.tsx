@@ -5,7 +5,6 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar from './components/Sidebar'
 
-const Presentation = lazy(() => import('./pages/Presentation'))
 const Login = lazy(() => import('./pages/Login'))
 const Home = lazy(() => import('./pages/Home'))
 const About = lazy(() => import('./pages/About'))
@@ -38,14 +37,6 @@ function App() {
         <HashRouter>
           <Routes>
             <Route
-              path="/"
-              element={
-                <Suspense fallback={<RouteFallback fullScreen />}>
-                  <Presentation />
-                </Suspense>
-              }
-            />
-            <Route
               path="/login"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
@@ -64,7 +55,6 @@ function App() {
                         <Suspense fallback={<RouteFallback />}>
                           <Routes>
                             <Route path="/" element={<Home />} />
-                            <Route path="/home" element={<Home />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/templates" element={<Messaging />} />
