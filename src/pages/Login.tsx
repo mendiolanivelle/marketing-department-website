@@ -12,6 +12,43 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
+const styles = `
+@keyframes drift1 {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(60px, -40px) rotate(5deg) scale(1.05); }
+  66% { transform: translate(-30px, 20px) rotate(-3deg) scale(0.95); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+@keyframes drift2 {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-50px, 30px) rotate(-4deg); }
+  50% { transform: translate(40px, -50px) rotate(6deg); }
+  75% { transform: translate(-20px, -10px) rotate(-2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes drift3 {
+  0% { transform: translate(0, 0) rotate(0deg) scaleY(1); }
+  50% { transform: translate(20px, -30px) rotate(3deg) scaleY(1.1); }
+  100% { transform: translate(0, 0) rotate(0deg) scaleY(1); }
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.3; }
+}
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 10%); }
+  80% { transform: translate(-15%, 0); }
+  90% { transform: translate(10%, 5%); }
+}
+`
+
 export default function Login() {
   const { signIn, configError } = useAuth()
   const navigate = useNavigate()
@@ -37,224 +74,278 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: 'var(--accent)' }}>
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/3 rounded-full blur-3xl"></div>
+    <>
+      <style>{styles}</style>
+      <div className="fixed inset-0 overflow-hidden" style={{ backgroundColor: '#1B1A1C' }}>
+        {/* Grain / noise texture overlay */}
+        <div
+          className="fixed inset-0 z-10 pointer-events-none"
+          style={{
+            opacity: 0.035,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '256px 256px',
+            animation: 'grain 0.5s steps(4) infinite',
+          }}
+        />
+
+        {/* Abstract 3D tube shapes */}
+        <div className="fixed inset-0 z-0">
+          {/* Large orange tube — top left */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-8%',
+              left: '-5%',
+              width: '45%',
+              height: '55%',
+              borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%',
+              background: 'linear-gradient(135deg, #FF5900 0%, #FF590040 60%, transparent 100%)',
+              opacity: 0.2,
+              filter: 'blur(60px)',
+              animation: 'drift1 18s ease-in-out infinite',
+            }}
+          />
+
+          {/* Dark gray tube — bottom right */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-10%',
+              right: '-8%',
+              width: '50%',
+              height: '60%',
+              borderRadius: '60% 40% 30% 70% / 40% 60% 40% 60%',
+              background: 'linear-gradient(225deg, #3E4048 0%, #3E404860 50%, transparent 100%)',
+              opacity: 0.25,
+              filter: 'blur(70px)',
+              animation: 'drift2 22s ease-in-out infinite',
+            }}
+          />
+
+          {/* Orange pipe — center right */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '20%',
+              right: '-10%',
+              width: '35%',
+              height: '70%',
+              borderRadius: '50% 50% 30% 70% / 60% 30% 70% 40%',
+              background: 'linear-gradient(180deg, #FF5900 0%, #FF590030 60%, transparent 100%)',
+              opacity: 0.15,
+              filter: 'blur(80px)',
+              animation: 'drift3 20s ease-in-out infinite',
+            }}
+          />
+
+          {/* Orange tube — bottom left */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-5%',
+              left: '10%',
+              width: '30%',
+              height: '40%',
+              borderRadius: '30% 70% 50% 50% / 40% 40% 60% 60%',
+              background: 'linear-gradient(45deg, #FF5900 0%, transparent 70%)',
+              opacity: 0.12,
+              filter: 'blur(50px)',
+              animation: 'drift1 25s ease-in-out infinite reverse',
+            }}
+          />
+
+          {/* Dark gray curved bar — top right */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-15%',
+              right: '15%',
+              width: '25%',
+              height: '50%',
+              borderRadius: '40% 60% 60% 40% / 70% 30% 70% 30%',
+              background: 'linear-gradient(90deg, #3E4048 0%, #3E404820 100%)',
+              opacity: 0.15,
+              filter: 'blur(55px)',
+              animation: 'drift2 28s ease-in-out infinite 3s',
+            }}
+          />
+
+          {/* Small accent glow — middle left */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '45%',
+              left: '5%',
+              width: '20%',
+              height: '20%',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #FF590080 0%, transparent 70%)',
+              opacity: 0.1,
+              filter: 'blur(40px)',
+              animation: 'pulseGlow 6s ease-in-out infinite',
+            }}
+          />
         </div>
 
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }}></div>
-
-        <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <span className="text-3xl">&#9670;</span>
+        {/* Login card */}
+        <div className="fixed inset-0 z-20 flex items-center justify-center p-4 sm:p-8">
+          <div
+            className="w-full max-w-md rounded-2xl border p-8 sm:p-10"
+            style={{
+              backgroundColor: '#1B1A1C',
+              borderColor: '#3E4048',
+              boxShadow: '0 0 80px rgba(255,89,0,0.06), 0 0 0 1px rgba(255,89,0,0.08)',
+            }}
+          >
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#FF5900' }}>
+                <span className="text-white text-lg font-bold">◆</span>
               </div>
-              <span className="text-2xl" style={{ fontWeight: 700 }}>Marketing Department</span>
+              <span className="text-xl font-bold" style={{ color: '#CACDD7' }}>Marketing Dept</span>
             </div>
-            <p className="text-white/70 text-sm">Internal Portal</p>
-          </div>
 
-          <div className="my-auto">
-            <h1 className="text-5xl mb-6 leading-tight" style={{ fontWeight: 700 }}>
-              Welcome to your<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
-                Marketing Hub
-              </span>
-            </h1>
-            <p className="text-xl text-white/80 mb-12 leading-relaxed">
-              Access campaign resources, submit requests, and stay connected with your team.
-            </p>
+            <h2 className="text-2xl mb-1" style={{ color: '#CACDD7', fontWeight: 700 }}>Sign in</h2>
+            <p className="text-sm mb-8" style={{ color: '#CACDD7', fontWeight: 300, opacity: 0.6 }}>Enter your credentials to access the portal</p>
 
-            <div className="space-y-4">
-              {[
-                { icon: '&#128227;', title: 'Stay Updated', desc: 'Real-time announcements and updates' },
-                { icon: '&#128221;', title: 'Submit Requests', desc: 'Quick access to campaign and content requests' },
-                { icon: '&#128200;', title: 'Track Performance', desc: 'Monitor campaign metrics and KPIs' },
-              ].map((feature, i) => (
-                <div key={i} className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 text-2xl" dangerouslySetInnerHTML={{ __html: feature.icon }}></div>
-                  <div>
-                    <h3 className="text-lg" style={{ fontWeight: 500 }}>{feature.title}</h3>
-                    <p className="text-white/70 text-sm">{feature.desc}</p>
-                  </div>
+            {/* Error */}
+            {(error || configError) && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl p-4" style={{ backgroundColor: '#FF590010', border: '1px solid #FF590030' }}>
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FF5900' }} fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-sm" style={{ color: '#FF5900', fontWeight: 500 }}>{configError ? 'Configuration Error' : 'Authentication failed'}</p>
+                  <p className="text-sm mt-0.5" style={{ color: '#FF5900', opacity: 0.7 }}>{configError || error}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="text-white/60 text-sm">
-            &copy; 2026 Marketing Department. Internal use only.
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: 'var(--accent)' }}>
-                <span className="text-2xl">&#9670;</span>
               </div>
-              <span className="text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</span>
-            </div>
-          </div>
+            )}
 
-          {/* Form header */}
-          <div className="mb-8">
-            <h2 className="text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Sign in</h2>
-            <p style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Enter your credentials to access the portal</p>
-          </div>
-
-          {/* Error message */}
-          {(error || configError) && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-              <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               <div>
-                <p className="text-sm text-red-800" style={{ fontWeight: 500 }}>{configError ? 'Configuration Error' : 'Authentication failed'}</p>
-                <p className="text-sm text-red-600 mt-0.5">{configError || error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
-                </div>
-                <input
-                  {...register('email')}
-                  type="email"
-                  id="email"
-                  className={`w-full pl-12 pr-4 py-3.5 border rounded-xl outline-none transition ${
-                    errors.email ? 'border-red-300' : ''
-                  }`}
-                  style={{ borderColor: errors.email ? undefined : 'var(--border-primary)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                  placeholder="you@company.com"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
-                  {...register('password')}
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  className={`w-full pl-12 pr-12 py-3.5 border rounded-xl outline-none transition ${
-                    errors.password ? 'border-red-300' : ''
-                  }`}
-                  style={{ borderColor: errors.password ? undefined : 'var(--border-primary)', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center transition"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                <label htmlFor="email" className="block text-sm mb-2" style={{ color: '#CACDD7', fontWeight: 500, opacity: 0.8 }}>Email Address</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5" style={{ color: '#CACDD7', opacity: 0.4 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </div>
+                  <input
+                    {...register('email')}
+                    type="email"
+                    id="email"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-xl outline-none transition border"
+                    style={{
+                      backgroundColor: '#1B1A1C',
+                      borderColor: errors.email ? '#FF5900' : '#3E4048',
+                      color: '#CACDD7',
+                    }}
+                    placeholder="you@company.com"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-2 text-sm flex items-center gap-1" style={{ color: '#FF5900' }}>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
-                  )}
-                </button>
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  {errors.password.message}
-                </p>
-              )}
+
+              <div>
+                <label htmlFor="password" className="block text-sm mb-2" style={{ color: '#CACDD7', fontWeight: 500, opacity: 0.8 }}>Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5" style={{ color: '#CACDD7', opacity: 0.4 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <input
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    className="w-full pl-12 pr-12 py-3.5 rounded-xl outline-none transition border"
+                    style={{
+                      backgroundColor: '#1B1A1C',
+                      borderColor: errors.password ? '#FF5900' : '#3E4048',
+                      color: '#CACDD7',
+                    }}
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center transition"
+                    style={{ color: '#CACDD7', opacity: 0.4 }}
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="mt-2 text-sm flex items-center gap-1" style={{ color: '#FF5900' }}>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: '#FF5900', borderColor: '#3E4048' }} />
+                  <span className="text-sm" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 300 }}>Remember me</span>
+                </label>
+                <a href="#" className="text-sm transition hover:underline" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 500 }}>
+                  Forgot password?
+                </a>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#FF5900', color: '#1B1A1C', fontWeight: 700 }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-8 border-t" style={{ borderColor: '#3E4048' }}>
+              <p className="text-center text-sm" style={{ color: '#CACDD7', opacity: 0.5, fontWeight: 300 }}>
+                Need access? Contact{' '}
+                <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#CACDD7', fontWeight: 500 }}>
+                  IT Support
+                </a>
+              </p>
+              <p className="text-center text-xs mt-2" style={{ color: '#CACDD7', opacity: 0.35, fontWeight: 300 }}>
+                This is an internal system. Unauthorized access is prohibited.
+              </p>
             </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: 'var(--accent)', borderColor: 'var(--border-primary)' }} />
-                <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Remember me</span>
-              </label>
-              <a href="#" className="text-sm transition hover:underline" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Forgot password?
-              </a>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full text-white py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2 exodia-btn-primary"
-              style={{ boxShadow: 'var(--shadow-md)' }}
-            >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign In
-                  <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-8 pt-8 border-t theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
-            <p className="text-center text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              Need access? Contact <a href="mailto:it@company.com" className="hover:underline" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>IT Support</a>
-            </p>
-            <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-              This is an internal system. Unauthorized access is prohibited.
-            </p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
