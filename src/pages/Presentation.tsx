@@ -1,16 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const SLIDE_COUNT = 85
 
 export default function Presentation() {
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
   const [phase, setPhase] = useState<'collage' | 'slideshow'>('collage')
   const [current, setCurrent] = useState(1)
   const [loaded, setLoaded] = useState<Set<number>>(new Set([1, 2, 3]))
   const [loginClicks, setLoginClicks] = useState(0)
   const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
-  const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!loading && user) navigate('/home', { replace: true })
+  }, [user, loading, navigate])
+
+  if (loading || user) return null
 
   const preloadAdjacent = useCallback((n: number) => {
     setLoaded(prev => {
