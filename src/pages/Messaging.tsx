@@ -353,12 +353,6 @@ export default function Messaging() {
 
   return (
     <div>
-      {/* Page Title */}
-      <div className="p-4 sm:p-6 lg:p-8 pb-0">
-        <h1 className="text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Messaging</h1>
-        <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Outreach management and email templates</p>
-      </div>
-
       {/* ======== REACH OUT SECTION ======== */}
       <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
