@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const SLIDE_COUNT = 85
-const AUTO_ADVANCE_MS = 5000
+const AUTO_ADVANCE_MS = 4000
 
 const styles = `
 @keyframes float1 {
@@ -26,22 +26,61 @@ const styles = `
   0%, 100% { opacity: 0.08; transform: scale(1); }
   50% { opacity: 0.18; transform: scale(1.1); }
 }
-@keyframes thumbEnter {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes folderIn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes folderOut {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+}
+@keyframes flapOpen {
+  0% { transform: perspective(800px) rotateX(0deg); }
+  100% { transform: perspective(800px) rotateX(-120deg); }
+}
+@keyframes flapClose {
+  0% { transform: perspective(800px) rotateX(-120deg); }
+  100% { transform: perspective(800px) rotateX(0deg); }
+}
+@keyframes glowPulse {
+  0% { opacity: 0; transform: scale(1); }
+  30% { opacity: 0.8; transform: scale(1.2); }
+  60% { opacity: 0.3; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+@keyframes flashIn {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes btnAppear {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 `
 
+type Phase = 'intro' | 'opening' | 'slideshow' | 'closing' | 'flash' | 'ended'
+
 export default function PublicShowcase() {
+  const [phase, setPhase] = useState<Phase>('intro')
   const [current, setCurrent] = useState(1)
   const [loaded, setLoaded] = useState<Set<number>>(new Set([1, 2, 3]))
   const [loginClicks, setLoginClicks] = useState(0)
   const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
-  const [showGrid, setShowGrid] = useState(false)
   const [autoPaused, setAutoPaused] = useState(false)
+  const [restartCount, setRestartCount] = useState(0)
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const preloadAll = useCallback(() => {
+    setLoaded(prev => {
+      const next = new Set(prev)
+      for (let i = 1; i <= SLIDE_COUNT; i++) next.add(i)
+      return next
+    })
+  }, [])
 
   const preloadAdjacent = useCallback((n: number) => {
     setLoaded(prev => {
@@ -52,6 +91,7 @@ export default function PublicShowcase() {
   }, [])
 
   const goTo = useCallback((n: number) => {
+    if (phase !== 'slideshow') return
     const target = Math.max(1, Math.min(SLIDE_COUNT, n))
     if (target === current) return
     setCurrent(target)
@@ -59,45 +99,62 @@ export default function PublicShowcase() {
     setAutoPaused(true)
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
     autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
-  }, [current, preloadAdjacent])
+  }, [phase, current, preloadAdjacent])
 
-  useEffect(() => { preloadAdjacent(1) }, [preloadAdjacent])
-
-  // Auto-advance
+  // Start sequence
   useEffect(() => {
-    if (showGrid || autoPaused) return
+    preloadAll()
+    const t1 = setTimeout(() => setPhase('opening'), 1200)
+    const t2 = setTimeout(() => setPhase('slideshow'), 2400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [restartCount, preloadAll])
+
+  // Auto-advance during slideshow
+  useEffect(() => {
+    if (phase !== 'slideshow' || autoPaused) return
     const timer = setInterval(() => {
       setCurrent(prev => {
-        const next = prev >= SLIDE_COUNT ? 1 : prev + 1
+        if (prev >= SLIDE_COUNT) {
+          setPhase('closing')
+          return prev
+        }
+        const next = prev + 1
         preloadAdjacent(next)
         return next
       })
     }, AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [showGrid, autoPaused, preloadAdjacent])
+  }, [phase, autoPaused, preloadAdjacent])
+
+  // After closing animation, do flash, then show button
+  useEffect(() => {
+    if (phase !== 'closing') return
+    const t1 = setTimeout(() => setPhase('flash'), 1500)
+    const t2 = setTimeout(() => setPhase('ended'), 2800)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [phase])
 
   // Keyboard
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (phase !== 'slideshow') return
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current + 1) }
       if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1) }
-      if (e.key === 'g' || e.key === 'G') setShowGrid(prev => !prev)
-      if (e.key === 'Escape') setShowGrid(false)
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [current, goTo])
+  }, [phase, current, goTo])
 
-  // Click left/right thirds
+  // Click left/right thirds during slideshow
   const handleClick = useCallback((e: React.MouseEvent) => {
-    if (showGrid) return
+    if (phase !== 'slideshow') return
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const x = e.clientX - rect.left
     const third = rect.width / 3
     if (x < third) goTo(current - 1)
     else if (x > rect.width - third) goTo(current + 1)
-  }, [showGrid, current, goTo])
+  }, [phase, current, goTo])
 
   const handleSecretClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -110,8 +167,16 @@ export default function PublicShowcase() {
     })
   }, [navigate, loginTimer])
 
-  const thumbnailCols = 10
-  const thumbnailRows = Math.ceil(SLIDE_COUNT / thumbnailCols)
+  const restartShowcase = () => {
+    setPhase('intro')
+    setCurrent(1)
+    setRestartCount(c => c + 1)
+  }
+
+  const showFolder = phase === 'intro' || phase === 'opening' || phase === 'closing'
+  const folderAnim = phase === 'intro' ? 'folderIn 1.2s ease-out forwards'
+    : phase === 'closing' ? 'folderOut 1.2s ease-in forwards'
+    : 'none'
 
   return (
     <>
@@ -122,60 +187,98 @@ export default function PublicShowcase() {
         style={{ backgroundColor: '#1B1A1C' }}
         onClick={handleClick}
       >
-        {/* Kinetic background */}
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '50%', height: '50%', borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.25, filter: 'blur(80px)', animation: 'float1 20s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', bottom: '-10%', right: '-8%', width: '45%', height: '55%', borderRadius: '60% 40% 30% 70% / 40% 60% 40% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.2, filter: 'blur(90px)', animation: 'float2 25s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', top: '20%', right: '-5%', width: '30%', height: '60%', borderRadius: '50% 50% 30% 70% / 60% 30% 70% 40%', background: 'radial-gradient(ellipse, #3E404860 0%, transparent 70%)', opacity: 0.15, filter: 'blur(70px)', animation: 'float3 22s ease-in-out infinite' }} />
-          <div style={{ position: 'absolute', bottom: '10%', left: '5%', width: '25%', height: '30%', borderRadius: '30% 70% 50% 50% / 40% 40% 60% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.12, filter: 'blur(60px)', animation: 'float1 28s ease-in-out infinite reverse' }} />
-          <div style={{ position: 'absolute', top: '40%', left: '40%', width: '20%', height: '20%', borderRadius: '50%', background: 'radial-gradient(circle, #3E4048 0%, transparent 70%)', opacity: 0.1, filter: 'blur(50px)', animation: 'pulseGlow 6s ease-in-out infinite' }} />
-        </div>
-
-        {/* ====== GRID OVERVIEW MODE ====== */}
-        {showGrid ? (
-          <div
-            className="fixed inset-0 z-50 overflow-y-auto p-4"
-            style={{ backgroundColor: 'rgba(27,26,28,0.95)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="grid gap-2 mx-auto"
-              style={{
-                gridTemplateColumns: `repeat(${thumbnailCols}, 1fr)`,
-                maxWidth: `${thumbnailCols * 100 + (thumbnailCols - 1) * 8}px`,
-                animation: 'thumbEnter 0.3s ease-out',
-              }}
-            >
-              {Array.from({ length: SLIDE_COUNT }, (_, i) => i + 1).map(n => (
-                <div
-                  key={n}
-                  onClick={() => { setShowGrid(false); goTo(n) }}
-                  className="aspect-square overflow-hidden rounded-lg cursor-pointer transition-transform duration-200 hover:scale-105 hover:ring-2 hover:ring-[#FF5900]/50"
-                  style={{ opacity: n === current ? 1 : 0.6 }}
-                >
-                  <img
-                    src={`/portfolio/${n}.jpg`}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    draggable={false}
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-              <button
-                onClick={() => setShowGrid(false)}
-                className="px-5 py-2 text-xs tracking-widest uppercase rounded-full border transition"
-                style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.4)' }}
-              >
-                Close Grid
-              </button>
-            </div>
+        {/* Kinetic background (visible during slideshow) */}
+        {phase === 'slideshow' && (
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '50%', height: '50%', borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.25, filter: 'blur(80px)', animation: 'float1 20s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', bottom: '-10%', right: '-8%', width: '45%', height: '55%', borderRadius: '60% 40% 30% 70% / 40% 60% 40% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.2, filter: 'blur(90px)', animation: 'float2 25s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', top: '20%', right: '-5%', width: '30%', height: '60%', borderRadius: '50% 50% 30% 70% / 60% 30% 70% 40%', background: 'radial-gradient(ellipse, #3E404860 0%, transparent 70%)', opacity: 0.15, filter: 'blur(70px)', animation: 'float3 22s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', bottom: '10%', left: '5%', width: '25%', height: '30%', borderRadius: '30% 70% 50% 50% / 40% 40% 60% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.12, filter: 'blur(60px)', animation: 'float1 28s ease-in-out infinite reverse' }} />
           </div>
-        ) : (
+        )}
+
+        {/* ====== FOLDER ANIMATION ====== */}
+        {showFolder && (
+          <div
+            className="fixed z-50"
+            style={{
+              top: '50%',
+              left: '50%',
+              width: 220,
+              height: 170,
+              animation: folderAnim,
+              transformOrigin: 'center center',
+            }}
+          >
+            {/* Folder glow behind */}
+            <div
+              className="absolute inset-0 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"
+              style={{
+                backgroundColor: '#FF5900',
+                filter: 'blur(40px)',
+                opacity: phase === 'intro' ? 0.3 : 0.6,
+                transition: 'opacity 1s',
+              }}
+            />
+            {/* Folder body */}
+            <div
+              className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl"
+              style={{
+                height: '80%',
+                backgroundColor: '#FF5900',
+                borderRadius: '0 0 16px 16px',
+                boxShadow: 'inset 0 -4px 12px rgba(0,0,0,0.2)',
+              }}
+            />
+            {/* Folder flap */}
+            <div
+              className="absolute top-0 left-0 right-0"
+              style={{
+                height: '55%',
+                backgroundColor: '#FF5900',
+                borderRadius: '16px 16px 0 0',
+                transformOrigin: 'bottom center',
+                transform: phase === 'opening' ? 'perspective(800px) rotateX(-120deg)' : phase === 'closing' ? 'perspective(800px) rotateX(0deg)' : 'perspective(800px) rotateX(0deg)',
+                transition: 'transform 1.2s ease-in-out',
+                boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)',
+                zIndex: 2,
+              }}
+            />
+            {/* Folder tab */}
+            <div
+              className="absolute"
+              style={{
+                top: -12,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 50,
+                height: 16,
+                backgroundColor: '#FF5900',
+                borderRadius: '6px 6px 0 0',
+                zIndex: 3,
+              }}
+            />
+            {/* Orange glow burst when opening */}
+            {phase === 'opening' && (
+              <div
+                className="absolute"
+                style={{
+                  top: '40%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 300,
+                  height: 200,
+                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.6) 0%, transparent 70%)',
+                  animation: 'glowPulse 1.2s ease-out',
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ====== SLIDESHOW ====== */}
+        {phase === 'slideshow' && (
           <>
-            {/* Slides */}
             {Array.from(loaded).map(n => (
               <div
                 key={n}
@@ -189,26 +292,71 @@ export default function PublicShowcase() {
                 />
               </div>
             ))}
-
-            {/* Subtle edge gradient — no text overlay */}
             <div className="fixed inset-0 pointer-events-none z-20" style={{ background: 'linear-gradient(180deg, rgba(27,26,28,0.15) 0%, transparent 20%, transparent 80%, rgba(27,26,28,0.4) 100%)' }} />
-
-            {/* Left nav hint — only visible on hover */}
-            <div className="fixed left-0 top-0 bottom-0 w-1/3 z-30 pointer-events-none" />
-
-            {/* Right nav hint */}
-            <div className="fixed right-0 top-0 bottom-0 w-1/3 z-30 pointer-events-none" />
-
-            {/* Progress bar */}
             <div className="fixed bottom-0 left-0 right-0 h-[2px] z-30" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
               <div className="h-full transition-all duration-500 ease-out" style={{ width: `${(current / SLIDE_COUNT) * 100}%`, backgroundColor: 'rgba(255,89,0,0.5)' }} />
             </div>
-
-            {/* Grid toggle hint — tiny pill bottom-center */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-              <span className="text-white/[0.06] text-[9px] tracking-[0.3em] uppercase select-none">Press G for grid</span>
-            </div>
           </>
+        )}
+
+        {/* ====== CLOSING — zoom back to folder ====== */}
+        {phase === 'closing' && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
+            <div
+              className="transition-all duration-1200 ease-in-out"
+              style={{
+                width: 220,
+                height: 170,
+                opacity: 1,
+                transform: 'scale(1)',
+                animation: 'folderOut 1.2s ease-in forwards',
+                animationDelay: '0.3s',
+              }}
+            >
+              <div className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
+              <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', animation: 'flapClose 1s ease-in-out forwards' }} />
+              <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
+            </div>
+          </div>
+        )}
+
+        {/* ====== FLASH ====== */}
+        {phase === 'flash' && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{
+              backgroundColor: '#FF5900',
+              animation: 'flashIn 1.2s ease-in-out forwards',
+            }}
+          >
+            <div
+              style={{
+                width: 400,
+                height: 400,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,89,0,0.8) 40%, transparent 70%)',
+                filter: 'blur(30px)',
+              }}
+            />
+          </div>
+        )}
+
+        {/* ====== ENDED ====== */}
+        {phase === 'ended' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
+            <button
+              onClick={restartShowcase}
+              className="px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 hover:scale-105"
+              style={{
+                backgroundColor: '#FF5900',
+                color: '#1B1A1C',
+                animation: 'btnAppear 0.8s ease-out',
+                boxShadow: '0 0 40px rgba(255,89,0,0.3)',
+              }}
+            >
+              See Exodia&apos;s Portfolio
+            </button>
+          </div>
         )}
 
         {/* Secret login hotspot */}
@@ -216,6 +364,7 @@ export default function PublicShowcase() {
           onClick={handleSecretClick}
           className="fixed bottom-0 right-0 z-40 w-8 h-8 flex items-center justify-center cursor-crosshair"
           title=""
+          style={{ display: phase === 'ended' ? 'none' : undefined }}
         >
           <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">◈</span>
         </div>
