@@ -62,6 +62,20 @@ const styles = `
   0% { transform: perspective(800px) rotateX(-120deg); }
   100% { transform: perspective(800px) rotateX(0deg); }
 }
+@keyframes cursorAppear {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes cursorMoveToFolder {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-35vw, 28vh); }
+}
+@keyframes cursorClick {
+  0%, 100% { transform: translate(-35vw, 28vh) scale(1); }
+  25% { transform: translate(-35vw, 30vh) scale(0.9); }
+  50% { transform: translate(-35vw, 28vh) scale(1); }
+  75% { transform: translate(-35vw, 30vh) scale(0.9); }
+}
 `
 
 type Phase = 'intro' | 'opening' | 'slideshow' | 'closing' | 'flash' | 'ended'
@@ -129,7 +143,7 @@ export default function PublicShowcase() {
   // Start sequence — wait for images to actually load before slideshow
   useEffect(() => {
     preloadAll()
-    const t1 = setTimeout(() => setPhase('opening'), 2000)
+    const t1 = setTimeout(() => setPhase('opening'), 4000)
     const t2 = setTimeout(() => {
       if (imagesReady) setPhase('slideshow')
       else {
@@ -138,7 +152,7 @@ export default function PublicShowcase() {
         }, 100)
         setTimeout(() => clearInterval(poll), 10000)
       }
-    }, 3200)
+    }, 5200)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [restartCount, preloadAll, imagesReady])
 
@@ -320,23 +334,22 @@ export default function PublicShowcase() {
                 zIndex: 3,
               }}
             />
-            {/* Orange floor glow under the folder — appears before opening */}
-            {(phase === 'intro' || phase === 'opening') && (
+            {/* Mouse cursor that clicks the folder to open it */}
+            {phase === 'intro' && (
               <div
-                className="absolute"
+                className="fixed"
                 style={{
-                  top: '80%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '250%',
-                  height: '120%',
-                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.5) 0%, rgba(255,89,0,0.15) 40%, transparent 70%)',
-                  animation: phase === 'opening' ? 'glowPulse 1.5s ease-out' : 'none',
-                  opacity: phase === 'intro' ? 0.3 : 1,
-                  transition: 'opacity 0.8s ease-in',
-                  zIndex: 0,
+                  top: '20%',
+                  left: '80%',
+                  zIndex: 60,
+                  animation: 'cursorAppear 0.3s ease-out 1.8s both, cursorMoveToFolder 1s ease-in-out 2.1s both, cursorClick 0.6s ease-in-out 3.2s both',
+                  pointerEvents: 'none',
                 }}
-              />
+              >
+                <svg viewBox="0 0 24 24" fill="rgba(255,89,0,0.9)" width="36" height="36" style={{ filter: 'drop-shadow(0 0 8px rgba(255,89,0,0.5))' }}>
+                  <path d="M5 3l13.5 11.5-6.5.5L13 20l-2 1-2.5-6.5L5 18V3z" />
+                </svg>
+              </div>
             )}
             </div>
           </div>
