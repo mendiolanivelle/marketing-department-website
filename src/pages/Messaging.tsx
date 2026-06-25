@@ -495,26 +495,6 @@ export default function Messaging() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     Email
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); moveToPrevStatus(lead) }}
-                    disabled={lead.status === 'pending'}
-                    className="px-2.5 py-1.5 text-xs rounded-lg transition disabled:opacity-30 flex items-center gap-1"
-                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                    title="Move to previous stage"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                    Back
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); moveToNextStatus(lead) }}
-                    disabled={lead.status === 'replied'}
-                    className="px-2.5 py-1.5 text-xs rounded-lg transition disabled:opacity-30 flex items-center gap-1"
-                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                    title="Move to next stage"
-                  >
-                    Next
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                  </button>
                   <div className="w-px h-5" style={{ backgroundColor: 'var(--border-secondary)' }} />
                   <select
                     value={lead.status}
@@ -660,29 +640,13 @@ export default function Messaging() {
                       <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Last Contacted</label>
                       <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.lastContacted || 'Not yet contacted'}</p>
                     </div>
-                    <div className="flex gap-2 pt-2">
+                    <div>
                       <button
                         onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
-                        className="flex-1 px-3 py-2 text-xs text-white rounded-lg transition"
+                        className="w-full px-3 py-2 text-xs text-white rounded-lg transition"
                         style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
                       >
                         Send Email
-                      </button>
-                      <button
-                        onClick={() => { moveToPrevStatus(selectedDetailLead); setSelectedDetailLead({ ...selectedDetailLead, status: statusCycle[Math.max(0, statusCycle.indexOf(selectedDetailLead.status) - 1)] }) }}
-                        disabled={selectedDetailLead.status === 'pending'}
-                        className="flex-1 px-3 py-2 text-xs rounded-lg transition disabled:opacity-30"
-                        style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                      >
-                        Move Back
-                      </button>
-                      <button
-                        onClick={() => { moveToNextStatus(selectedDetailLead); setSelectedDetailLead({ ...selectedDetailLead, status: statusCycle[Math.min(statusCycle.length - 1, statusCycle.indexOf(selectedDetailLead.status) + 1)] }) }}
-                        disabled={selectedDetailLead.status === 'replied'}
-                        className="flex-1 px-3 py-2 text-xs rounded-lg transition disabled:opacity-30"
-                        style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                      >
-                        Move Next
                       </button>
                     </div>
                   </div>
