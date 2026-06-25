@@ -27,12 +27,12 @@ const styles = `
   50% { opacity: 0.18; transform: scale(1.1); }
 }
 @keyframes folderIn {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
 }
 @keyframes folderOut {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.6); }
 }
 @keyframes flapOpen {
   0% { transform: perspective(800px) rotateX(0deg); }
@@ -231,17 +231,15 @@ export default function PublicShowcase() {
 
         {/* ====== FOLDER ANIMATION ====== */}
         {showFolder && (
-          <div
-            className="fixed z-50"
-            style={{
-              top: '50%',
-              left: '50%',
-              width: 220,
-              height: 170,
-              animation: folderAnim,
-              transformOrigin: 'center center',
-            }}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div
+              style={{
+                width: 220,
+                height: 170,
+                animation: folderAnim,
+                position: 'relative',
+              }}
+            >
             {/* Folder glow behind */}
             <div
               className="absolute inset-0 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"
@@ -335,14 +333,12 @@ export default function PublicShowcase() {
         {phase === 'closing' && (
           <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
             <div
-              className="transition-all duration-1200 ease-in-out"
               style={{
                 width: 220,
                 height: 170,
-                opacity: 1,
-                transform: 'scale(1)',
                 animation: 'folderOut 1.2s ease-in forwards',
                 animationDelay: '0.3s',
+                position: 'relative',
               }}
             >
               <div className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
