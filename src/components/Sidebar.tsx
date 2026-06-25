@@ -90,12 +90,12 @@ export default function Sidebar() {
           {/* Logo + Profile section */}
           <div className="px-3 pt-5 pb-4 border-b theme-transition" style={{ borderColor: 'var(--border-secondary)' }}>
             <div className="flex items-center justify-between mb-4 px-1">
-              <div className="flex items-start gap-3 overflow-hidden">
+              <div className="flex items-center gap-2 overflow-hidden">
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center shadow-md flex-shrink-0 mt-0.5 transition-transform duration-200 hover:scale-105"
+                  className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm flex-shrink-0 transition-transform duration-200 hover:scale-105"
                   style={{ backgroundColor: 'var(--logo-bg)' }}
                 >
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                   </svg>
                 </div>
