@@ -125,11 +125,16 @@ export default function LeadGeneration() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) { setLoading(false); return }
+    if (!isSupabaseConfigured || !supabase) {
+      const saved = localStorage.getItem('exodia-lead-files')
+      if (saved) { try { setFiles(JSON.parse(saved)) } catch {} }
+      setLoading(false)
+      return
+    }
     try {
       const { data, error } = await supabase.from('lead_files').select('*').order('created_at', { ascending: false })
       if (error) throw error
-      if (data) setFiles(data)
+      if (data) { setFiles(data); localStorage.setItem('exodia-lead-files', JSON.stringify(data)) }
     } catch (err) { console.error('Error fetching lead files:', err) }
     finally { setLoading(false) }
   }, [])
@@ -137,12 +142,24 @@ export default function LeadGeneration() {
   useEffect(() => {
     fetchFiles()
     if (!isSupabaseConfigured || !supabase) return
-    const channel = supabase
+    const fileChannel = supabase
       .channel('lead_files_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => { fetchFiles() })
       .subscribe()
-    return () => { try { supabase.removeChannel(channel) } catch {} }
-  }, [fetchFiles])
+    const rowsChannel = supabase
+      .channel('lead_rows_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => {
+        if (selectedFile) fetchRows(selectedFile.id)
+      })
+      .subscribe()
+    return () => {
+      try { supabase.removeChannel(fileChannel) } catch {}
+      try { supabase.removeChannel(rowsChannel) } catch {}
+    }
+  }, [fetchFiles, selectedFile, fetchRows])
+
+  // Persist files to localStorage on every change
+  useEffect(() => { localStorage.setItem('exodia-lead-files', JSON.stringify(files)) }, [files])
 
   const fetchLeadStats = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) return
@@ -230,7 +247,12 @@ export default function LeadGeneration() {
   }, [fetchLeadStats])
 
   const fetchRows = useCallback(async (fileId: string) => {
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
+      if (saved) { try { setRows(JSON.parse(saved)) } catch {} }
+      setRowsLoading(false)
+      return
+    }
     setRowsLoading(true)
     try {
       const { data, error } = await supabase
@@ -239,10 +261,15 @@ export default function LeadGeneration() {
         .eq('file_id', fileId)
         .order('row_index', { ascending: true })
       if (error) throw error
-      if (data) setRows(data)
+      if (data) { setRows(data); localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data)) }
     } catch (err) { console.error('Error fetching rows:', err) }
     finally { setRowsLoading(false) }
   }, [])
+
+  // Persist rows to localStorage on every change
+  useEffect(() => {
+    if (selectedFile) localStorage.setItem(`exodia-lead-rows-${selectedFile.id}`, JSON.stringify(rows))
+  }, [rows, selectedFile])
 
   const checkAndRouteDuplicates = async (
     rowsToCheck: Record<string, string>[],
@@ -324,37 +351,40 @@ export default function LeadGeneration() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !isSupabaseConfigured || !supabase) return
+    if (!file) return
 
     setUploading(true)
     try {
       const text = await file.text()
       const { headers, rows: parsedRows } = parseCSV(text)
-
       if (headers.length === 0) { alert('CSV file is empty or invalid'); return }
 
-      const { data: fileData, error: fileError } = await supabase
-        .from('lead_files')
-        .insert([{ name: file.name.replace(/\.csv$/i, ''), columns: headers, source: 'csv' }])
-        .select()
-        .single()
+      const now = new Date().toISOString()
+      const fileId = crypto.randomUUID()
+      const newFile: LeadFile = { id: fileId, name: file.name.replace(/\.csv$/i, ''), columns: headers, source: 'csv', created_at: now, updated_at: now }
 
-      if (fileError) throw fileError
+      if (isSupabaseConfigured && supabase) {
+        const { data: fileData, error: fileError } = await supabase
+          .from('lead_files')
+          .insert([{ name: newFile.name, columns: headers, source: 'csv' }])
+          .select()
+          .single()
+        if (fileError) throw fileError
+        newFile.id = fileData.id
+      }
 
       if (parsedRows.length > 0) {
         const emailCol = headers.find(h => h.toLowerCase().includes('email'))
         let existingEmails = new Set<string>()
 
-        if (emailCol) {
+        if (emailCol && supabase) {
           const { data: allRows } = await supabase
             .from('lead_rows')
             .select('data')
           if (allRows) {
             allRows.forEach(r => {
               const data = r.data as Record<string, string>
-              if (data[emailCol]) {
-                existingEmails.add(data[emailCol].toLowerCase().trim())
-              }
+              if (data[emailCol]) existingEmails.add(data[emailCol].toLowerCase().trim())
             })
           }
         }
@@ -363,38 +393,29 @@ export default function LeadGeneration() {
         parsedRows.forEach(row => {
           if (emailCol && row[emailCol]) {
             const email = row[emailCol].toLowerCase().trim()
-            if (!existingEmails.has(email)) {
-              uniqueRows.push(row)
-              existingEmails.add(email)
-            }
-          } else {
-            uniqueRows.push(row)
-          }
+            if (!existingEmails.has(email)) { uniqueRows.push(row); existingEmails.add(email) }
+          } else { uniqueRows.push(row) }
         })
 
         if (uniqueRows.length > 0) {
           const rowInserts = uniqueRows.map((row, idx) => ({
-            file_id: fileData.id,
+            file_id: newFile.id,
             row_index: idx,
             data: row,
           }))
-          const { error: rowsError } = await supabase.from('lead_rows').insert(rowInserts)
-          if (rowsError) throw rowsError
+          if (supabase) {
+            const { error: rowsError } = await supabase.from('lead_rows').insert(rowInserts)
+            if (rowsError) throw rowsError
+          }
         }
 
-        const duplicateCount = await checkAndRouteDuplicates(
-          parsedRows,
-          fileData.id,
-          file.name.replace(/\.csv$/i, ''),
-          headers
-        )
-
-        if (duplicateCount > 0) {
-          alert(`${duplicateCount} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
+        if (supabase) {
+          const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
+          if (duplicateCount > 0) alert(`${duplicateCount} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
         }
       }
 
-      await fetchFiles()
+      setFiles(prev => [newFile, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (err) {
       console.error('Error uploading CSV:', err)
@@ -404,35 +425,36 @@ export default function LeadGeneration() {
 
   const createSpreadsheet = async () => {
     const name = newSpreadsheetName.trim()
-    if (!name || !isSupabaseConfigured || !supabase) return
+    if (!name) return
 
     setCreatingSpreadsheet(true)
     try {
       const columns: string[] = []
-      for (let i = 0; i < 50; i++) {
-        columns.push(colToLetter(i))
+      for (let i = 0; i < 50; i++) columns.push(colToLetter(i))
+
+      const now = new Date().toISOString()
+      const fileId = crypto.randomUUID()
+      const newFile: LeadFile = { id: fileId, name, columns, source: 'spreadsheet', created_at: now, updated_at: now }
+      const emptyRowData = columns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
+      const emptyRows: LeadRow[] = Array.from({ length: 50 }, (_, idx) => ({
+        id: crypto.randomUUID(), file_id: fileId, row_index: idx, data: { ...emptyRowData }, created_at: now, updated_at: now,
+      }))
+
+      if (isSupabaseConfigured && supabase) {
+        const { data: fileData, error: fileError } = await supabase
+          .from('lead_files')
+          .insert([{ name, columns, source: 'spreadsheet' }])
+          .select()
+          .single()
+        if (fileError) throw fileError
+        newFile.id = fileData.id
+
+        const dbRows = emptyRows.map(r => ({ file_id: r.file_id, row_index: r.row_index, data: r.data }))
+        const { error: rowsError } = await supabase.from('lead_rows').insert(dbRows)
+        if (rowsError) throw rowsError
       }
 
-      const { data: fileData, error: fileError } = await supabase
-        .from('lead_files')
-        .insert([{ name, columns, source: 'spreadsheet' }])
-        .select()
-        .single()
-
-      if (fileError) throw fileError
-
-      const emptyRows = Array.from({ length: 50 }, (_, idx) => {
-        const emptyRow = columns.reduce((acc, col) => { acc[col] = ''; return acc }, {} as Record<string, string>)
-        return { file_id: fileData.id, row_index: idx, data: emptyRow }
-      })
-
-      const { error: rowsError } = await supabase
-        .from('lead_rows')
-        .insert(emptyRows)
-
-      if (rowsError) throw rowsError
-
-      await fetchFiles()
+      setFiles(prev => [newFile, ...prev])
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
     } catch (err) {
@@ -469,12 +491,13 @@ export default function LeadGeneration() {
     if (!row) return
 
     const newData = { ...row.data, [editingCell.col]: editValue }
-    setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData } : r))
+    const now = new Date().toISOString()
+    setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData, updated_at: now } : r))
     setEditingCell(null)
 
     if (supabase) {
       try {
-        await supabase.from('lead_rows').update({ data: newData }).eq('id', editingCell.rowId)
+        await supabase.from('lead_rows').update({ data: newData, updated_at: now }).eq('id', editingCell.rowId)
       } catch (err) { console.error('Error saving cell:', err) }
     }
   }
