@@ -24,6 +24,14 @@ window.addEventListener('unhandledrejection', (event) => {
   reloadOnStaleChunk(event.reason?.message || event.reason)
 })
 
+// Suppress harmless browser extension noise in console
+const origError = console.error
+console.error = (...args) => {
+  const msg = args.join(' ')
+  if (msg.includes('message port closed') || msg.includes('runtime.lastError')) return
+  origError.apply(console, args)
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
