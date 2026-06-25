@@ -335,7 +335,7 @@ export default function PublicShowcase() {
               <div
                 className="absolute"
                 style={{
-                  top: '85%',
+                  top: '80%',
                   left: '50%',
                   transform: 'translateX(-50%)',
                   width: '250%',
