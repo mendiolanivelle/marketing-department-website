@@ -31,7 +31,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 }
 
 const sortLeads = (leads: OutreachLead[]) => {
-  const priority: Record<string, number> = { 'pending': 0, 'sent': 1, 'follow-up': 2, 'replied': 3 }
+  const priority: Record<string, number> = { 'pending': 0, 'sent': 1, 'follow-up': 2, 'replied': 99 }
   return [...leads].sort((a, b) => (priority[a.status] ?? 99) - (priority[b.status] ?? 99))
 }
 
