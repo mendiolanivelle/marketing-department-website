@@ -139,6 +139,26 @@ export default function LeadGeneration() {
     finally { setLoading(false) }
   }, [])
 
+  const fetchRows = useCallback(async (fileId: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
+      if (saved) { try { setRows(JSON.parse(saved)) } catch {} }
+      setRowsLoading(false)
+      return
+    }
+    setRowsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('lead_rows')
+        .select('*')
+        .eq('file_id', fileId)
+        .order('row_index', { ascending: true })
+      if (error) throw error
+      if (data) { setRows(data); localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data)) }
+    } catch (err) { console.error('Error fetching rows:', err) }
+    finally { setRowsLoading(false) }
+  }, [])
+
   useEffect(() => {
     fetchFiles()
     if (!isSupabaseConfigured || !supabase) return
@@ -245,26 +265,6 @@ export default function LeadGeneration() {
       try { supabase.removeChannel(rowsChannel) } catch {}
     }
   }, [fetchLeadStats])
-
-  const fetchRows = useCallback(async (fileId: string) => {
-    if (!isSupabaseConfigured || !supabase) {
-      const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
-      if (saved) { try { setRows(JSON.parse(saved)) } catch {} }
-      setRowsLoading(false)
-      return
-    }
-    setRowsLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('lead_rows')
-        .select('*')
-        .eq('file_id', fileId)
-        .order('row_index', { ascending: true })
-      if (error) throw error
-      if (data) { setRows(data); localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data)) }
-    } catch (err) { console.error('Error fetching rows:', err) }
-    finally { setRowsLoading(false) }
-  }, [])
 
   // Persist rows to localStorage on every change
   useEffect(() => {
