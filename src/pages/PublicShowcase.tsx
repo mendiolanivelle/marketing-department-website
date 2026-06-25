@@ -330,18 +330,19 @@ export default function PublicShowcase() {
                 zIndex: 3,
               }}
             />
-            {/* Orange glow burst when opening */}
+            {/* Orange glow burst when opening — floor glow under the folder */}
             {phase === 'opening' && (
               <div
                 className="absolute"
                 style={{
-                  top: '50%',
+                  top: '70%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: 320,
-                  height: 220,
-                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.5) 0%, transparent 65%)',
-                  animation: 'glowPulse 1.2s ease-out',
+                  width: '180%',
+                  height: '100%',
+                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.6) 0%, rgba(255,89,0,0.2) 40%, transparent 70%)',
+                  animation: 'glowPulse 1.5s ease-out',
+                  zIndex: 0,
                 }}
               />
             )}
@@ -470,18 +471,47 @@ export default function PublicShowcase() {
 
         {/* ====== ENDED ====== */}
         {phase === 'ended' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10" style={{ backgroundColor: '#1B1A1C' }}>
+            {/* Ambient glow behind button */}
+            <div className="absolute" style={{ width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
             <button
               onClick={restartShowcase}
-              className="px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 hover:scale-105"
+              className="relative transition-all duration-500 hover:scale-110 group"
               style={{
-                backgroundColor: '#FF5900',
-                color: '#1B1A1C',
                 animation: 'btnAppear 2s ease-out',
-                boxShadow: '0 0 40px rgba(255,89,0,0.3)',
               }}
             >
-              See Exodia&apos;s Portfolio
+              {/* Glass-morphism background */}
+              <div
+                className="absolute inset-0 rounded-2xl transition-all duration-500"
+                style={{
+                  backgroundColor: 'rgba(255,89,0,0.1)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255,89,0,0.25)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(255,89,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}
+              />
+              {/* Hover glow overlay */}
+              <div
+                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500"
+                style={{
+                  backgroundColor: 'rgba(255,89,0,0.08)',
+                  boxShadow: '0 0 80px rgba(255,89,0,0.3)',
+                }}
+              />
+              {/* Content */}
+              <div className="relative flex items-center gap-3 px-10 py-5">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
+                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-lg font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                  See Exodia&apos;s Portfolio
+                </span>
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
+                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
             </button>
           </div>
         )}
