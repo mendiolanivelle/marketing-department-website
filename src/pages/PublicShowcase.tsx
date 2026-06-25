@@ -329,12 +329,12 @@ export default function PublicShowcase() {
               <div
                 className="absolute"
                 style={{
-                  top: '40%',
+                  top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: 300,
-                  height: 200,
-                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.6) 0%, transparent 70%)',
+                  width: 320,
+                  height: 220,
+                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.5) 0%, transparent 65%)',
                   animation: 'glowPulse 1.2s ease-out',
                 }}
               />
@@ -398,6 +398,19 @@ export default function PublicShowcase() {
         {/* ====== CLOSING — zoom back to folder ====== */}
         {phase === 'closing' && (
           <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
+            {/* Behind-folder glow */}
+            <div
+              className="absolute"
+              style={{
+                width: 280,
+                height: 230,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,89,0,0.3) 0%, transparent 70%)',
+                filter: 'blur(30px)',
+                animation: 'folderOut 1.2s ease-in forwards',
+                animationDelay: '0.3s',
+              }}
+            />
             <div
               style={{
                 width: 220,
@@ -410,6 +423,20 @@ export default function PublicShowcase() {
               <div className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
               <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', animation: 'flapClose 1s ease-in-out forwards' }} />
               <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
+              {/* Orange glow burst when closing — fades as flap closes */}
+              <div
+                className="absolute"
+                style={{
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 320,
+                  height: 220,
+                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.4) 0%, transparent 65%)',
+                  opacity: 0.6,
+                  transition: 'opacity 0.8s ease-in',
+                }}
+              />
             </div>
           </div>
         )}
