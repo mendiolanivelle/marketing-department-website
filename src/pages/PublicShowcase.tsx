@@ -156,19 +156,25 @@ export default function PublicShowcase() {
     return () => clearInterval(timer)
   }, [phase, autoPaused, preloadAdjacent])
 
-  // After last slide, wait 5s then close
+  // After last slide, wait 3s then flash
   useEffect(() => {
     if (phase !== 'slideshow' || current < SLIDE_COUNT) return
-    const timer = setTimeout(() => setPhase('closing'), 5000)
+    const timer = setTimeout(() => setPhase('flash'), 3000)
     return () => clearTimeout(timer)
   }, [phase, current])
 
-  // Closing animation timing → flash → ended
+  // Flash animation → closing folder
+  useEffect(() => {
+    if (phase !== 'flash') return
+    const t1 = setTimeout(() => setPhase('closing'), 1200)
+    return () => clearTimeout(t1)
+  }, [phase])
+
+  // Closing folder → ended button
   useEffect(() => {
     if (phase !== 'closing') return
-    const t1 = setTimeout(() => setPhase('flash'), 1500)
-    const t2 = setTimeout(() => setPhase('ended'), 2800)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    const t1 = setTimeout(() => setPhase('ended'), 2000)
+    return () => clearTimeout(t1)
   }, [phase])
 
   // Keyboard
