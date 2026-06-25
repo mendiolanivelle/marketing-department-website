@@ -97,6 +97,10 @@ export default function Calendar() {
 
   const fetchItems = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
+      const saved = localStorage.getItem('exodia-calendar-items')
+      if (saved) {
+        try { setItems(JSON.parse(saved)) } catch {}
+      }
       setLoading(false)
       return
     }
@@ -106,7 +110,10 @@ export default function Calendar() {
         .select('*')
         .order('date', { ascending: true })
       if (error) throw error
-      if (data) setItems(data)
+      if (data) {
+        setItems(data)
+        localStorage.setItem('exodia-calendar-items', JSON.stringify(data))
+      }
     } catch (err) {
       console.error('Error fetching calendar items:', err)
     } finally {
@@ -130,6 +137,11 @@ export default function Calendar() {
       try { supabase.removeChannel(channel) } catch {}
     }
   }, [fetchItems])
+
+  // Persist to localStorage on every change
+  useEffect(() => {
+    localStorage.setItem('exodia-calendar-items', JSON.stringify(items))
+  }, [items])
 
   const itemsByDate = useMemo(() => {
     const map: Record<string, CalendarItem[]> = {}
@@ -264,18 +276,31 @@ export default function Calendar() {
     }
 
     try {
+      const now = new Date().toISOString()
       if (isSupabaseConfigured && supabase) {
         if (editingItem) {
           const { error } = await supabase
             .from('calendar_items')
-            .update(payload)
+            .update({ ...payload, updated_at: now })
             .eq('id', editingItem.id)
           if (error) throw error
+          setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload, updated_at: now } as CalendarItem : i))
         } else {
+          const id = crypto.randomUUID()
+          const newItem: CalendarItem = { id, ...payload, created_at: now, updated_at: now }
           const { error } = await supabase
             .from('calendar_items')
-            .insert([payload])
+            .insert([newItem])
           if (error) throw error
+          setItems(prev => [...prev, newItem])
+        }
+      } else {
+        if (editingItem) {
+          setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload, updated_at: now } as CalendarItem : i))
+        } else {
+          const id = crypto.randomUUID()
+          const newItem: CalendarItem = { id, ...payload, created_at: now, updated_at: now }
+          setItems(prev => [...prev, newItem])
         }
       }
       setShowModal(false)
@@ -299,6 +324,7 @@ export default function Calendar() {
           .eq('id', id)
         if (error) throw error
       }
+      setItems(prev => prev.filter(i => i.id !== id))
     } catch (err) {
       console.error('Error deleting calendar item:', err)
       alert('Failed to delete item')
