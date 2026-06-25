@@ -127,7 +127,7 @@ export default function Calendar() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      try { supabase.removeChannel(channel) } catch {}
     }
   }, [fetchItems])
 

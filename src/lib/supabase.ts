@@ -12,5 +12,9 @@ if (!isSupabaseConfigured) {
 }
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  ? createClient(supabaseUrl!, supabaseAnonKey!, {
+      realtime: {
+        params: { log_level: 'silent' },
+      },
+    })
   : null

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 interface LeadFile {
@@ -107,7 +108,6 @@ export default function LeadGeneration() {
   const [newSpreadsheetName, setNewSpreadsheetName] = useState('')
   const [zoom, setZoom] = useState(100)
   const [draggedColumn, setDraggedColumn] = useState<number | null>(null)
-  const [totalRowCount, setTotalRowCount] = useState(0)
   const [draggedRow, setDraggedRow] = useState<number | null>(null)
   const [currentCellRef, setCurrentCellRef] = useState('A1')
   const [formulaValue, setFormulaValue] = useState('')
@@ -115,6 +115,14 @@ export default function LeadGeneration() {
   const [cellFormats, setCellFormats] = useState<Record<string, CellFormat>>({})
   const [selectedRange, setSelectedRange] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number } | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
+  const [leadStats, setLeadStats] = useState({
+    totalLeads: 0,
+    emailsSent: 0,
+    replied: 0,
+    noReply: 0,
+    meetingsLeft: 0,
+  })
+  const [showPipeline, setShowPipeline] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchFiles = useCallback(async () => {
@@ -134,24 +142,93 @@ export default function LeadGeneration() {
       .channel('lead_files_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => { fetchFiles() })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => { try { supabase.removeChannel(channel) } catch {} }
   }, [fetchFiles])
 
-  // Fetch total row count for the dashboard
-  const fetchTotalRowCount = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) { setTotalRowCount(0); return }
+  const fetchLeadStats = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return
+
     try {
-      const { count } = await supabase.from('lead_rows').select('*', { count: 'exact', head: true })
-      setTotalRowCount(count || 0)
-    } catch (err) { console.error('Error counting rows:', err); setTotalRowCount(0) }
+      const { data: files, error: filesError } = await supabase
+        .from('lead_files')
+        .select('id, name, columns')
+
+      if (filesError) throw filesError
+      if (!files || files.length === 0) return
+
+      const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
+      const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+
+      if (nonDuplicateFileIds.length === 0) {
+        setLeadStats({ totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 })
+        return
+      }
+
+      const { data: allRows, error: rowsError } = await supabase
+        .from('lead_rows')
+        .select('file_id, data')
+        .in('file_id', nonDuplicateFileIds)
+
+      if (rowsError) throw rowsError
+      if (!allRows) return
+
+      let totalLeads = 0
+      let emailsSent = 0
+      let replied = 0
+      let noReply = 0
+      let meetingsLeft = 0
+
+      allRows.forEach((row) => {
+        const data = row.data as Record<string, string>
+        const file = nonDuplicateFiles.find(f => f.id === row.file_id)
+        if (!file) return
+
+        const columns = file.columns as string[]
+        const companyCol = columns.find(col => col.toLowerCase().includes('company'))
+        const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
+        const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
+
+        if (companyCol && data[companyCol]?.trim()) {
+          totalLeads++
+        }
+
+        if (emailStatusCol && data[emailStatusCol]?.trim()) {
+          emailsSent++
+        }
+
+        if (leadStatusCol && data[leadStatusCol]) {
+          const status = data[leadStatusCol].toLowerCase()
+          if (status.includes('replied')) replied++
+          if (status.includes('no reply')) noReply++
+          if (status.includes('meeting booked')) meetingsLeft++
+        }
+      })
+
+      setLeadStats({ totalLeads, emailsSent, replied, noReply, meetingsLeft })
+    } catch (err) {
+      console.error('Error fetching lead stats:', err)
+    }
   }, [])
 
   useEffect(() => {
-    fetchTotalRowCount()
+    fetchLeadStats()
     if (!isSupabaseConfigured || !supabase) return
-    const channel = supabase.channel('lead_rows_count').on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => { fetchTotalRowCount() }).subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [fetchTotalRowCount])
+
+    const filesChannel = supabase
+      .channel('lead_files_leads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => { fetchLeadStats() })
+      .subscribe()
+
+    const rowsChannel = supabase
+      .channel('lead_rows_leads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => { fetchLeadStats() })
+      .subscribe()
+
+    return () => {
+      try { supabase.removeChannel(filesChannel) } catch {}
+      try { supabase.removeChannel(rowsChannel) } catch {}
+    }
+  }, [fetchLeadStats])
 
   const fetchRows = useCallback(async (fileId: string) => {
     if (!isSupabaseConfigured || !supabase) return
@@ -939,18 +1016,27 @@ export default function LeadGeneration() {
         </div>
 
         {/* Lead Pipeline Dashboard */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:mb-8">
-          {[
-            { label: 'Total Files', value: files.length, color: 'var(--text-primary)' },
-            { label: 'CSV Files', value: files.filter(f => f.source === 'csv').length, color: 'var(--text-secondary)' },
-            { label: 'Spreadsheets', value: files.filter(f => f.source === 'spreadsheet').length, color: 'var(--accent)' },
-            { label: 'Total Rows', value: totalRowCount, color: 'var(--text-primary)' },
-          ].map((stat, i) => (
-            <div key={i} className="p-4 rounded-xl border text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <div className="text-2xl sm:text-3xl mb-1" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
-              <div className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
-            </div>
-          ))}
+        <div
+          onClick={() => setShowPipeline(true)}
+          className="block rounded-2xl border p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all cursor-pointer theme-transition"
+          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+        >
+          <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+            {[
+              { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
+              { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
+              { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
+              { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
+              { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+            ].map((stat, i) => (
+              <div key={i} className="p-3 sm:p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                <div className="text-xs sm:text-sm mb-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
+                <div className="text-2xl sm:text-3xl" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -1107,7 +1193,46 @@ export default function LeadGeneration() {
             )}
           </div>
         </div>
-      </div>
+
+      {/* Lead Pipeline Popup */}
+      {showPipeline && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setShowPipeline(false)}
+          />
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-4xl w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="flex items-start justify-between mb-6">
+              <h3 className="text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline Overview</h3>
+              <button
+                onClick={() => setShowPipeline(false)}
+                className="p-1 rounded-lg transition"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+              {[
+                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
+                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
+                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
+                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
+                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+              ].map((stat, i) => (
+                <div key={i} className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                  <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
+                  <div className="text-4xl mb-2" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

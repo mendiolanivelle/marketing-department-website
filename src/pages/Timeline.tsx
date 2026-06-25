@@ -130,7 +130,7 @@ export default function Timeline() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_tables' }, () => { fetchData() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_leads' }, () => { fetchData() })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => { try { supabase.removeChannel(channel) } catch {} }
   }, [fetchData])
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {

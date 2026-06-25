@@ -9,6 +9,7 @@ interface OutreachLead {
   name: string
   email: string
   company: string
+  role: string
   status: 'pending' | 'sent' | 'replied' | 'follow-up'
   lastContacted: string
   notes: string
@@ -16,10 +17,10 @@ interface OutreachLead {
 }
 
 const defaultLeads: OutreachLead[] = [
-  { id: 1, name: 'John Smith', email: 'john@acme.com', company: 'Acme Corp', status: 'pending', lastContacted: '', notes: '' },
-  { id: 2, name: 'Sarah Lee', email: 'sarah@techstart.io', company: 'TechStart Inc', status: 'sent', lastContacted: 'Jun 22', notes: 'Awaiting response on proposal' },
-  { id: 3, name: 'Mike Chen', email: 'mike@globalmedia.com', company: 'Global Media', status: 'replied', lastContacted: 'Jun 20', notes: 'Interested, scheduling call' },
-  { id: 4, name: 'Emma Davis', email: 'emma@brandify.co', company: 'Brandify', status: 'follow-up', lastContacted: 'Jun 15', notes: 'Need to follow up by end of week' },
+  { id: 1, name: 'John Smith', email: 'john@acme.com', company: 'Acme Corp', role: 'CEO', status: 'pending', lastContacted: '', notes: '' },
+  { id: 2, name: 'Sarah Lee', email: 'sarah@techstart.io', company: 'TechStart Inc', role: 'CTO', status: 'sent', lastContacted: 'Jun 22', notes: 'Awaiting response on proposal' },
+  { id: 3, name: 'Mike Chen', email: 'mike@globalmedia.com', company: 'Global Media', role: 'Marketing Director', status: 'replied', lastContacted: 'Jun 20', notes: 'Interested, scheduling call' },
+  { id: 4, name: 'Emma Davis', email: 'emma@brandify.co', company: 'Brandify', role: 'VP of Sales', status: 'follow-up', lastContacted: 'Jun 15', notes: 'Need to follow up by end of week' },
 ]
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -127,7 +128,9 @@ export default function Messaging() {
   const [showAdd, setShowAdd] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
   const [selectedLead, setSelectedLead] = useState<OutreachLead | null>(null)
-  const [newLead, setNewLead] = useState({ name: '', email: '', company: '' })
+  const [selectedDetailLead, setSelectedDetailLead] = useState<OutreachLead | null>(null)
+  const [detailNotes, setDetailNotes] = useState('')
+  const [newLead, setNewLead] = useState({ name: '', email: '', company: '', role: '' })
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
   const [editingLead, setEditingLead] = useState<OutreachLead | null>(null)
@@ -141,7 +144,7 @@ export default function Messaging() {
     if (!newLead.name.trim() || !newLead.email.trim()) return
     const id = leads.length > 0 ? Math.max(...leads.map(l => l.id)) + 1 : 1
     setLeads(sortLeads([...leads, { ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '' }]))
-    setNewLead({ name: '', email: '', company: '' })
+    setNewLead({ name: '', email: '', company: '', role: '' })
     setShowAdd(false)
   }
 
@@ -247,7 +250,7 @@ export default function Messaging() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      try { supabase.removeChannel(channel) } catch {}
     }
   }, [fetchTemplates])
 
@@ -446,13 +449,14 @@ export default function Messaging() {
             return (
               <div
                 key={lead.id}
-                className="group rounded-xl border p-4 sm:p-5 transition-all hover:shadow-md"
+                className="group rounded-xl border p-4 sm:p-5 transition-all hover:shadow-md cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `4px solid ${status.color}` }}
+                onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={() => { setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
+                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
                         {lead.photoUrl ? (
                           <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
                         ) : (
@@ -464,7 +468,7 @@ export default function Messaging() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-sm sm:text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.name}</h3>
-                        <p className="text-xs sm:text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.company} &middot; {lead.email}</p>
+                        <p className="text-xs sm:text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.company}{lead.role ? ` · ${lead.role}` : ''} · {lead.email}</p>
                       </div>
                     </div>
                     {lead.notes && (
@@ -484,15 +488,37 @@ export default function Messaging() {
                 {/* Actions */}
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--border-primary)' }}>
                   <button
-                    onClick={() => { setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
                     className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
                     style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     Email
                   </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); moveToPrevStatus(lead) }}
+                    disabled={lead.status === 'pending'}
+                    className="px-2.5 py-1.5 text-xs rounded-lg transition disabled:opacity-30 flex items-center gap-1"
+                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                    title="Move to previous stage"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    Back
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); moveToNextStatus(lead) }}
+                    disabled={lead.status === 'replied'}
+                    className="px-2.5 py-1.5 text-xs rounded-lg transition disabled:opacity-30 flex items-center gap-1"
+                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                    title="Move to next stage"
+                  >
+                    Next
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  <div className="w-px h-5" style={{ backgroundColor: 'var(--border-secondary)' }} />
                   <select
                     value={lead.status}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
                     className="px-2 py-1.5 text-xs rounded-lg border outline-none cursor-pointer"
                     style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
@@ -502,10 +528,10 @@ export default function Messaging() {
                     <option value="replied">{statusConfig.replied.label}</option>
                     <option value="follow-up">{statusConfig['follow-up'].label}</option>
                   </select>
-                  <button onClick={() => setEditingLead(lead)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button onClick={() => deleteLead(lead.id)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
+                  <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
@@ -526,7 +552,8 @@ export default function Messaging() {
               <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Lead</h3>
               <input type="text" placeholder="Full Name" value={newLead.name} onChange={e => setNewLead({ ...newLead, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
               <input type="email" placeholder="Email" value={newLead.email} onChange={e => setNewLead({ ...newLead, email: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
-              <input type="text" placeholder="Company" value={newLead.company} onChange={e => setNewLead({ ...newLead, company: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="text" placeholder="Company" value={newLead.company} onChange={e => setNewLead({ ...newLead, company: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="text" placeholder="Role / Position" value={newLead.role} onChange={e => setNewLead({ ...newLead, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
               <div className="flex gap-3 justify-end">
                 <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                 <button onClick={addLead} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
@@ -555,6 +582,7 @@ export default function Messaging() {
               <input type="text" placeholder="Full Name" value={editingLead.name} onChange={e => setEditingLead({ ...editingLead, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
               <input type="email" placeholder="Email" value={editingLead.email} onChange={e => setEditingLead({ ...editingLead, email: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
               <input type="text" placeholder="Company" value={editingLead.company} onChange={e => setEditingLead({ ...editingLead, company: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="text" placeholder="Role / Position" value={editingLead.role} onChange={e => setEditingLead({ ...editingLead, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
               <div className="mb-4">
                 <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Notes</label>
                 <textarea placeholder="Add notes..." value={editingLead.notes} onChange={e => setEditingLead({ ...editingLead, notes: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none" style={{ borderColor: 'var(--border-primary)' }} />
@@ -578,6 +606,103 @@ export default function Messaging() {
               <div className="flex gap-3 justify-end">
                 <button onClick={() => setShowEmail(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                 <button onClick={sendEmail} disabled={!emailSubject.trim()} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Send Email</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lead Detail Popup */}
+        {selectedDetailLead && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setSelectedDetailLead(null); setDetailNotes('') }}>
+            <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-primary)' }}>
+                <h3 className="text-lg" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Details</h3>
+                <button onClick={() => { setSelectedDetailLead(null); setDetailNotes('') }} className="p-1 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="flex flex-col sm:flex-row h-full max-h-[calc(90vh-60px)] overflow-y-auto">
+                {/* Left: Lead Info */}
+                <div className="sm:w-1/2 p-6 border-r" style={{ borderColor: 'var(--border-secondary)' }}>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
+                      {selectedDetailLead.photoUrl ? (
+                        <img src={selectedDetailLead.photoUrl} alt={selectedDetailLead.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl text-white" style={{ fontWeight: 700 }}>{selectedDetailLead.name.charAt(0)}{selectedDetailLead.company.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-base" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{selectedDetailLead.name}</h4>
+                      <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedDetailLead.role}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Company</label>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.company}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Email</label>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Role / Position</label>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.role || '—'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Status</label>
+                      <span className="inline-block text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: `${statusConfig[selectedDetailLead.status].color}20`, color: statusConfig[selectedDetailLead.status].color, fontWeight: 500 }}>
+                        {statusConfig[selectedDetailLead.status].label}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Last Contacted</label>
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.lastContacted || 'Not yet contacted'}</p>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                        className="flex-1 px-3 py-2 text-xs text-white rounded-lg transition"
+                        style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+                      >
+                        Send Email
+                      </button>
+                      <button
+                        onClick={() => { moveToPrevStatus(selectedDetailLead); setSelectedDetailLead({ ...selectedDetailLead, status: statusCycle[Math.max(0, statusCycle.indexOf(selectedDetailLead.status) - 1)] }) }}
+                        disabled={selectedDetailLead.status === 'pending'}
+                        className="flex-1 px-3 py-2 text-xs rounded-lg transition disabled:opacity-30"
+                        style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                      >
+                        Move Back
+                      </button>
+                      <button
+                        onClick={() => { moveToNextStatus(selectedDetailLead); setSelectedDetailLead({ ...selectedDetailLead, status: statusCycle[Math.min(statusCycle.length - 1, statusCycle.indexOf(selectedDetailLead.status) + 1)] }) }}
+                        disabled={selectedDetailLead.status === 'replied'}
+                        className="flex-1 px-3 py-2 text-xs rounded-lg transition disabled:opacity-30"
+                        style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                      >
+                        Move Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                {/* Right: Editable Notes */}
+                <div className="sm:w-1/2 p-6 flex flex-col">
+                  <label className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Notes</label>
+                  <textarea
+                    value={detailNotes}
+                    onChange={(e) => {
+                      setDetailNotes(e.target.value)
+                      setLeads(prev => prev.map(l => l.id === selectedDetailLead.id ? { ...l, notes: e.target.value } : l))
+                    }}
+                    placeholder="Write notes about this lead..."
+                    rows={12}
+                    className="w-full flex-1 px-4 py-3 border rounded-xl outline-none resize-none text-sm leading-relaxed"
+                    style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                  />
+                  <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Changes are saved automatically.</p>
+                </div>
               </div>
             </div>
           </div>

@@ -60,10 +60,11 @@ export default function Sidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg shadow-lg border theme-transition"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl shadow-lg border theme-transition hover:scale-105 active:scale-95 transition-transform duration-150"
         style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+        aria-label={isOpen ? 'Close menu' : 'Open menu'}
       >
-        <svg className="w-6 h-6" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5" style={{ color: 'var(--text-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
         </svg>
       </button>
@@ -71,7 +72,7 @@ export default function Sidebar() {
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40"
+          className="lg:hidden fixed inset-0 z-40 transition-opacity duration-300"
           style={{ backgroundColor: 'var(--bg-overlay)' }}
           onClick={() => setIsOpen(false)}
         />
@@ -80,18 +81,18 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside className={`
         fixed top-0 left-0 h-screen border-r z-40 theme-transition
-        transform transition-all duration-300 ease-in-out
+        transform transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:sticky lg:top-0 lg:translate-x-0 lg:z-0
         ${isCollapsed ? 'w-16' : 'w-64'}
-      `} style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+      `} style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)' }}>
         <div className="flex flex-col h-full">
           {/* Logo + Profile section */}
-          <div className="px-4 py-6 border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3 overflow-hidden">
+          <div className="px-3 pt-5 pb-4 border-b theme-transition" style={{ borderColor: 'var(--border-secondary)' }}>
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex items-start gap-3 overflow-hidden">
                 <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center shadow-md flex-shrink-0 mt-0.5 transition-transform duration-200 hover:scale-105"
                   style={{ backgroundColor: 'var(--logo-bg)' }}
                 >
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,50 +101,58 @@ export default function Sidebar() {
                 </div>
                 {!isCollapsed && (
                   <div className="min-w-0">
-                    <h1 className="text-lg truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Internal Portal</p>
+                    <h1 className="text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
+                    <p className="text-[11px] tracking-widest uppercase" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>Internal Portal</p>
                   </div>
                 )}
               </div>
-              {/* Collapse toggle - only visible on desktop */}
+              {/* Collapse toggle */}
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="hidden lg:flex p-1.5 rounded-lg transition flex-shrink-0"
+                className="hidden group lg:flex p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95"
                 style={{ color: 'var(--text-muted)' }}
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isCollapsed ? 'M13 5l7 7-7 7' : 'M11 19l-7-7 7-7'} />
                 </svg>
               </button>
             </div>
 
-            {/* Profile - moved below logo */}
+            {/* Profile */}
             {user && (
-              <div className="relative">
+              <div className="relative px-1">
                 <div
                   onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className={`flex items-center gap-3 rounded-lg cursor-pointer transition-all theme-transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-3 py-2'}`}
+                  className={`flex items-center gap-3 rounded-xl cursor-pointer transition-all duration-200 theme-transition ${
+                    isCollapsed ? 'justify-center py-2.5' : 'px-3 py-2'
+                  }`}
                   style={{ backgroundColor: 'var(--bg-hover)' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--accent-light)'
+                    e.currentTarget.style.transform = 'scale(1.01)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
                 >
                   <div className="relative flex-shrink-0">
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
                         alt="Avatar"
-                        className="w-8 h-8 rounded-full object-cover cursor-pointer border-2"
+                        className="w-9 h-9 rounded-full object-cover cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
                         style={{ borderColor: 'var(--accent)' }}
                         onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       />
                     ) : (
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center cursor-pointer border-2"
-                        style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}
+                        className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
+                        style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}
                         onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       >
-                        <span className="text-sm" style={{ color: 'var(--btn-primary-text)', fontWeight: 500 }}>
+                        <span className="text-sm text-white" style={{ fontWeight: 600 }}>
                           {getDisplayName().charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -156,9 +165,12 @@ export default function Sidebar() {
                         <p className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                           {getDisplayName()}
                         </p>
+                        <p className="text-[10px] truncate tracking-wider uppercase" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                          {user.email}
+                        </p>
                       </div>
-                      <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showProfileDropdown ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'} />
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" style={{ color: 'var(--text-muted)', transform: showProfileDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </>
                   )}
@@ -173,23 +185,23 @@ export default function Sidebar() {
                         {avatarUrl ? (
                           <img src={avatarUrl} alt="Current Avatar" className="w-24 h-24 rounded-full object-cover border-4" style={{ borderColor: 'var(--accent)' }} />
                         ) : (
-                          <div className="w-24 h-24 rounded-full flex items-center justify-center border-4" style={{ backgroundColor: 'var(--btn-primary-bg)', borderColor: 'var(--accent)' }}>
-                            <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{getDisplayName().charAt(0).toUpperCase()}</span>
+                          <div className="w-24 h-24 rounded-full flex items-center justify-center border-4" style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>
+                            <span className="text-3xl text-white" style={{ fontWeight: 700 }}>{getDisplayName().charAt(0).toUpperCase()}</span>
                           </div>
                         )}
                       </div>
                       <div className="space-y-2">
-                        <button onClick={() => { fileInputRef.current?.click(); setShowAvatarModal(false) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'var(--accent)', color: 'white', fontWeight: 500 }}>
+                        <button onClick={() => { fileInputRef.current?.click(); setShowAvatarModal(false) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 hover:opacity-90 active:scale-[0.98]" style={{ backgroundColor: 'var(--accent)', color: 'white', fontWeight: 500 }}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                           {avatarUrl ? 'Change Photo' : 'Upload Photo'}
                         </button>
                         {avatarUrl && (
-                          <button onClick={handleRemoveAvatar} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          <button onClick={handleRemoveAvatar} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 hover:opacity-80 active:scale-[0.98]" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             Remove Photo
                           </button>
                         )}
-                        <button onClick={() => setShowAvatarModal(false)} className="w-full px-4 py-2.5 rounded-lg transition-all" style={{ backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontWeight: 500 }}>Cancel</button>
+                        <button onClick={() => setShowAvatarModal(false)} className="w-full px-4 py-2.5 rounded-xl transition-all duration-200" style={{ backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontWeight: 500 }}>Cancel</button>
                       </div>
                     </div>
                   </div>
@@ -198,17 +210,17 @@ export default function Sidebar() {
                 {/* Profile Dropdown */}
                 {showProfileDropdown && (
                   <div
-                    className="absolute top-full left-4 right-4 mt-2 rounded-lg border shadow-lg theme-transition z-50"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}
+                    className="absolute top-full left-4 right-4 mt-2 rounded-xl border shadow-lg theme-transition z-50 overflow-hidden"
+                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)', boxShadow: 'var(--shadow-lg)' }}
                   >
                     <button
                       onClick={signOut}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all"
+                      className="w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:pl-5"
                       style={{ color: 'var(--accent)', fontWeight: 500 }}
                       onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                       </svg>
                       <span>Sign Out</span>
@@ -220,7 +232,7 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-2 py-6 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-2.5 py-5 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const active = isActive(item.path)
               return (
@@ -228,19 +240,14 @@ export default function Sidebar() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg transition-all theme-transition ${isCollapsed ? 'justify-center px-2 py-3' : 'px-4 py-3'}`}
-                  style={active
-                    ? {
-                        borderLeft: isCollapsed ? 'none' : '3px solid var(--accent)',
-                        color: 'var(--text-primary)',
-                        backgroundColor: 'var(--accent-light)',
-                        fontWeight: 500,
-                      }
-                    : {
-                        color: 'var(--text-secondary)',
-                        fontWeight: 300,
-                      }
-                  }
+                  className={`group flex items-center gap-3 rounded-xl transition-all duration-200 theme-transition relative ${
+                    isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
+                  }`}
+                  style={{
+                    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                    backgroundColor: active ? 'var(--accent-light)' : 'transparent',
+                    fontWeight: active ? 500 : 300,
+                  }}
                   onMouseEnter={(e) => {
                     if (!active) {
                       e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
@@ -255,14 +262,33 @@ export default function Sidebar() {
                   }}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {active && !isCollapsed && (
+                    <span
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
+                      style={{ backgroundColor: 'var(--accent)' }}
+                    />
+                  )}
+                  <svg className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                   </svg>
-                  {!isCollapsed && <span>{item.label}</span>}
+                  {!isCollapsed && (
+                    <span className="truncate">{item.label}</span>
+                  )}
+                  {active && isCollapsed && (
+                    <span
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
+                      style={{ backgroundColor: 'var(--accent)' }}
+                    />
+                  )}
                 </Link>
               )
             })}
           </nav>
+
+          {/* Bottom accent bar */}
+          <div className="px-3 pb-4">
+            <div className="h-px rounded-full theme-transition" style={{ backgroundColor: 'var(--border-secondary)', opacity: 0.5 }} />
+          </div>
         </div>
       </aside>
     </>

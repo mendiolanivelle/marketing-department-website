@@ -92,7 +92,7 @@ export default function Home() {
       if (rowsError) throw rowsError
       if (!allRows) return
 
-      const totalLeads = allRows.length
+      let totalLeads = 0
       let emailsSent = 0
       let replied = 0
       let noReply = 0
@@ -104,8 +104,13 @@ export default function Home() {
         if (!file) return
 
         const columns = file.columns as string[]
+        const companyCol = columns.find(col => col.toLowerCase().includes('company'))
         const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
         const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
+
+        if (companyCol && data[companyCol]?.trim()) {
+          totalLeads++
+        }
 
         if (emailStatusCol && data[emailStatusCol]?.trim()) {
           emailsSent++
@@ -140,8 +145,8 @@ export default function Home() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(filesChannel)
-      supabase.removeChannel(rowsChannel)
+      try { supabase.removeChannel(filesChannel) } catch {}
+      try { supabase.removeChannel(rowsChannel) } catch {}
     }
   }, [fetchLeadStats])
 

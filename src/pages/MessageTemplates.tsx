@@ -135,7 +135,7 @@ export default function MessageTemplates() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      try { supabase.removeChannel(channel) } catch {}
     }
   }, [fetchTemplates])
 
