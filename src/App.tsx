@@ -64,6 +64,7 @@ function App() {
                         <Suspense fallback={<RouteFallback />}>
                           <Routes>
                             <Route path="/" element={<Home />} />
+                            <Route path="/home" element={<Home />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/templates" element={<Messaging />} />
