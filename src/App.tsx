@@ -63,7 +63,7 @@ function App() {
                       <main className="flex-1">
                         <Suspense fallback={<RouteFallback />}>
                           <Routes>
-                            <Route path="/" element={<Home />} />
+                            <Route path="/dashboard" element={<Home />} />
                             <Route path="/about" element={<About />} />
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/templates" element={<Messaging />} />
