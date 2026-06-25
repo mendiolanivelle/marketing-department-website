@@ -330,17 +330,17 @@ export default function PublicShowcase() {
                 zIndex: 3,
               }}
             />
-            {/* Orange glow burst when opening — floor glow under the folder */}
+            {/* Orange floor glow under the folder when opening */}
             {phase === 'opening' && (
               <div
                 className="absolute"
                 style={{
-                  top: '70%',
+                  top: '85%',
                   left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '180%',
-                  height: '100%',
-                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.6) 0%, rgba(255,89,0,0.2) 40%, transparent 70%)',
+                  transform: 'translateX(-50%)',
+                  width: '250%',
+                  height: '120%',
+                  background: 'radial-gradient(ellipse, rgba(255,89,0,0.5) 0%, rgba(255,89,0,0.15) 40%, transparent 70%)',
                   animation: 'glowPulse 1.5s ease-out',
                   zIndex: 0,
                 }}
