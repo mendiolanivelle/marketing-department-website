@@ -186,6 +186,22 @@ export default function Login() {
               animation: 'pulseGlow 6s ease-in-out infinite',
             }}
           />
+
+          {/* Light Gray tube — center left */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '30%',
+              left: '-15%',
+              width: '40%',
+              height: '45%',
+              borderRadius: '50% 40% 60% 40% / 40% 60% 40% 60%',
+              background: 'linear-gradient(135deg, #CACDD7 0%, #CACDD720 60%, transparent 100%)',
+              opacity: 0.08,
+              filter: 'blur(65px)',
+              animation: 'drift3 24s ease-in-out infinite 5s',
+            }}
+          />
         </div>
 
         {/* Login card */}
@@ -193,17 +209,21 @@ export default function Login() {
           <div
             className="w-full max-w-md rounded-2xl border p-8 sm:p-10"
             style={{
-              backgroundColor: '#1B1A1C',
-              borderColor: '#3E4048',
-              boxShadow: '0 0 80px rgba(255,89,0,0.06), 0 0 0 1px rgba(255,89,0,0.08)',
+              backgroundColor: 'rgba(27,26,28,0.7)',
+              borderColor: 'rgba(255,89,0,0.15)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,89,0,0.1), 0 0 80px rgba(255,89,0,0.05)',
             }}
           >
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#FF5900' }}>
-                <span className="text-white text-lg font-bold">◆</span>
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
               </div>
-              <span className="text-xl font-bold" style={{ color: '#CACDD7' }}>Marketing Dept</span>
+              <span className="text-xl font-bold" style={{ color: '#CACDD7' }}>Marketing Department</span>
             </div>
 
             <h2 className="text-2xl mb-1" style={{ color: '#CACDD7', fontWeight: 700 }}>Sign in</h2>
