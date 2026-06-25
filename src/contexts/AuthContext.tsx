@@ -28,13 +28,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        await supabase.auth.signOut({ scope: 'local' })
+        setSession(null)
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        supabase.auth.signOut({ scope: 'local' })
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
