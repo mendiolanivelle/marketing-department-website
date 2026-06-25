@@ -243,10 +243,8 @@ export default function PublicShowcase() {
     setRestartCount(c => c + 1)
   }
 
-  const showFolder = phase === 'intro' || phase === 'opening' || phase === 'closing'
-  const folderAnim = phase === 'intro' ? 'folderIn 1.2s ease-out forwards'
-    : phase === 'closing' ? 'folderOut 1.2s ease-in forwards'
-    : 'none'
+  const showFolder = phase === 'intro' || phase === 'opening'
+  const folderAnim = 'folderIn 1.2s ease-out forwards'
 
   return (
     <>
@@ -306,7 +304,7 @@ export default function PublicShowcase() {
                 backgroundColor: '#FF5900',
                 borderRadius: '16px 16px 0 0',
                 transformOrigin: 'bottom center',
-                transform: phase === 'opening' ? 'perspective(800px) rotateX(-120deg)' : phase === 'closing' ? 'perspective(800px) rotateX(0deg)' : 'perspective(800px) rotateX(0deg)',
+                transform: phase === 'opening' ? 'perspective(800px) rotateX(-120deg)' : 'perspective(800px) rotateX(0deg)',
                 transition: 'transform 1.2s ease-in-out',
                 boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)',
                 zIndex: 2,
