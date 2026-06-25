@@ -30,10 +30,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   'replied': { label: 'Replied', color: '#FF5900' },
 }
 
-const sortLeads = (leads: OutreachLead[]) => {
-  const priority: Record<string, number> = { 'pending': 0, 'sent': 1, 'follow-up': 2, 'replied': 99 }
-  return [...leads].sort((a, b) => (priority[a.status] ?? 99) - (priority[b.status] ?? 99))
-}
+const sortLeads = (leads: OutreachLead[]) => [...leads]
 
 const templateSchema = z.object({
   title: z.string().min(1, 'Title is required'),
