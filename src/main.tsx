@@ -25,12 +25,15 @@ window.addEventListener('unhandledrejection', (event) => {
 })
 
 // Suppress harmless browser extension noise in console
-const origError = console.error
-console.error = (...args) => {
-  const msg = args.join(' ')
-  if (msg.includes('message port closed') || msg.includes('runtime.lastError')) return
-  origError.apply(console, args)
-}
+const extNoise = ['message port closed', 'runtime.lastError', 'i18next', 'Locize', 'pendingMailEnrichStorage', 'AuthUtils']
+;['log', 'warn', 'error'].forEach(method => {
+  const orig = (console as any)[method]
+  ;(console as any)[method] = (...args: any[]) => {
+    const msg = args.join(' ')
+    if (extNoise.some(n => msg.includes(n))) return
+    orig.apply(console, args)
+  }
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
