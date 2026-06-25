@@ -282,16 +282,6 @@ export default function PublicShowcase() {
                 position: 'relative',
               }}
             >
-            {/* Folder glow behind */}
-            <div
-              className="absolute inset-0 rounded-tl-2xl rounded-tr-2xl rounded-br-2xl rounded-bl-2xl"
-              style={{
-                backgroundColor: '#FF5900',
-                filter: 'blur(40px)',
-                opacity: phase === 'intro' ? 0.3 : 0.6,
-                transition: 'opacity 1s',
-              }}
-            />
             {/* Folder body */}
             <div
               className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl"
@@ -330,8 +320,8 @@ export default function PublicShowcase() {
                 zIndex: 3,
               }}
             />
-            {/* Orange floor glow under the folder when opening */}
-            {phase === 'opening' && (
+            {/* Orange floor glow under the folder — appears before opening */}
+            {(phase === 'intro' || phase === 'opening') && (
               <div
                 className="absolute"
                 style={{
@@ -341,7 +331,9 @@ export default function PublicShowcase() {
                   width: '250%',
                   height: '120%',
                   background: 'radial-gradient(ellipse, rgba(255,89,0,0.5) 0%, rgba(255,89,0,0.15) 40%, transparent 70%)',
-                  animation: 'glowPulse 1.5s ease-out',
+                  animation: phase === 'opening' ? 'glowPulse 1.5s ease-out' : 'none',
+                  opacity: phase === 'intro' ? 0.3 : 1,
+                  transition: 'opacity 0.8s ease-in',
                   zIndex: 0,
                 }}
               />
