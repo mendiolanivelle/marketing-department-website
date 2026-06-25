@@ -15,21 +15,23 @@ type LoginFormData = z.infer<typeof loginSchema>
 const styles = `
 @keyframes drift1 {
   0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-  33% { transform: translate(60px, -40px) rotate(5deg) scale(1.05); }
-  66% { transform: translate(-30px, 20px) rotate(-3deg) scale(0.95); }
+  25% { transform: translate(80px, -60px) rotate(6deg) scale(1.08); }
+  50% { transform: translate(-40px, 30px) rotate(-4deg) scale(0.95); }
+  75% { transform: translate(50px, 40px) rotate(3deg) scale(1.03); }
   100% { transform: translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes drift2 {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-50px, 30px) rotate(-4deg); }
-  50% { transform: translate(40px, -50px) rotate(6deg); }
-  75% { transform: translate(-20px, -10px) rotate(-2deg); }
-  100% { transform: translate(0, 0) rotate(0deg); }
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(-70px, 50px) rotate(-5deg) scale(1.06); }
+  66% { transform: translate(60px, -40px) rotate(7deg) scale(0.97); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
 }
 @keyframes drift3 {
-  0% { transform: translate(0, 0) rotate(0deg) scaleY(1); }
-  50% { transform: translate(20px, -30px) rotate(3deg) scaleY(1.1); }
-  100% { transform: translate(0, 0) rotate(0deg) scaleY(1); }
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-60px, -40px) rotate(-3deg); }
+  50% { transform: translate(50px, 60px) rotate(5deg); }
+  75% { transform: translate(-30px, -20px) rotate(-2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.15; }
@@ -85,129 +87,134 @@ export default function Login() {
     <>
       <style>{styles}</style>
       <div className="fixed inset-0 overflow-hidden" style={{ backgroundColor: '#1B1A1C' }}>
-        {/* Grain / noise texture overlay */}
-        <div
-          className="fixed inset-0 z-10 pointer-events-none"
-          style={{
-            opacity: 0.035,
-            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-            backgroundRepeat: 'repeat',
-            backgroundSize: '256px 256px',
-            animation: 'grain 0.5s steps(4) infinite',
-          }}
-        />
-
         {/* Abstract 3D tube shapes */}
         <div className="fixed inset-0 z-0">
-          {/* Large orange tube — top left */}
+          {/* Large orange nebula — top left */}
           <div
             style={{
               position: 'absolute',
               top: '-8%',
               left: '-5%',
-              width: '45%',
-              height: '55%',
+              width: '55%',
+              height: '60%',
               borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%',
-              background: 'linear-gradient(135deg, #FF5900 0%, #FF590040 60%, transparent 100%)',
-              opacity: 0.2,
-              filter: 'blur(60px)',
-              animation: 'drift1 18s ease-in-out infinite',
+              background: 'radial-gradient(ellipse at 30% 40%, #FF5900 0%, #FF590040 50%, transparent 70%)',
+              opacity: 0.25,
+              filter: 'blur(80px)',
+              animation: 'drift1 25s ease-in-out infinite',
             }}
           />
 
-          {/* Dark gray tube — bottom right */}
+          {/* Orange cosmic ring — bottom right */}
           <div
             style={{
               position: 'absolute',
               bottom: '-10%',
               right: '-8%',
-              width: '50%',
-              height: '60%',
+              width: '60%',
+              height: '65%',
               borderRadius: '60% 40% 30% 70% / 40% 60% 40% 60%',
-              background: 'linear-gradient(225deg, #3E4048 0%, #3E404860 50%, transparent 100%)',
-              opacity: 0.25,
-              filter: 'blur(70px)',
-              animation: 'drift2 22s ease-in-out infinite',
+              background: 'radial-gradient(ellipse at 70% 60%, #FF5900 0%, #FF590030 45%, transparent 70%)',
+              opacity: 0.2,
+              filter: 'blur(90px)',
+              animation: 'drift2 30s ease-in-out infinite',
             }}
           />
 
-          {/* Orange pipe — center right */}
+          {/* Orange cosmic swirl — center right */}
           <div
             style={{
               position: 'absolute',
-              top: '20%',
+              top: '15%',
               right: '-10%',
-              width: '35%',
-              height: '70%',
+              width: '40%',
+              height: '75%',
               borderRadius: '50% 50% 30% 70% / 60% 30% 70% 40%',
-              background: 'linear-gradient(180deg, #FF5900 0%, #FF590030 60%, transparent 100%)',
+              background: 'radial-gradient(ellipse at 50% 50%, #FF5900 0%, #FF590020 50%, transparent 75%)',
               opacity: 0.15,
-              filter: 'blur(80px)',
-              animation: 'drift3 20s ease-in-out infinite',
+              filter: 'blur(100px)',
+              animation: 'drift3 28s ease-in-out infinite',
             }}
           />
 
-          {/* Orange tube — bottom left */}
+          {/* Orange cosmic cloud — bottom left */}
           <div
             style={{
               position: 'absolute',
               bottom: '-5%',
-              left: '10%',
-              width: '30%',
-              height: '40%',
+              left: '5%',
+              width: '35%',
+              height: '45%',
               borderRadius: '30% 70% 50% 50% / 40% 40% 60% 60%',
-              background: 'linear-gradient(45deg, #FF5900 0%, transparent 70%)',
-              opacity: 0.12,
-              filter: 'blur(50px)',
-              animation: 'drift1 25s ease-in-out infinite reverse',
+              background: 'radial-gradient(ellipse at 60% 40%, #FF5900 0%, #FF590025 55%, transparent 80%)',
+              opacity: 0.18,
+              filter: 'blur(70px)',
+              animation: 'drift1 35s ease-in-out infinite reverse',
             }}
           />
 
-          {/* Dark gray curved bar — top right */}
+          {/* Orange cosmic flare — top right */}
           <div
             style={{
               position: 'absolute',
               top: '-15%',
-              right: '15%',
-              width: '25%',
-              height: '50%',
+              right: '10%',
+              width: '30%',
+              height: '55%',
               borderRadius: '40% 60% 60% 40% / 70% 30% 70% 30%',
-              background: 'linear-gradient(90deg, #3E4048 0%, #3E404820 100%)',
-              opacity: 0.15,
-              filter: 'blur(55px)',
-              animation: 'drift2 28s ease-in-out infinite 3s',
+              background: 'radial-gradient(ellipse at 40% 30%, #FF5900 0%, #FF590015 50%, transparent 75%)',
+              opacity: 0.12,
+              filter: 'blur(85px)',
+              animation: 'drift2 32s ease-in-out infinite 3s',
             }}
           />
 
-          {/* Small accent glow — middle left */}
+          {/* Orange cosmic core — middle left */}
           <div
             style={{
               position: 'absolute',
-              top: '45%',
-              left: '5%',
-              width: '20%',
-              height: '20%',
+              top: '40%',
+              left: '3%',
+              width: '25%',
+              height: '25%',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, #FF590080 0%, transparent 70%)',
-              opacity: 0.1,
-              filter: 'blur(40px)',
-              animation: 'pulseGlow 6s ease-in-out infinite',
+              background: 'radial-gradient(circle, #FF5900 0%, #FF590060 30%, transparent 70%)',
+              opacity: 0.2,
+              filter: 'blur(60px)',
+              animation: 'pulseGlow 8s ease-in-out infinite',
             }}
           />
 
-          {/* Light Gray tube — center left */}
+          {/* Bright orange star burst — center */}
           <div
             style={{
               position: 'absolute',
-              top: '30%',
-              left: '-15%',
-              width: '40%',
-              height: '45%',
-              borderRadius: '50% 40% 60% 40% / 40% 60% 40% 60%',
-              background: 'linear-gradient(135deg, #CACDD7 0%, #CACDD720 60%, transparent 100%)',
-              opacity: 0.08,
-              filter: 'blur(65px)',
-              animation: 'drift3 24s ease-in-out infinite 5s',
+              top: '50%',
+              left: '50%',
+              width: '15%',
+              height: '15%',
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'radial-gradient(circle, #FF5900 0%, #FF590040 40%, transparent 70%)',
+              opacity: 0.1,
+              filter: 'blur(50px)',
+              animation: 'pulseGlow 6s ease-in-out infinite 1.5s',
+            }}
+          />
+
+          {/* Orange cosmic wave — bottom center */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-15%',
+              left: '25%',
+              width: '50%',
+              height: '30%',
+              borderRadius: '50% 50% 40% 60% / 60% 40% 60% 40%',
+              background: 'radial-gradient(ellipse at 50% 50%, #FF5900 0%, #FF590020 40%, transparent 70%)',
+              opacity: 0.1,
+              filter: 'blur(75px)',
+              animation: 'drift3 26s ease-in-out infinite 2s',
             }}
           />
         </div>
