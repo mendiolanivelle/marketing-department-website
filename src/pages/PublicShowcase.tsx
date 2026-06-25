@@ -74,9 +74,25 @@ export default function PublicShowcase() {
   const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [autoPaused, setAutoPaused] = useState(false)
   const [restartCount, setRestartCount] = useState(0)
+  const [imagesReady, setImagesReady] = useState(false)
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Preload actual images using browser Image API
+  useEffect(() => {
+    let cancelled = false
+    let loaded = 0
+    const total = 3
+    const check = () => { loaded++; if (loaded >= total && !cancelled) setImagesReady(true) }
+    for (let i = 1; i <= total; i++) {
+      const img = new Image()
+      img.onload = check
+      img.onerror = check
+      img.src = `/portfolio/${i}.jpg`
+    }
+    return () => { cancelled = true }
+  }, [restartCount])
 
   const preloadAll = useCallback(() => {
     setLoaded(prev => {
@@ -105,13 +121,21 @@ export default function PublicShowcase() {
     autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
   }, [phase, current, preloadAdjacent])
 
-  // Start sequence
+  // Start sequence — wait for images to actually load before slideshow
   useEffect(() => {
     preloadAll()
     const t1 = setTimeout(() => setPhase('opening'), 2000)
-    const t2 = setTimeout(() => setPhase('slideshow'), 3200)
+    const t2 = setTimeout(() => {
+      if (imagesReady) setPhase('slideshow')
+      else {
+        const poll = setInterval(() => {
+          if (imagesReady) { clearInterval(poll); setPhase('slideshow') }
+        }, 100)
+        setTimeout(() => clearInterval(poll), 10000)
+      }
+    }, 3200)
     return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [restartCount, preloadAll])
+  }, [restartCount, preloadAll, imagesReady])
 
   // Auto-advance during slideshow — stays on last slide, does not auto-close
   useEffect(() => {
