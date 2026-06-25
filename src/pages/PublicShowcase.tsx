@@ -339,6 +339,7 @@ export default function PublicShowcase() {
                 }}
               />
             )}
+            </div>
           </div>
         )}
 
