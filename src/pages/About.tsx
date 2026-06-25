@@ -154,7 +154,7 @@ export default function About() {
     <div>
       {/* Hero Section with Photo Background */}
       <section
-        className="relative h-[300px] flex items-center justify-center px-4 sm:px-6 text-center overflow-hidden"
+        className="relative h-[400px] flex items-center justify-center px-4 sm:px-6 text-center overflow-hidden"
         style={{
           backgroundImage: 'linear-gradient(rgba(27,26,28,0.6), rgba(27,26,28,0.5)), url("https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80")',
           backgroundSize: 'cover',
