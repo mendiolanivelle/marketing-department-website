@@ -258,35 +258,95 @@ export default function FileTracker() {
         </div>
       )}
 
-      {/* Preview modal */}
+      {/* Preview / Overview modal */}
       {previewAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewAsset(null)}>
-          <div className="relative rounded-2xl border w-full max-w-3xl max-h-[85vh] flex flex-col" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
+          <div className="relative rounded-2xl border w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
-              <h2 className="text-lg truncate" style={{ color: '#1B1A1C', fontWeight: 700 }}>{previewAsset.name}</h2>
-              <button onClick={() => setPreviewAsset(null)} className="p-1 rounded-lg transition flex-shrink-0" style={{ color: '#CACDD7' }}>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {renderTypeIcon(previewAsset.type, 6, CATEGORY_COLORS[previewAsset.category] || '#FF5900')}
+                <h2 className="text-lg truncate" style={{ color: '#1B1A1C', fontWeight: 700 }}>{previewAsset.name}</h2>
+              </div>
+              <button onClick={() => setPreviewAsset(null)} className="p-1 rounded-lg transition flex-shrink-0 ml-2" style={{ color: '#CACDD7' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-6 flex items-center justify-center">
-              {previewAsset.dataUrl && isImage(previewAsset.type) ? (
-                <img src={previewAsset.dataUrl} alt={previewAsset.name} className="max-w-full max-h-[55vh] object-contain rounded-lg" />
-              ) : (
-                <div className="text-center py-16">
-                  {renderTypeIcon(previewAsset.type, 16, '#CACDD7')}
-                  <p className="text-sm mt-3" style={{ color: '#3E4048', fontWeight: 500 }}>Preview not available for this file type</p>
-                  <p className="text-xs mt-1" style={{ color: '#CACDD7' }}>Download the file to view it</p>
+            {/* Body */}
+            <div className="flex-1 overflow-auto flex flex-col lg:flex-row">
+              {/* Preview area */}
+              <div className="flex-1 min-h-64 lg:min-h-0 flex items-center justify-center p-6" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
+                {previewAsset.dataUrl && isImage(previewAsset.type) ? (
+                  <img src={previewAsset.dataUrl} alt={previewAsset.name} className="max-w-full max-h-[40vh] lg:max-h-[55vh] object-contain rounded-lg" />
+                ) : (
+                  <div className="text-center">
+                    {renderTypeIcon(previewAsset.type, 20, '#CACDD7')}
+                    <p className="text-sm mt-3" style={{ color: '#3E4048', fontWeight: 500 }}>Preview not available</p>
+                    <p className="text-xs mt-1" style={{ color: '#CACDD7' }}>Download the file to view it</p>
+                  </div>
+                )}
+              </div>
+              {/* Overview panel */}
+              <div className="w-full lg:w-72 flex-shrink-0 border-t lg:border-t-0 lg:border-l p-6 space-y-5 overflow-y-auto" style={{ borderColor: '#CACDD7' }}>
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>File Name</label>
+                  {!previewAsset.isMock ? (
+                    <input type="text" defaultValue={previewAsset.name}
+                      onBlur={e => { const v = e.target.value.trim(); if (v) setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, name: v } : a)) }}
+                      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                      className="w-full px-3 py-1.5 rounded-lg border text-sm outline-none"
+                      style={{ borderColor: '#CACDD7', color: '#1B1A1C' }} />
+                  ) : (
+                    <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{previewAsset.name}</p>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
-              {!previewAsset.isMock && previewAsset.dataUrl && (
-                <button onClick={() => { handleDownload(previewAsset); setPreviewAsset(null) }} className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm transition" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Download
-                </button>
-              )}
-              <button onClick={() => setPreviewAsset(null)} className="px-4 py-2 rounded-lg text-sm transition" style={{ color: '#3E4048', fontWeight: 500 }}>Close</button>
+
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Category</label>
+                  {!previewAsset.isMock ? (
+                    <select defaultValue={previewAsset.category}
+                      onChange={e => setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, category: e.target.value } : a))}
+                      className="w-full px-3 py-1.5 rounded-lg border text-sm outline-none"
+                      style={{ borderColor: '#CACDD7', color: '#1B1A1C' }}>
+                      {CATEGORIES.filter(c => c !== 'All Files').map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  ) : (
+                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      style={{ backgroundColor: `${CATEGORY_COLORS[previewAsset.category]}20`, color: CATEGORY_COLORS[previewAsset.category] }}>{previewAsset.category}</span>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>File Type</label>
+                  <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{previewAsset.type || 'Unknown'} ({getExt(previewAsset.type)})</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Size</label>
+                  <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{formatSize(previewAsset.size)}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Date Added</label>
+                  <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{formatDate(previewAsset.addedAt)}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 space-y-2">
+                  {!previewAsset.isMock && previewAsset.dataUrl && (
+                    <button onClick={() => { handleDownload(previewAsset) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Download
+                    </button>
+                  )}
+                  {!previewAsset.isMock && (
+                    <button onClick={() => { handleDelete(previewAsset.id); setPreviewAsset(null) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition" style={{ border: '2px solid #FF5900', color: '#FF5900', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -350,7 +410,10 @@ export default function FileTracker() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map(asset => (
-                <div key={asset.id} className="rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
+                <div key={asset.id}
+                  onClick={() => setPreviewAsset(asset)}
+                  className="rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg cursor-pointer"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
                   onMouseEnter={() => setHoveredId(asset.id)} onMouseLeave={() => setHoveredId(null)}>
                   <div className="h-36 flex items-center justify-center overflow-hidden" style={{ backgroundColor: 'rgba(202,205,215,0.2)' }}>
                     {asset.dataUrl && isImage(asset.type) ? (
@@ -362,31 +425,27 @@ export default function FileTracker() {
                       </div>
                     )}
                   </div>
-                  <div className="p-4">
+                  <div className="p-4" onClick={e => e.stopPropagation()}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         {editingId === asset.id ? (
                           <input ref={editInputRef} type="text" value={editValue} onChange={e => setEditValue(e.target.value)}
                             onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
                             className="w-full px-1.5 py-0.5 rounded border text-sm outline-none"
-                            style={{ borderColor: '#FF5900', color: '#1B1A1C' }} />
+                            style={{ borderColor: '#FF5900', color: '#1B1A1C' }}
+                            onClick={e => e.stopPropagation()} />
                         ) : (
                           <p className="text-sm truncate cursor-pointer hover:underline" style={{ color: '#1B1A1C', fontWeight: 600 }}
-                            onClick={() => startEditing(asset)} title="Click to rename">{asset.name}</p>
+                            onClick={e => { e.stopPropagation(); startEditing(asset) }} title="Click to rename">{asset.name}</p>
                         )}
                       </div>
                       <div className={`flex items-center gap-1 transition-opacity duration-200 ${hoveredId === asset.id ? 'opacity-100' : 'opacity-0'}`}>
-                        {asset.dataUrl && isImage(asset.type) && (
-                          <button onClick={() => setPreviewAsset(asset)} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#3E4048', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Preview">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                          </button>
-                        )}
                         {!asset.isMock && asset.dataUrl && (
-                          <button onClick={() => handleDownload(asset)} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#3E4048', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Download">
+                          <button onClick={e => { e.stopPropagation(); handleDownload(asset) }} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#3E4048', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Download">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                           </button>
                         )}
-                        <button onClick={() => handleDelete(asset.id)} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#FF5900', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Delete">
+                        <button onClick={e => { e.stopPropagation(); handleDelete(asset.id) }} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#FF5900', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Delete">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                       </div>
