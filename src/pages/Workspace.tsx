@@ -143,7 +143,7 @@ export default function Workspace() {
   ]
 
   return (
-    <div className="flex-1 relative" style={{ backgroundColor: '#CACDD7' }}>
+    <div className="flex-1 relative" style={{ backgroundColor: '#F0F2F5' }}>
       {/* Floating bottom toolbar */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-2 rounded-2xl border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
         {tools.map(tool => (
@@ -169,7 +169,7 @@ export default function Workspace() {
       <div ref={canvasRef} className="absolute inset-0 overflow-hidden">
         {/* Grid dots background */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(62,64,72,0.15) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(62,64,72,0.1) 1px, transparent 1px)',
           backgroundSize: '24px 24px',
         }} />
 
