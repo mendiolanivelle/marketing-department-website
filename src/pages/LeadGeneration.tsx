@@ -232,8 +232,54 @@ export default function LeadGeneration() {
   // Persist files to localStorage on every change
   useEffect(() => { localStorage.setItem('exodia-lead-files', JSON.stringify(files)) }, [files])
 
+  const computeStats = (files: LeadFile[], allRows: { file_id: string; data: Record<string, string> }[]) => {
+    const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
+    const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+    if (nonDuplicateFileIds.length === 0) return { totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
+
+    const fileRows = allRows.filter(r => nonDuplicateFileIds.includes(r.file_id))
+    let totalLeads = 0, emailsSent = 0, replied = 0, noReply = 0, meetingsLeft = 0
+
+    fileRows.forEach((row) => {
+      const data = row.data as Record<string, string>
+      const file = nonDuplicateFiles.find(f => f.id === row.file_id)
+      if (!file) return
+      const columns = file.columns as string[]
+      const companyCol = columns.find(col => col.toLowerCase().includes('company'))
+      const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
+      const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
+
+      if (companyCol && data[companyCol]?.trim()) totalLeads++
+      if (emailStatusCol && data[emailStatusCol]) {
+        const val = data[emailStatusCol].trim().toLowerCase()
+        if (val === 'email sent' || val === 'sent') emailsSent++
+      }
+      if (leadStatusCol && data[leadStatusCol]) {
+        const status = data[leadStatusCol].toLowerCase()
+        if (status.includes('replied')) replied++
+        if (status.includes('no reply')) noReply++
+        if (status.includes('meeting booked')) meetingsLeft++
+      }
+    })
+    return { totalLeads, emailsSent, replied, noReply, meetingsLeft }
+  }
+
   const fetchLeadStats = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      // localStorage mode — compute stats from localStorage
+      const savedFiles = localStorage.getItem('exodia-lead-files')
+      if (!savedFiles) return
+      const files: LeadFile[] = JSON.parse(savedFiles)
+      let allRows: { file_id: string; data: Record<string, string> }[] = []
+      for (const f of files) {
+        const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
+        if (savedRows) {
+          try { allRows.push(...JSON.parse(savedRows).map((r: any) => ({ file_id: r.file_id, data: r.data }))) } catch {}
+        }
+      }
+      setLeadStats(computeStats(files, allRows))
+      return
+    }
 
     try {
       const { data: files, error: filesError } = await supabase
@@ -243,8 +289,7 @@ export default function LeadGeneration() {
       if (filesError) throw filesError
       if (!files || files.length === 0) return
 
-      const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
-      const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+      const nonDuplicateFileIds = files.filter(f => f.name !== 'Duplicate Leads').map(f => f.id)
 
       if (nonDuplicateFileIds.length === 0) {
         setLeadStats({ totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 })
@@ -259,40 +304,7 @@ export default function LeadGeneration() {
       if (rowsError) throw rowsError
       if (!allRows) return
 
-      let totalLeads = 0
-      let emailsSent = 0
-      let replied = 0
-      let noReply = 0
-      let meetingsLeft = 0
-
-      allRows.forEach((row) => {
-        const data = row.data as Record<string, string>
-        const file = nonDuplicateFiles.find(f => f.id === row.file_id)
-        if (!file) return
-
-        const columns = file.columns as string[]
-        const companyCol = columns.find(col => col.toLowerCase().includes('company'))
-        const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
-        const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
-
-        if (companyCol && data[companyCol]?.trim()) {
-          totalLeads++
-        }
-
-        if (emailStatusCol && data[emailStatusCol]) {
-          const val = data[emailStatusCol].trim().toLowerCase()
-          if (val === 'email sent' || val === 'sent') emailsSent++
-        }
-
-        if (leadStatusCol && data[leadStatusCol]) {
-          const status = data[leadStatusCol].toLowerCase()
-          if (status.includes('replied')) replied++
-          if (status.includes('no reply')) noReply++
-          if (status.includes('meeting booked')) meetingsLeft++
-        }
-      })
-
-      setLeadStats({ totalLeads, emailsSent, replied, noReply, meetingsLeft })
+      setLeadStats(computeStats(files, allRows))
     } catch (err) {
       console.error('Error fetching lead stats:', err)
     }
@@ -300,7 +312,11 @@ export default function LeadGeneration() {
 
   useEffect(() => {
     fetchLeadStats()
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      // Poll localStorage every 3s for stat changes (syncs across tabs)
+      const interval = setInterval(fetchLeadStats, 3000)
+      return () => clearInterval(interval)
+    }
 
     const filesChannel = supabase
       .channel('lead_files_leads')
@@ -469,6 +485,7 @@ export default function LeadGeneration() {
 
       setFiles(prev => [newFile, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
+      fetchLeadStats()
     } catch (err) {
       console.error('Error uploading CSV:', err)
       alert('Failed to upload CSV file')
@@ -509,6 +526,7 @@ export default function LeadGeneration() {
       setFiles(prev => [newFile, ...prev])
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
+      fetchLeadStats()
     } catch (err) {
       console.error('Error creating spreadsheet:', err)
       alert('Failed to create spreadsheet')
