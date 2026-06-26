@@ -131,16 +131,10 @@ export default function PublicShowcase() {
     const t1 = setTimeout(() => setPhase('opening'), 2000)
     const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
     const t3 = setTimeout(() => {
-      if (imagesReady) setPhase('slideshow')
-      else {
-        const poll = setInterval(() => {
-          if (imagesReady) { clearInterval(poll); setPhase('slideshow') }
-        }, 100)
-        setTimeout(() => clearInterval(poll), 10000)
-      }
+      setPhase('slideshow')
     }, 5000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [restartCount, preloadAll, imagesReady])
+  }, [restartCount, preloadAll])
 
   // Auto-advance during slideshow ΓÇö stays on last slide, does not auto-close
   useEffect(() => {
