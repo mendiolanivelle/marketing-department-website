@@ -575,10 +575,34 @@ export default function LeadGeneration() {
           }
         }
 
-        const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
-          if (duplicateCount > 0) {
-            setDuplicateModal({ type: 'upload', count: duplicateCount, sourceFileName: newFile.name })
+        // Check for within-file duplicates in the uploaded CSV
+        const emailCol2 = headers.find(h => h.toLowerCase().includes('email'))
+        let inFileDupes: { email: string; count: number }[] = []
+        if (emailCol2) {
+          const seen = new Map<string, number>()
+          for (const row of parsedRows) {
+            const val = row[emailCol2]
+            if (!val || !val.trim()) continue
+            const key = val.trim().toLowerCase()
+            seen.set(key, (seen.get(key) || 0) + 1)
           }
+          for (const [email, count] of seen) {
+            if (count > 1) inFileDupes.push({ email, count })
+          }
+        }
+
+        const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
+
+        if (inFileDupes.length > 0) {
+          setDuplicateModal({
+            type: 'in-file',
+            count: inFileDupes.reduce((s, d) => s + d.count - 1, 0),
+            email: inFileDupes[0].email,
+            dupes: inFileDupes.map(d => ({ email: d.email, rows: Array(d.count).fill(null) as unknown as LeadRow[] })),
+          })
+        } else if (duplicateCount > 0) {
+          setDuplicateModal({ type: 'upload', count: duplicateCount, sourceFileName: newFile.name })
+        }
       }
 
       setFiles(prev => [newFile, ...prev])
