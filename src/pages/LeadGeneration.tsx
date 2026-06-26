@@ -687,8 +687,6 @@ export default function LeadGeneration() {
   }
 
   const closeFile = () => {
-
-  const closeFile = () => {
     setSelectedFile(null)
     setRows([])
     setEditingCell(null)
