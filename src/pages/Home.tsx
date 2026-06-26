@@ -2,6 +2,15 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
+interface ActivityEntry {
+  id: number
+  action: string
+  detail: string
+  timestamp: string
+}
+
+const MAX_ACTIVITIES = 50
+
 const announcements = [
   { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting', content: 'Join us for the Q3 campaign planning session where we will discuss upcoming initiatives and strategies.' },
   { id: 2, title: 'New Brand Guidelines v2.0 Released', date: 'Jun 20, 2026', tag: 'Update', content: 'The updated brand guidelines are now available. Please review and update your materials accordingly.' },
@@ -50,6 +59,24 @@ export default function Home() {
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => {
+    const saved = localStorage.getItem('exodia-activity-log')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  const logActivity = useCallback((action: string, detail: string) => {
+    const entry: ActivityEntry = {
+      id: Date.now(),
+      action,
+      detail,
+      timestamp: new Date().toLocaleString(),
+    }
+    setActivityLog(prev => {
+      const next = [entry, ...prev].slice(0, MAX_ACTIVITIES)
+      localStorage.setItem('exodia-activity-log', JSON.stringify(next))
+      return next
+    })
+  }, [])
 
   // Persist tasks and announcements to localStorage
   useEffect(() => {
@@ -172,6 +199,8 @@ export default function Home() {
 
   const toggleTask = (id: number) => {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+    const task = tasks.find(t => t.id === id)
+    if (task) logActivity('Task', task.done ? `Unchecked "${task.text}"` : `Completed "${task.text}"`)
   }
 
   const addTask = () => {
@@ -179,10 +208,13 @@ export default function Home() {
     const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1
     setTasks([{ id: newId, text: newTaskText.trim(), done: false }, ...tasks])
     setNewTaskText('')
+    logActivity('Task', `Added "${newTaskText.trim()}"`)
   }
 
   const deleteTask = (id: number) => {
+    const task = tasks.find(t => t.id === id)
     setTasks(tasks.filter(t => t.id !== id))
+    if (task) logActivity('Task', `Deleted "${task.text}"`)
   }
 
   const startEditingTask = (task: { id: number; text: string }) => {
@@ -207,10 +239,13 @@ export default function Home() {
     setAnnouncementsList([{ ...newAnnouncement, id: newId }, ...announcementsList])
     setNewAnnouncement({ title: '', date: '', tag: 'Update', content: '' })
     setShowAddAnnouncement(false)
+    logActivity('Announcement', `Added "${newAnnouncement.title.trim()}"`)
   }
 
   const deleteAnnouncement = (id: number) => {
+    const item = announcementsList.find(a => a.id === id)
     setAnnouncementsList(announcementsList.filter(a => a.id !== id))
+    if (item) logActivity('Announcement', `Deleted "${item.title}"`)
   }
 
   const startEditingAnnouncement = (announcement: any) => {
@@ -267,7 +302,7 @@ export default function Home() {
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
           {/* Announcements - Full Width */}
-          <div className="rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div className="rounded-2xl border-2 p-4 sm:p-8 mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: '0 4px 16px rgba(27,26,28,0.06), 0 0 0 1px rgba(27,26,28,0.08)' }}>
             <div className="flex items-center justify-between mb-4 sm:mb-5">
               <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
               <button
@@ -336,8 +371,8 @@ export default function Home() {
           {/* Lead Pipeline - Clickable */}
           <div
             onClick={() => setShowPipeline(true)}
-            className="block rounded-2xl border p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer theme-transition"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+            className="block rounded-2xl border-2 p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer theme-transition"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: '0 4px 16px rgba(27,26,28,0.06), 0 0 0 1px rgba(27,26,28,0.08)' }}
           >
             <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
@@ -357,7 +392,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
             <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="flex items-center justify-between mb-3">
@@ -433,6 +468,32 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Recent Activity Feed */}
+            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128337; Recent Activity</h2>
+              </div>
+              {activityLog.length === 0 ? (
+                <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-sm">No activity yet</p>
+                </div>
+              ) : (
+                <ul className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {activityLog.map((entry) => (
+                    <li key={entry.id} className="p-2.5 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                          {entry.action}
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{entry.timestamp}</span>
+                      </div>
+                      <p className="text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{entry.detail}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Quick Links */}

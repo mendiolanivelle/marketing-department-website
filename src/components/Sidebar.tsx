@@ -85,15 +85,15 @@ export default function Sidebar() {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:sticky lg:top-0 lg:translate-x-0 lg:z-0
         ${isCollapsed ? 'w-16' : 'w-64'}
-      `} style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)' }}>
+      `} style={{ backgroundColor: '#3E4048', borderColor: 'rgba(255,255,255,0.08)' }}>
         <div className="flex flex-col h-full">
           {/* Logo + Profile section */}
-          <div className="px-3 pt-5 pb-4 border-b theme-transition" style={{ borderColor: 'var(--border-secondary)' }}>
+          <div className="px-3 pt-5 pb-4 border-b theme-transition" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
             <div className="flex items-center justify-between mb-4 px-1">
               <div className="flex items-center gap-2 overflow-hidden">
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 transition-transform duration-200 hover:scale-105"
-                  style={{ backgroundColor: 'var(--logo-bg)' }}
+                  style={{ backgroundColor: '#FF5900' }}
                 >
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
@@ -101,8 +101,8 @@ export default function Sidebar() {
                 </div>
                 {!isCollapsed && (
                   <div className="min-w-0">
-                    <h1 className="text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Marketing Dept</h1>
-                    <p className="text-[11px] tracking-widest uppercase" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>Internal Portal</p>
+                    <h1 className="text-base truncate" style={{ color: '#FFFFFF', fontWeight: 700 }}>Marketing Dept</h1>
+                    <p className="text-[11px] tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>Internal Portal</p>
                   </div>
                 )}
               </div>
@@ -110,7 +110,7 @@ export default function Sidebar() {
               <button
                 onClick={() => setIsCollapsed(!isCollapsed)}
                 className="hidden group lg:flex p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'rgba(255,255,255,0.5)' }}
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,13 +127,13 @@ export default function Sidebar() {
                   className={`flex items-center gap-3 rounded-xl cursor-pointer transition-all duration-200 theme-transition ${
                     isCollapsed ? 'justify-center py-2.5' : 'px-3 py-2'
                   }`}
-                  style={{ backgroundColor: 'var(--bg-hover)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--accent-light)'
+                    e.currentTarget.style.backgroundColor = 'rgba(255,89,0,0.2)'
                     e.currentTarget.style.transform = 'scale(1.01)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'
                     e.currentTarget.style.transform = 'scale(1)'
                   }}
                 >
@@ -143,13 +143,13 @@ export default function Sidebar() {
                         src={avatarUrl}
                         alt="Avatar"
                         className="w-9 h-9 rounded-full object-cover cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
-                        style={{ borderColor: 'var(--accent)' }}
+                        style={{ borderColor: '#FF5900' }}
                         onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       />
                     ) : (
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
-                        style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}
+                        style={{ backgroundColor: '#FF5900', borderColor: '#FF5900' }}
                         onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       >
                         <span className="text-sm text-white" style={{ fontWeight: 600 }}>
@@ -162,14 +162,14 @@ export default function Sidebar() {
                   {!isCollapsed && (
                     <>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                        <p className="text-sm truncate" style={{ color: '#FFFFFF', fontWeight: 500 }}>
                           {getDisplayName()}
                         </p>
-                        <p className="text-[10px] truncate tracking-wider uppercase" style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                        <p className="text-[10px] truncate tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>
                           {user.email}
                         </p>
                       </div>
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" style={{ color: 'var(--text-muted)', transform: showProfileDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200" style={{ color: 'rgba(255,255,255,0.5)', transform: showProfileDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </>
@@ -211,13 +211,13 @@ export default function Sidebar() {
                 {showProfileDropdown && (
                   <div
                     className="absolute top-full left-4 right-4 mt-2 rounded-xl border shadow-lg theme-transition z-50 overflow-hidden"
-                    style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)', boxShadow: 'var(--shadow-lg)' }}
+                    style={{ backgroundColor: '#3E4048', borderColor: 'rgba(255,255,255,0.12)', boxShadow: 'var(--shadow-lg)' }}
                   >
                     <button
                       onClick={signOut}
                       className="w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:pl-5"
-                      style={{ color: 'var(--accent)', fontWeight: 500 }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent-light)' }}
+                      style={{ color: '#FF5900', fontWeight: 500 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,20 +244,20 @@ export default function Sidebar() {
                     isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
                   }`}
                   style={{
-                    color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                    backgroundColor: active ? 'var(--accent-light)' : 'transparent',
+                    color: active ? '#FF5900' : 'rgba(255,255,255,0.7)',
+                    backgroundColor: active ? 'rgba(255,89,0,0.15)' : 'transparent',
                     fontWeight: active ? 500 : 300,
                   }}
                   onMouseEnter={(e) => {
                     if (!active) {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
-                      e.currentTarget.style.color = 'var(--text-primary)'
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
+                      e.currentTarget.style.color = '#FFFFFF'
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!active) {
                       e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'var(--text-secondary)'
+                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
                     }
                   }}
                   title={isCollapsed ? item.label : undefined}
@@ -265,7 +265,7 @@ export default function Sidebar() {
                   {active && !isCollapsed && (
                     <span
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                      style={{ backgroundColor: 'var(--accent)' }}
+                      style={{ backgroundColor: '#FF5900' }}
                     />
                   )}
                   <svg className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -277,7 +277,7 @@ export default function Sidebar() {
                   {active && isCollapsed && (
                     <span
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                      style={{ backgroundColor: 'var(--accent)' }}
+                      style={{ backgroundColor: '#FF5900' }}
                     />
                   )}
                 </Link>
@@ -287,7 +287,7 @@ export default function Sidebar() {
 
           {/* Bottom accent bar */}
           <div className="px-3 pb-4">
-            <div className="h-px rounded-full theme-transition" style={{ backgroundColor: 'var(--border-secondary)', opacity: 0.5 }} />
+            <div className="h-px rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
           </div>
         </div>
       </aside>
