@@ -94,6 +94,7 @@ export default function FileTracker() {
   const [uploadError, setUploadError] = useState('')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -254,16 +255,26 @@ export default function FileTracker() {
       )}
 
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 hidden sm:flex flex-col" style={{ backgroundColor: '#3E4048' }}>
-        <div className="px-5 pt-6 pb-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          <h2 className="text-sm font-semibold tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>Categories</h2>
+      <aside className={`flex-shrink-0 hidden sm:flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-14' : 'w-56'}`} style={{ backgroundColor: '#3E4048' }}>
+        <div className="flex items-center justify-between px-3 pt-6 pb-4 border-b flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          {!sidebarCollapsed && <h2 className="text-sm font-semibold tracking-wider uppercase truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>Categories</h2>}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className={`p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 ${sidebarCollapsed ? 'mx-auto' : ''}`}
+            style={{ color: 'rgba(255,255,255,0.5)' }}
+            title={sidebarCollapsed ? 'Expand categories' : 'Collapse categories'}
+          >
+            <svg className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-200 text-left"
+              className={`w-full flex items-center rounded-lg text-sm transition-all duration-200 text-left ${sidebarCollapsed ? 'justify-center py-2.5' : 'justify-between px-3 py-2.5'}`}
               style={{
                 backgroundColor: activeCategory === cat ? '#FF5900' : 'transparent',
                 color: activeCategory === cat ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
@@ -271,15 +282,24 @@ export default function FileTracker() {
               }}
               onMouseEnter={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#FFFFFF' } }}
               onMouseLeave={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' } }}
+              title={sidebarCollapsed ? cat : undefined}
             >
-              <span className="truncate">{cat}</span>
-              <span className="text-xs ml-2 flex-shrink-0" style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
+              {sidebarCollapsed ? (
+                <span className="text-xs font-bold">{cat.charAt(0)}</span>
+              ) : (
+                <>
+                  <span className="truncate">{cat}</span>
+                  <span className="text-xs ml-2 flex-shrink-0" style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
+                </>
+              )}
             </button>
           ))}
         </nav>
-        <div className="px-4 py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} file{filtered.length !== 1 ? 's' : ''} found</div>
-        </div>
+        {!sidebarCollapsed && (
+          <div className="px-4 py-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} file{filtered.length !== 1 ? 's' : ''} found</div>
+          </div>
+        )}
       </aside>
 
       {/* Mobile categories */}
