@@ -124,13 +124,14 @@ export default function LeadGeneration() {
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [duplicateModal, setDuplicateModal] = useState<{
-    type: 'upload' | 'cell-edit'
+    type: 'upload' | 'cell-edit' | 'in-file'
     count?: number
     email?: string
     rowId?: string
     fileId?: string
     rowData?: Record<string, string>
     sourceFileName?: string
+    dupes?: { email: string; rows: LeadRow[] }[]
   } | null>(null)
   const historyRef = useRef<{ rows: LeadRow[]; columns: string[]; cellFormats: Record<string, CellFormat> }[]>([])
   const historyIndexRef = useRef(-1)
@@ -199,12 +200,12 @@ export default function LeadGeneration() {
     finally { setLoading(false) }
   }, [])
 
-  const fetchRows = useCallback(async (fileId: string) => {
+  const fetchRows = useCallback(async (fileId: string): Promise<LeadRow[]> => {
     if (!isSupabaseConfigured || !supabase) {
       const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
-      if (saved) { try { setRows(JSON.parse(saved)) } catch {} }
+      if (saved) { try { const data = JSON.parse(saved); setRows(data); return data } catch {} }
       setRowsLoading(false)
-      return
+      return []
     }
     setRowsLoading(true)
     try {
@@ -214,8 +215,9 @@ export default function LeadGeneration() {
         .eq('file_id', fileId)
         .order('row_index', { ascending: true })
       if (error) throw error
-      if (data) { setRows(data); localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data)) }
-    } catch (err) { console.error('Error fetching rows:', err) }
+      if (data) { setRows(data); localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data)); return data }
+      return []
+    } catch (err) { console.error('Error fetching rows:', err); return [] }
     finally { setRowsLoading(false) }
   }, [])
 
@@ -631,10 +633,36 @@ export default function LeadGeneration() {
 
   const openFile = async (file: LeadFile) => {
     setSelectedFile(file)
-    await fetchRows(file.id)
+    const fileRows = await fetchRows(file.id)
     historyRef.current = []
     historyIndexRef.current = -1
+    // Auto-scan for in-file duplicates after rows load
+    const emailCol = file.columns.find(h => h.toLowerCase().includes('email'))
+    if (emailCol && fileRows.length > 0) {
+      const seen = new Map<string, LeadRow[]>()
+      for (const row of fileRows) {
+        const val = row.data[emailCol]
+        if (!val || !val.trim()) continue
+        const key = val.trim().toLowerCase()
+        if (!seen.has(key)) seen.set(key, [])
+        seen.get(key)!.push(row)
+      }
+      const dupes: { email: string; rows: LeadRow[] }[] = []
+      for (const [email, matchingRows] of seen) {
+        if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
+      }
+      if (dupes.length > 0) {
+        setDuplicateModal({
+          type: 'in-file',
+          count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
+          email: dupes[0].email,
+          dupes,
+        })
+      }
+    }
   }
+
+  const closeFile = () => {
 
   const closeFile = () => {
     setSelectedFile(null)
@@ -1455,7 +1483,9 @@ export default function LeadGeneration() {
       </div>
 
       {/* Duplicate Notification Modal */}
-      {duplicateModal && (
+      {duplicateModal && (() => {
+        const modal = duplicateModal
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setDuplicateModal(null)} />
           <div className="relative rounded-2xl border p-6 sm:p-8 max-w-md w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
@@ -1466,52 +1496,66 @@ export default function LeadGeneration() {
               <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Duplicate Lead Detected</h3>
             </div>
 
-            {duplicateModal.type === 'upload' && (
+            {modal.type === 'upload' && (
               <>
                 <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#FF5900' }}>{duplicateModal.count}</strong> duplicate lead(s) from <strong>"{duplicateModal.sourceFileName}"</strong> were found and automatically moved to the <strong>"Duplicate Leads"</strong> file under Spreadsheets.
+                  <strong style={{ color: '#FF5900' }}>{modal.count}</strong> duplicate lead(s) from <strong>"{modal.sourceFileName}"</strong> were found and automatically moved to the <strong>"Duplicate Leads"</strong> file under Spreadsheets.
                 </p>
                 <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={() => setDuplicateModal(null)}
-                    className="px-4 py-2 text-sm rounded-lg transition"
-                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                  >
-                    Dismiss
-                  </button>
+                  <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Dismiss</button>
                 </div>
               </>
             )}
 
-            {duplicateModal.type === 'cell-edit' && (
+            {modal.type === 'in-file' && (
+              <>
+                <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: '#FF5900' }}>{modal.count}</strong> duplicate row(s) found in this file. The email <strong style={{ color: '#FF5900' }}>"{modal.email}"</strong> appears multiple times.
+                </p>
+                <ul className="text-xs mb-4 space-y-1 max-h-[140px] overflow-y-auto" style={{ color: 'var(--text-muted)' }}>
+                  {modal.dupes?.map((d, i) => (
+                    <li key={i} className="p-1.5 rounded" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <span style={{ color: '#FF5900' }}>{d.email}</span> — {d.rows.length} occurrences
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-3 justify-end">
+                  <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Dismiss</button>
+                </div>
+              </>
+            )}
+
+            {modal.type === 'cell-edit' && (
               <>
                 <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-                  The email <strong style={{ color: '#FF5900' }}>"{duplicateModal.email}"</strong> already exists in another file or row. What would you like to do?
+                  The email <strong style={{ color: '#FF5900' }}>"{modal.email}"</strong> already exists in another file or row. What would you like to do?
                 </p>
                 <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={() => setDuplicateModal(null)}
-                    className="px-4 py-2 text-sm rounded-lg transition"
-                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-                  >
-                    Cancel
-                  </button>
+                  <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                   <button
                     onClick={async () => {
-                      if (!duplicateModal.rowId || !duplicateModal.fileId || !selectedFile) return
-                      const row = rows.find(r => r.id === duplicateModal.rowId)
+                      if (!modal.rowId || !modal.fileId || !selectedFile) return
+                      const row = rows.find(r => r.id === modal.rowId)
                       if (!row) return
-                      await checkAndRouteDuplicates(
-                        [duplicateModal.rowData || row.data],
-                        duplicateModal.fileId,
-                        selectedFile.name,
-                        selectedFile.columns
-                      )
-                      if (supabase) {
-                        await supabase.from('lead_rows').delete().eq('id', duplicateModal.rowId)
-                      }
-                      setRows(prev => prev.filter(r => r.id !== duplicateModal.rowId))
-                      setDuplicateModal(null)
+                      try {
+                        await checkAndRouteDuplicates(
+                          [modal.rowData || row.data],
+                          modal.fileId,
+                          selectedFile.name,
+                          selectedFile.columns
+                        )
+                        if (supabase) {
+                          await supabase.from('lead_rows').delete().eq('id', modal.rowId)
+                        } else {
+                          const saved = localStorage.getItem(`exodia-lead-rows-${modal.fileId}`)
+                          if (saved) {
+                            const localRows: LeadRow[] = JSON.parse(saved)
+                            localStorage.setItem(`exodia-lead-rows-${modal.fileId}`, JSON.stringify(localRows.filter(r => r.id !== modal.rowId)))
+                          }
+                        }
+                        setRows(prev => prev.filter(r => r.id !== modal.rowId))
+                        setDuplicateModal(null)
+                      } catch {}
                     }}
                     className="px-4 py-2 text-sm rounded-lg transition hover:opacity-90"
                     style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
@@ -1523,7 +1567,8 @@ export default function LeadGeneration() {
             )}
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
