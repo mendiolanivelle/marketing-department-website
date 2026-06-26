@@ -330,12 +330,9 @@ export default function PublicShowcase() {
             }}
           >
             <div
+              className="absolute inset-0"
               style={{
-                width: 400,
-                height: 400,
-                borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(255,89,0,0.9) 0%, rgba(255,89,0,0.3) 40%, transparent 70%)',
-                filter: 'blur(40px)',
+                background: 'radial-gradient(circle at center, rgba(255,89,0,0.9) 0%, rgba(255,89,0,0.3) 40%, rgba(255,89,0,0.1) 70%, transparent 100%)',
                 animation: 'zoomInBurst 0.4s ease-out forwards',
               }}
             />
