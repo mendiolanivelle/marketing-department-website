@@ -488,7 +488,7 @@ export default function About() {
       {/* Department Services */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Services</h2>
+          <h2 id="services" className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Services</h2>
           <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>What the Marketing team can do for you and your team</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[

@@ -64,6 +64,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
 
   const {
     register,
@@ -75,7 +76,7 @@ export default function Login() {
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null)
-    const { error } = await signIn(data.email, data.password)
+    const { error } = await signIn(data.email, data.password, rememberMe)
     if (error) {
       setError(error.message)
     } else {
@@ -350,7 +351,7 @@ export default function Login() {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded" style={{ accentColor: '#FF5900', borderColor: '#3E4048' }} />
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900', borderColor: '#3E4048' }} />
                   <span className="text-sm" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 300 }}>Remember me</span>
                 </label>
                 <a href="#" className="text-sm transition hover:underline" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 500 }}>

@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { supabase, isSupabaseConfigured, setRememberMe } from '../lib/supabase'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
   configError: string | null
 }
@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe?: boolean) => {
     if (!supabase) {
       return { error: new Error('Supabase is not configured') }
     }
+    setRememberMe(rememberMe ?? true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error as Error | null }
   }

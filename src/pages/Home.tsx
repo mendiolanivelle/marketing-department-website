@@ -289,10 +289,10 @@ export default function Home() {
             Your central portal for department resources, campaign requests, brand assets, and team updates.
           </p>
           <div className="flex flex-col gap-4 justify-center items-center">
-            <Link to="/contact" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-primary" style={{ boxShadow: 'var(--shadow-md)' }}>
+            <Link to="/about#contact" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-primary" style={{ boxShadow: 'var(--shadow-md)' }}>
               Submit a Request
             </Link>
-            <Link to="/services" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-accent">
+            <Link to="/about#services" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-accent">
               Marketing Capabilities
             </Link>
           </div>
