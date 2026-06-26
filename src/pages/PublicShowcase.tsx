@@ -72,10 +72,7 @@ export default function PublicShowcase() {
   const [restartCount, setRestartCount] = useState(0)
   const [imagesReady, setImagesReady] = useState(false)
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
-  const [showLeftHint, setShowLeftHint] = useState(false)
-  const [showRightHint, setShowRightHint] = useState(false)
   const [dragStart, setDragStart] = useState<number | null>(null)
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -214,13 +211,6 @@ export default function PublicShowcase() {
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
     setMouse({ x, y })
-    const third = rect.width / 3
-    const cx = e.clientX - rect.left
-    if (cx < third) { setShowLeftHint(true); setShowRightHint(false) }
-    else if (cx > rect.width - third) { setShowLeftHint(false); setShowRightHint(true) }
-    else { setShowLeftHint(false); setShowRightHint(false) }
-    if (hintTimerRef.current) clearTimeout(hintTimerRef.current)
-    hintTimerRef.current = setTimeout(() => { setShowLeftHint(false); setShowRightHint(false) }, 2000)
   }, [phase])
 
   // Drag/swipe to navigate
@@ -331,7 +321,7 @@ export default function PublicShowcase() {
             onMouseMove={handleMouseMove}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
-            onMouseLeave={() => { setShowLeftHint(false); setShowRightHint(false); setDragStart(null) }}
+            onMouseLeave={() => { setDragStart(null) }}
           >
             {Array.from(loaded).map(n => (
               <div
@@ -352,26 +342,6 @@ export default function PublicShowcase() {
             <div className="fixed inset-0 pointer-events-none z-20" style={{ background: 'linear-gradient(180deg, rgba(27,26,28,0.15) 0%, transparent 20%, transparent 80%, rgba(27,26,28,0.4) 100%)' }} />
             <div className="fixed bottom-0 left-0 right-0 h-[2px] z-30" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
               <div className="h-full transition-all duration-500 ease-out" style={{ width: `${(current / SLIDE_COUNT) * 100}%`, backgroundColor: 'rgba(255,89,0,0.5)' }} />
-            </div>
-            {/* Left arrow hint */}
-            <div
-              className="fixed left-6 top-1/2 -translate-y-1/2 z-30 transition-all duration-400 pointer-events-none"
-              style={{
-                opacity: showLeftHint && current > 1 ? 1 : 0,
-                transform: `translateY(-50%) translateX(${showLeftHint ? 0 : -10}px)`,
-              }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"><path d="M15 19l-7-7 7-7"/></svg>
-            </div>
-            {/* Right arrow hint */}
-            <div
-              className="fixed right-6 top-1/2 -translate-y-1/2 z-30 transition-all duration-400 pointer-events-none"
-              style={{
-                opacity: showRightHint && current < SLIDE_COUNT ? 1 : 0,
-                transform: `translateY(-50%) translateX(${showRightHint ? 0 : 10}px)`,
-              }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"><path d="M9 5l7 7-7 7"/></svg>
             </div>
           </div>
         )}
