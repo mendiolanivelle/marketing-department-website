@@ -1517,16 +1517,13 @@ export default function LeadGeneration() {
               </>
             )}
 
-            {duplicateModal.type === 'in-file' && (() => {
-              const modal = duplicateModal
-              const hasRealRows = modal.dupes?.some(d => d.rows[0]?.id)
-              return (
+            {duplicateModal.type === 'in-file' && (
               <>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#FF5900' }}>{modal.count}</strong> duplicate row(s) found in this file. The email <strong style={{ color: '#FF5900' }}>"{modal.email}"</strong> appears multiple times.
+                  <strong style={{ color: '#FF5900' }}>{duplicateModal.count}</strong> duplicate row(s) found in this file. The email <strong style={{ color: '#FF5900' }}>"{duplicateModal.email}"</strong> appears multiple times.
                 </p>
                 <ul className="text-xs mb-4 space-y-1 max-h-[140px] overflow-y-auto" style={{ color: 'var(--text-muted)' }}>
-                  {modal.dupes?.map((d, i) => (
+                  {duplicateModal.dupes?.map((d, i) => (
                     <li key={i} className="p-1.5 rounded" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                       <span style={{ color: '#FF5900' }}>{d.email}</span> — {d.rows.length} occurrences
                     </li>
@@ -1534,10 +1531,10 @@ export default function LeadGeneration() {
                 </ul>
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Dismiss</button>
-                  {hasRealRows && (
+                  {duplicateModal.dupes?.[0]?.rows[0]?.id && (
                     <button onClick={async () => {
                       const rowsToRemove: LeadRow[] = []
-                      for (const d of modal.dupes!) {
+                      for (const d of (duplicateModal.dupes || [])) {
                         if (d.rows.length <= 1) continue
                         for (let i = 1; i < d.rows.length; i++) rowsToRemove.push(d.rows[i])
                       }
@@ -1566,8 +1563,7 @@ export default function LeadGeneration() {
                   )}
                 </div>
               </>
-              )
-            })()}
+            )}
 
             {duplicateModal.type === 'cell-edit' && (
               <>
