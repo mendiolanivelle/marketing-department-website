@@ -28,3 +28,6 @@ coverage
 
 .env
 supabase/.temp/
+
+# Portable Node.js
+node-portable/

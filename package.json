@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "ai:push": "powershell -ExecutionPolicy Bypass -File scripts/ai-push.ps1"
+    "ai:push": "powershell -ExecutionPolicy Bypass -File scripts/ai-push.ps1",
+    "watch:leads": "node scripts/file-watcher.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -17,7 +18,8 @@
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.79.0",
     "react-router-dom": "^7.18.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
