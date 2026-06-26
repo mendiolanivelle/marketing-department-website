@@ -12,6 +12,7 @@ const About = lazy(() => import('./pages/About'))
 const Timeline = lazy(() => import('./pages/Timeline'))
 const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
+const FileTracker = lazy(() => import('./pages/FileTracker'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 
@@ -69,6 +70,7 @@ function App() {
                             <Route path="/timeline" element={<Timeline />} />
                             <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
+<Route path="/files" element={<FileTracker />} />
                             <Route path="/leads" element={<LeadGeneration />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
                           </Routes>
