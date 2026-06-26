@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface WorkspaceCard {
   id: string
-  type: 'note' | 'link' | 'todo' | 'column' | 'image'
+  type: 'note' | 'link' | 'todo' | 'column' | 'image' | 'shape'
+  shapeType?: 'rectangle' | 'circle' | 'diamond' | 'triangle' | 'star' | 'hexagon' | 'arrow-right' | 'arrow-left' | 'line'
   x: number
   y: number
   content: string
@@ -21,6 +22,7 @@ export default function Workspace() {
     return saved ? JSON.parse(saved) : []
   })
   const [activeTool, setActiveTool] = useState<string | null>(null)
+  const [showShapeMenu, setShowShapeMenu] = useState(false)
   const [dragState, setDragState] = useState<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
   const [editingTodo, setEditingTodo] = useState<{ cardId: string; todoId: string } | null>(null)
   const [newTodoText, setNewTodoText] = useState('')
@@ -31,7 +33,7 @@ export default function Workspace() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cards))
   }, [cards])
 
-  const addCard = useCallback((type: WorkspaceCard['type']) => {
+  const addCard = useCallback((type: WorkspaceCard['type'], shapeType?: WorkspaceCard['shapeType']) => {
     const id = `card-${Date.now()}`
     const base: WorkspaceCard = {
       id,
@@ -39,8 +41,8 @@ export default function Workspace() {
       x: 60 + Math.random() * 300,
       y: 60 + Math.random() * 300,
       content: type === 'note' ? 'New note...' : type === 'link' ? 'https://' : type === 'column' ? 'Column' : '',
-      width: type === 'column' ? 240 : type === 'image' ? 280 : 220,
-      height: type === 'column' ? 300 : type === 'note' ? 160 : 200,
+      width: type === 'column' ? 240 : type === 'image' ? 280 : type === 'shape' ? 140 : 220,
+      height: type === 'column' ? 300 : type === 'note' ? 160 : type === 'shape' ? 140 : 200,
     }
     if (type === 'todo') {
       base.todos = []
@@ -53,8 +55,14 @@ export default function Workspace() {
       base.imageUrl = ''
       base.content = 'Click to upload or paste URL'
     }
+    if (type === 'shape') {
+      base.shapeType = shapeType || 'rectangle'
+      base.width = shapeType === 'arrow-right' || shapeType === 'arrow-left' || shapeType === 'line' ? 200 : 140
+      base.height = shapeType === 'arrow-right' || shapeType === 'arrow-left' || shapeType === 'line' ? 60 : 140
+    }
     setCards(prev => [...prev, base])
     setActiveTool(null)
+    setShowShapeMenu(false)
   }, [])
 
   const handleMouseDown = (e: React.MouseEvent, card: WorkspaceCard) => {
@@ -142,6 +150,18 @@ export default function Workspace() {
     { key: 'image', label: 'Image', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
   ]
 
+  const shapes = [
+    { key: 'rectangle', label: 'Rectangle', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z' },
+    { key: 'circle', label: 'Circle', icon: 'M12 2a10 10 0 100 20 10 10 0 000-20z' },
+    { key: 'diamond', label: 'Diamond', icon: 'M12 2l10 10-10 10L2 12z' },
+    { key: 'triangle', label: 'Triangle', icon: 'M12 2l10 18H2z' },
+    { key: 'star', label: 'Star', icon: 'M12 2l2.5 7.5H22l-6 4.5 2.5 7.5L12 17l-6.5 4.5L8 14l-6-4.5h7.5z' },
+    { key: 'hexagon', label: 'Hexagon', icon: 'M12 2l8 4v12l-8 4-8-4V6z' },
+    { key: 'arrow-right', label: 'Arrow R', icon: 'M5 12h14m-6-6l6 6-6 6' },
+    { key: 'arrow-left', label: 'Arrow L', icon: 'M19 12H5m6-6l-6 6 6 6' },
+    { key: 'line', label: 'Line', icon: 'M4 20L20 4' },
+  ]
+
   return (
     <div className="flex-1 relative" style={{ backgroundColor: '#F0F2F5' }}>
       {/* Floating bottom toolbar */}
@@ -163,6 +183,38 @@ export default function Workspace() {
             <span className="text-[9px] font-medium">{tool.label}</span>
           </button>
         ))}
+        {/* Shapes button */}
+        <div className="relative">
+          <button
+            onClick={() => setShowShapeMenu(!showShapeMenu)}
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
+            style={{
+              backgroundColor: showShapeMenu ? 'rgba(255,89,0,0.1)' : 'transparent',
+              color: showShapeMenu ? '#FF5900' : '#3E4048',
+            }}
+            onMouseEnter={e => { if (!showShapeMenu) e.currentTarget.style.backgroundColor = 'rgba(202,205,215,0.3)' }}
+            onMouseLeave={e => { if (!showShapeMenu) e.currentTarget.style.backgroundColor = 'transparent' }}
+            title="Shapes"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 2l2.5 7.5H22l-6 4.5 2.5 7.5L12 17l-6.5 4.5L8 14l-6-4.5h7.5z" /></svg>
+            <span className="text-[9px] font-medium">Shapes</span>
+          </button>
+          {showShapeMenu && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-2xl border shadow-lg grid grid-cols-3 gap-1" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+              {shapes.map(shape => (
+                <button
+                  key={shape.key}
+                  onClick={() => addCard('shape', shape.key as WorkspaceCard['shapeType'])}
+                  className="flex flex-col items-center gap-0.5 p-2 rounded-xl transition-all hover:bg-[rgba(202,205,215,0.3)]"
+                  title={shape.label}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="#3E4048" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={shape.icon} /></svg>
+                  <span className="text-[8px]" style={{ color: '#3E4048' }}>{shape.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Canvas */}
@@ -182,8 +234,10 @@ export default function Workspace() {
               top: card.y,
               width: card.width,
               height: card.height,
-              backgroundColor: '#FFFFFF',
-              borderColor: '#CACDD7',
+              backgroundColor: card.type === 'shape' ? 'transparent' : '#FFFFFF',
+              borderColor: card.type === 'shape' ? 'transparent' : '#CACDD7',
+              borderWidth: card.type === 'shape' ? 0 : undefined,
+              boxShadow: card.type === 'shape' ? 'none' : undefined,
               cursor: dragState?.id === card.id ? 'grabbing' : 'grab',
               zIndex: card.zIndex || 1,
             }}
@@ -342,6 +396,23 @@ export default function Workspace() {
                     <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(card.id, e.target.files[0]) }} />
                   </label>
                 </div>
+              </div>
+            )}
+
+            {/* Shape Card */}
+            {card.type === 'shape' && (
+              <div className="w-full h-full flex items-center justify-center p-2" style={{ backgroundColor: 'transparent' }}>
+                <svg viewBox="0 0 100 100" className="w-full h-full" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>
+                  {card.shapeType === 'rectangle' && <rect x="5" y="5" width="90" height="90" rx="8" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'circle' && <circle cx="50" cy="50" r="45" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'diamond' && <polygon points="50,5 95,50 50,95 5,50" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'triangle' && <polygon points="50,5 95,90 5,90" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'star' && <polygon points="50,5 61,35 95,35 68,55 77,90 50,70 23,90 32,55 5,35 39,35" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'hexagon' && <polygon points="50,5 90,27.5 90,72.5 50,95 10,72.5 10,27.5" fill="none" stroke="#FF5900" strokeWidth="3" />}
+                  {card.shapeType === 'arrow-right' && <><line x1="10" y1="50" x2="85" y2="50" stroke="#FF5900" strokeWidth="3" strokeLinecap="round" /><polyline points="65,30 90,50 65,70" fill="none" stroke="#FF5900" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></>}
+                  {card.shapeType === 'arrow-left' && <><line x1="90" y1="50" x2="15" y2="50" stroke="#FF5900" strokeWidth="3" strokeLinecap="round" /><polyline points="35,30 10,50 35,70" fill="none" stroke="#FF5900" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></>}
+                  {card.shapeType === 'line' && <line x1="10" y1="50" x2="90" y2="50" stroke="#FF5900" strokeWidth="3" strokeLinecap="round" />}
+                </svg>
               </div>
             )}
           </div>
