@@ -657,34 +657,37 @@ export default function LeadGeneration() {
 
   const openFile = async (file: LeadFile) => {
     setSelectedFile(file)
-    const fileRows = await fetchRows(file.id)
+    await fetchRows(file.id)
     historyRef.current = []
     historyIndexRef.current = -1
-    // Auto-scan for in-file duplicates after rows load
-    const emailCol = file.columns.find(h => h.toLowerCase().includes('email'))
-    if (emailCol && fileRows.length > 0) {
-      const seen = new Map<string, LeadRow[]>()
-      for (const row of fileRows) {
-        const val = row.data[emailCol]
-        if (!val || !val.trim()) continue
-        const key = val.trim().toLowerCase()
-        if (!seen.has(key)) seen.set(key, [])
-        seen.get(key)!.push(row)
-      }
-      const dupes: { email: string; rows: LeadRow[] }[] = []
-      for (const [email, matchingRows] of seen) {
-        if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
-      }
-      if (dupes.length > 0) {
-        setDuplicateModal({
-          type: 'in-file',
-          count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
-          email: dupes[0].email,
-          dupes,
-        })
-      }
-    }
   }
+
+  // Auto-scan for in-file duplicates whenever rows change for the open file
+  useEffect(() => {
+    if (!selectedFile || rows.length === 0) return
+    const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
+    if (!emailCol) return
+    const seen = new Map<string, LeadRow[]>()
+    for (const row of rows) {
+      const val = row.data[emailCol]
+      if (!val || !val.trim()) continue
+      const key = val.trim().toLowerCase()
+      if (!seen.has(key)) seen.set(key, [])
+      seen.get(key)!.push(row)
+    }
+    const dupes: { email: string; rows: LeadRow[] }[] = []
+    for (const [email, matchingRows] of seen) {
+      if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
+    }
+    if (dupes.length > 0) {
+      setDuplicateModal({
+        type: 'in-file',
+        count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
+        email: dupes[0].email,
+        dupes,
+      })
+    }
+  }, [rows, selectedFile])
 
   const closeFile = () => {
     setSelectedFile(null)
@@ -969,34 +972,6 @@ export default function LeadGeneration() {
     Tools: ['Spelling', 'Macros', 'Notifications', 'Script editor'],
     Extensions: ['Add-ons', 'Get add-ons'],
     Help: ['Search menus', 'Help', 'Updates', 'Report a problem']
-  }
-
-  const removeInFileDuplicates = async () => {
-    if (!duplicateModal || !selectedFile || !duplicateModal.dupes) return
-    const rowsToRemove: LeadRow[] = []
-    for (const d of duplicateModal.dupes) {
-      if (d.rows.length <= 1) continue
-      if (!d.rows[0]?.id) continue
-      for (let i = 1; i < d.rows.length; i++) rowsToRemove.push(d.rows[i])
-    }
-    if (rowsToRemove.length === 0) return
-
-    for (const row of rowsToRemove) {
-      try {
-        await checkAndRouteDuplicates([row.data], selectedFile.id, selectedFile.name, selectedFile.columns)
-        if (supabase) {
-          await supabase.from('lead_rows').delete().eq('id', row.id)
-        } else {
-          const saved = localStorage.getItem(`exodia-lead-rows-${selectedFile.id}`)
-          if (saved) {
-            const localRows: LeadRow[] = JSON.parse(saved)
-            localStorage.setItem(`exodia-lead-rows-${selectedFile.id}`, JSON.stringify(localRows.filter(r => r.id !== row.id)))
-          }
-        }
-      } catch {}
-    }
-    setRows(prev => prev.filter(r => !rowsToRemove.some(rm => rm.id === r.id)))
-    setDuplicateModal(null)
   }
 
   if (selectedFile) {
@@ -1555,13 +1530,16 @@ export default function LeadGeneration() {
               </>
             )}
 
-            {duplicateModal.type === 'in-file' && (
+            {duplicateModal.type === 'in-file' && (() => {
+              const modal = duplicateModal
+              const hasRealRows = modal.dupes?.some(d => d.rows[0]?.id)
+              return (
               <>
                 <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#FF5900' }}>{duplicateModal.count}</strong> duplicate row(s) found in this file. The email <strong style={{ color: '#FF5900' }}>"{duplicateModal.email}"</strong> appears multiple times.
+                  <strong style={{ color: '#FF5900' }}>{modal.count}</strong> duplicate row(s) found in this file. The email <strong style={{ color: '#FF5900' }}>"{modal.email}"</strong> appears multiple times.
                 </p>
                 <ul className="text-xs mb-4 space-y-1 max-h-[140px] overflow-y-auto" style={{ color: 'var(--text-muted)' }}>
-                  {duplicateModal.dupes?.map((d, i) => (
+                  {modal.dupes?.map((d, i) => (
                     <li key={i} className="p-1.5 rounded" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                       <span style={{ color: '#FF5900' }}>{d.email}</span> — {d.rows.length} occurrences
                     </li>
@@ -1569,14 +1547,40 @@ export default function LeadGeneration() {
                 </ul>
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Dismiss</button>
-                  {duplicateModal.dupes?.[0]?.rows[0]?.id && (
-                    <button onClick={removeInFileDuplicates} className="px-4 py-2 text-sm rounded-lg transition hover:opacity-90" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}>
+                  {hasRealRows && (
+                    <button onClick={async () => {
+                      const rowsToRemove: LeadRow[] = []
+                      for (const d of modal.dupes!) {
+                        if (d.rows.length <= 1) continue
+                        for (let i = 1; i < d.rows.length; i++) rowsToRemove.push(d.rows[i])
+                      }
+                      if (rowsToRemove.length === 0) return
+                      for (const row of rowsToRemove) {
+                        try {
+                          if (selectedFile) {
+                            await checkAndRouteDuplicates([row.data], selectedFile.id, selectedFile.name, selectedFile.columns)
+                          }
+                          if (supabase) {
+                            await supabase.from('lead_rows').delete().eq('id', row.id)
+                          } else if (selectedFile) {
+                            const saved = localStorage.getItem(`exodia-lead-rows-${selectedFile.id}`)
+                            if (saved) {
+                              const localRows: LeadRow[] = JSON.parse(saved)
+                              localStorage.setItem(`exodia-lead-rows-${selectedFile.id}`, JSON.stringify(localRows.filter(r => r.id !== row.id)))
+                            }
+                          }
+                        } catch {}
+                      }
+                      setRows(prev => prev.filter(r => !rowsToRemove.some(rm => rm.id === r.id)))
+                      setDuplicateModal(null)
+                    }} className="px-4 py-2 text-sm rounded-lg transition hover:opacity-90" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}>
                       Remove all duplicates
                     </button>
                   )}
                 </div>
               </>
-            )}
+              )
+            })()}
 
             {duplicateModal.type === 'cell-edit' && (
               <>
