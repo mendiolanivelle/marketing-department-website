@@ -228,8 +228,9 @@ export default function LeadGeneration() {
           totalLeads++
         }
 
-        if (emailStatusCol && data[emailStatusCol]?.trim()) {
-          emailsSent++
+        if (emailStatusCol && data[emailStatusCol]) {
+          const val = data[emailStatusCol].trim().toLowerCase()
+          if (val === 'email sent' || val === 'sent') emailsSent++
         }
 
         if (leadStatusCol && data[leadStatusCol]) {

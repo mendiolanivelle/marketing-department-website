@@ -83,7 +83,10 @@ export default function Home() {
         const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
 
         if (companyCol && data[companyCol]?.trim()) totalLeads++
-        if (emailStatusCol && data[emailStatusCol]?.trim()) emailsSent++
+        if (emailStatusCol && data[emailStatusCol]) {
+          const val = data[emailStatusCol].trim().toLowerCase()
+          if (val === 'email sent' || val === 'sent') emailsSent++
+        }
         if (leadStatusCol && data[leadStatusCol]) {
           const status = data[leadStatusCol].toLowerCase()
           if (status.includes('replied')) replied++
