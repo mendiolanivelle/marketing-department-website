@@ -23,8 +23,16 @@ const styles = `
   75% { transform: translate(-30px, -20px) rotate(-2deg); }
 }
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.08; transform: scale(1); }
-  50% { opacity: 0.18; transform: scale(1.1); }
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.15); }
+}
+@keyframes glowSurge {
+  0% { opacity: 0.35; transform: scale(1.15); }
+  100% { opacity: 0.8; transform: scale(2.5); }
+}
+@keyframes glowFade {
+  0% { opacity: 1; transform: scale(2.5); }
+  100% { opacity: 0; transform: scale(3); }
 }
 @keyframes folderIn {
   0% { opacity: 0; transform: scale(0.6); }
@@ -282,6 +290,22 @@ export default function PublicShowcase() {
                 position: 'relative',
               }}
             >
+            {/* Glow behind folder — pulses during intro, surges during opening */}
+            <div
+              className="absolute"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 300,
+                height: 250,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,89,0,0.9) 0%, rgba(255,89,0,0.3) 30%, transparent 70%)',
+                filter: 'blur(40px)',
+                animation: phase === 'intro' ? 'pulseGlow 2.5s ease-in-out infinite' : 'glowSurge 1.2s ease-out forwards',
+                opacity: phase === 'intro' ? undefined : 0,
+              }}
+            />
             {/* Folder body */}
             <div
               className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl"
