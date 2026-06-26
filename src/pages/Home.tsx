@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity, getActivityLog } from '../lib/activityLogger'
@@ -52,14 +52,17 @@ export default function Home() {
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
-  const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => getActivityLog())
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
 
-  // Refresh activity log when the page gains focus (other tabs may have added activities)
+  // Refresh activity log on mount and when navigating back to dashboard
+  const location = useLocation()
   useEffect(() => {
+    setActivityLog(getActivityLog())
     const refresh = () => setActivityLog(getActivityLog())
     window.addEventListener('focus', refresh)
     return () => window.removeEventListener('focus', refresh)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key])
 
   // Persist tasks and announcements to localStorage
   useEffect(() => {
@@ -184,6 +187,7 @@ export default function Home() {
     setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
     const task = tasks.find(t => t.id === id)
     if (task) logActivity('Task', task.done ? `Unchecked "${task.text}"` : `Completed "${task.text}"`)
+    setActivityLog(getActivityLog())
   }
 
   const addTask = () => {
@@ -192,12 +196,14 @@ export default function Home() {
     setTasks([{ id: newId, text: newTaskText.trim(), done: false }, ...tasks])
     setNewTaskText('')
     logActivity('Task', `Added "${newTaskText.trim()}"`)
+    setActivityLog(getActivityLog())
   }
 
   const deleteTask = (id: number) => {
     const task = tasks.find(t => t.id === id)
     setTasks(tasks.filter(t => t.id !== id))
     if (task) logActivity('Task', `Deleted "${task.text}"`)
+    setActivityLog(getActivityLog())
   }
 
   const startEditingTask = (task: { id: number; text: string }) => {
@@ -223,12 +229,14 @@ export default function Home() {
     setNewAnnouncement({ title: '', date: '', tag: 'Update', content: '' })
     setShowAddAnnouncement(false)
     logActivity('Announcement', `Added "${newAnnouncement.title.trim()}"`)
+    setActivityLog(getActivityLog())
   }
 
   const deleteAnnouncement = (id: number) => {
     const item = announcementsList.find(a => a.id === id)
     setAnnouncementsList(announcementsList.filter(a => a.id !== id))
     if (item) logActivity('Announcement', `Deleted "${item.title}"`)
+    setActivityLog(getActivityLog())
   }
 
   const startEditingAnnouncement = (announcement: any) => {
