@@ -119,7 +119,7 @@ export default function Workspace() {
   ]
 
   return (
-    <div className="fixed inset-0" style={{ backgroundColor: '#CACDD7' }}>
+    <div className="flex-1 relative" style={{ backgroundColor: '#CACDD7' }}>
       {/* Floating bottom toolbar */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-2 rounded-2xl border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
         {tools.map(tool => (
