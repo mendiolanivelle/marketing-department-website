@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+﻿import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const SLIDE_COUNT = 85
@@ -68,13 +68,12 @@ const styles = `
 }
 @keyframes cursorMoveToFolder {
   0% { transform: translate(0, 0); }
-  100% { transform: translate(-35vw, 28vh); }
+  100% { transform: translate(-30vw, 30vh); }
 }
 @keyframes cursorClick {
-  0%, 100% { transform: translate(-35vw, 28vh) scale(1); }
-  25% { transform: translate(-35vw, 30vh) scale(0.9); }
-  50% { transform: translate(-35vw, 28vh) scale(1); }
-  75% { transform: translate(-35vw, 30vh) scale(0.9); }
+  0%, 100% { transform: translate(-30vw, 30vh) scale(1); }
+  40% { transform: translate(-30vw, calc(30vh + 4px)) scale(0.9); }
+  60% { transform: translate(-30vw, calc(30vh + 4px)) scale(0.9); }
 }
 `
 
@@ -140,7 +139,7 @@ export default function PublicShowcase() {
     autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
   }, [phase, current, preloadAdjacent])
 
-  // Start sequence — wait for images to actually load before slideshow
+  // Start sequence ΓÇö wait for images to actually load before slideshow
   useEffect(() => {
     preloadAll()
     const t1 = setTimeout(() => setPhase('opening'), 4000)
@@ -156,7 +155,7 @@ export default function PublicShowcase() {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [restartCount, preloadAll, imagesReady])
 
-  // Auto-advance during slideshow — stays on last slide, does not auto-close
+  // Auto-advance during slideshow ΓÇö stays on last slide, does not auto-close
   useEffect(() => {
     if (phase !== 'slideshow' || autoPaused) return
     const timer = setInterval(() => {
@@ -177,14 +176,14 @@ export default function PublicShowcase() {
     return () => clearTimeout(timer)
   }, [phase, current])
 
-  // Flash animation → closing folder
+  // Flash animation ΓåÆ closing folder
   useEffect(() => {
     if (phase !== 'flash') return
     const t1 = setTimeout(() => setPhase('closing'), 1200)
     return () => clearTimeout(t1)
   }, [phase])
 
-  // Closing folder → ended button
+  // Closing folder ΓåÆ ended button
   useEffect(() => {
     if (phase !== 'closing') return
     const t1 = setTimeout(() => setPhase('ended'), 2000)
@@ -342,7 +341,7 @@ export default function PublicShowcase() {
                   top: '20%',
                   left: '80%',
                   zIndex: 60,
-                  animation: 'cursorAppear 0.3s ease-out 1.8s both, cursorMoveToFolder 1s ease-in-out 2.1s both, cursorClick 0.6s ease-in-out 3.2s both',
+                  animation: 'cursorAppear 0.3s ease-out 1.8s both, cursorMoveToFolder 1.2s ease-in-out 2.1s both, cursorClick 0.4s ease-in-out 3.3s both',
                   pointerEvents: 'none',
                 }}
               >
@@ -407,7 +406,7 @@ export default function PublicShowcase() {
           </div>
         )}
 
-        {/* ====== CLOSING — zoom back to folder ====== */}
+        {/* ====== CLOSING ΓÇö zoom back to folder ====== */}
         {phase === 'closing' && (
           <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
             {/* Behind-folder glow */}
@@ -435,7 +434,7 @@ export default function PublicShowcase() {
               <div className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
               <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', animation: 'flapClose 1s ease-in-out forwards' }} />
               <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
-              {/* Orange glow burst when closing — fades as flap closes */}
+              {/* Orange glow burst when closing ΓÇö fades as flap closes */}
               <div
                 className="absolute"
                 style={{
@@ -527,7 +526,7 @@ export default function PublicShowcase() {
           className="fixed bottom-0 right-0 z-50 w-8 h-8 flex items-center justify-center cursor-crosshair"
           title=""
         >
-          <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">◈</span>
+          <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">Γùê</span>
         </div>
       </div>
     </>
