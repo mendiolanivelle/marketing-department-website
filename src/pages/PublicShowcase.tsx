@@ -59,10 +59,10 @@ const styles = `
   100% { transform: perspective(800px) rotateX(0deg); }
 }
 @keyframes zoomInBurst {
-  0% { opacity: 0; transform: scale(0.3); }
-  30% { opacity: 1; transform: scale(1); }
-  70% { opacity: 1; transform: scale(1.2); }
-  100% { opacity: 0; transform: scale(2); }
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
 }
 `
 
@@ -138,7 +138,7 @@ export default function PublicShowcase() {
         }, 100)
         setTimeout(() => clearInterval(poll), 10000)
       }
-    }, 3800)
+    }, 4000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [restartCount, preloadAll, imagesReady])
 
@@ -324,19 +324,12 @@ export default function PublicShowcase() {
         {/* ====== ZOOM-IN TRANSITION ====== */}
         {phase === 'zoom-in' && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="fixed inset-0 z-50"
             style={{
-              backgroundColor: '#1B1A1C',
+              backgroundColor: '#FF5900',
+              animation: 'zoomInBurst 0.6s ease-in-out forwards',
             }}
-          >
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'radial-gradient(circle at center, rgba(255,89,0,0.9) 0%, rgba(255,89,0,0.3) 40%, rgba(255,89,0,0.1) 70%, transparent 100%)',
-                animation: 'zoomInBurst 0.4s ease-out forwards',
-              }}
-            />
-          </div>
+          />
         )}
 
         {/* ====== SLIDESHOW ====== */}
