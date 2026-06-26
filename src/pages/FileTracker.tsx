@@ -447,33 +447,33 @@ export default function FileTracker() {
         </div>
       )}
 
-      {/* Category toolbar */}
-      <div className="flex items-center gap-1 sm:gap-1.5 px-4 sm:px-6 py-2.5 overflow-x-auto border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-        {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setActiveCategory(cat)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all flex-shrink-0"
-            style={{
-              backgroundColor: activeCategory === cat ? '#FF5900' : 'rgba(202,205,215,0.25)',
-              color: activeCategory === cat ? '#FFFFFF' : '#3E4048',
-              fontWeight: activeCategory === cat ? 600 : 400,
-            }}>
-            {cat}
-            <span className={`text-xs ${activeCategory === cat ? 'text-white/70' : ''}`} style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
-          </button>
-        ))}
-      </div>
-
       {/* Main */}
       <div>
-        <div className="sticky top-0 z-10 px-4 sm:px-6 py-4 border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <div className="relative flex-1">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input type="text" placeholder="Search files by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none text-sm transition" style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }} />
+        <div className="sticky top-0 z-10 px-4 sm:px-6 py-3 border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <div className="relative sm:max-w-xs lg:max-w-sm flex-shrink-0">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" placeholder="Search files..." value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border outline-none text-sm transition"
+                style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }} />
             </div>
-            <button onClick={() => setShowUpload(true)} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>
+            <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setActiveCategory(cat)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs whitespace-nowrap transition-all flex-shrink-0"
+                  style={{
+                    backgroundColor: activeCategory === cat ? '#FF5900' : 'rgba(202,205,215,0.25)',
+                    color: activeCategory === cat ? '#FFFFFF' : '#3E4048',
+                    fontWeight: activeCategory === cat ? 600 : 400,
+                  }}>
+                  {cat}
+                  <span style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowUpload(true)} className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all hover:-translate-y-0.5 flex-shrink-0" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Upload New Asset
+              Upload
             </button>
           </div>
         </div>
