@@ -546,7 +546,6 @@ export default function LeadGeneration() {
 
         // Filter out cross-file duplicates only — keep within-file duplicates so the in-file modal can handle them
         const crossFileUniqueRows: Record<string, string>[] = []
-        const seenInUpload = new Set<string>()
         parsedRows.forEach(row => {
           if (emailCol && row[emailCol]) {
             const email = row[emailCol].toLowerCase().trim()
@@ -643,37 +642,39 @@ export default function LeadGeneration() {
 
   const openFile = async (file: LeadFile) => {
     setSelectedFile(file)
-    await fetchRows(file.id)
+    const fileRows = await fetchRows(file.id)
     historyRef.current = []
     historyIndexRef.current = -1
+    // Scan the returned rows directly (not state — avoids timing issues with renders)
+    const emailCol = file.columns.find(h => h.toLowerCase().includes('email'))
+    if (emailCol && fileRows.length > 0) {
+      const seen = new Map<string, LeadRow[]>()
+      for (const row of fileRows) {
+        const val = row.data[emailCol]
+        if (!val || !val.trim()) continue
+        const key = val.trim().toLowerCase()
+        if (!seen.has(key)) seen.set(key, [])
+        seen.get(key)!.push(row)
+      }
+      const dupes: { email: string; rows: LeadRow[] }[] = []
+      for (const [email, matchingRows] of seen) {
+        if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
+      }
+      if (dupes.length > 0) {
+        // Use setTimeout to ensure this runs after the render triggered by setSelectedFile
+        setTimeout(() => {
+          setDuplicateModal({
+            type: 'in-file',
+            count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
+            email: dupes[0].email,
+            dupes,
+          })
+        }, 0)
+      }
+    }
   }
 
-  // Auto-scan for in-file duplicates whenever rows change for the open file
-  useEffect(() => {
-    if (!selectedFile || rows.length === 0) return
-    const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
-    if (!emailCol) return
-    const seen = new Map<string, LeadRow[]>()
-    for (const row of rows) {
-      const val = row.data[emailCol]
-      if (!val || !val.trim()) continue
-      const key = val.trim().toLowerCase()
-      if (!seen.has(key)) seen.set(key, [])
-      seen.get(key)!.push(row)
-    }
-    const dupes: { email: string; rows: LeadRow[] }[] = []
-    for (const [email, matchingRows] of seen) {
-      if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
-    }
-    if (dupes.length > 0) {
-      setDuplicateModal({
-        type: 'in-file',
-        count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
-        email: dupes[0].email,
-        dupes,
-      })
-    }
-  }, [rows, selectedFile])
+  const closeFile = () => {
 
   const closeFile = () => {
     setSelectedFile(null)
