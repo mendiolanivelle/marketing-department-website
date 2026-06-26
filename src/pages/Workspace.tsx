@@ -119,17 +119,14 @@ export default function Workspace() {
   ]
 
   return (
-    <div className="fixed inset-0 flex" style={{ backgroundColor: '#CACDD7' }}>
-      {/* Toolbar */}
-      <div className="flex flex-col items-center gap-2 px-2 py-4 border-r z-10 flex-shrink-0" style={{ width: 80, backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2" style={{ backgroundColor: '#FF5900' }}>
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" /></svg>
-        </div>
+    <div className="fixed inset-0" style={{ backgroundColor: '#CACDD7' }}>
+      {/* Floating bottom toolbar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-2 rounded-2xl border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
         {tools.map(tool => (
           <button
             key={tool.key}
             onClick={() => addCard(tool.key as WorkspaceCard['type'])}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all w-full"
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all"
             style={{
               backgroundColor: activeTool === tool.key ? 'rgba(255,89,0,0.1)' : 'transparent',
               color: activeTool === tool.key ? '#FF5900' : '#3E4048',
@@ -139,13 +136,13 @@ export default function Workspace() {
             title={tool.label}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d={tool.icon} /></svg>
-            <span className="text-[10px] font-medium">{tool.label}</span>
+            <span className="text-[9px] font-medium">{tool.label}</span>
           </button>
         ))}
       </div>
 
       {/* Canvas */}
-      <div ref={canvasRef} className="flex-1 relative overflow-hidden">
+      <div ref={canvasRef} className="absolute inset-0 overflow-hidden">
         {/* Grid dots background */}
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: 'radial-gradient(circle, rgba(62,64,72,0.15) 1px, transparent 1px)',
@@ -171,13 +168,14 @@ export default function Workspace() {
               handleMouseDown(e, card)
             }}
           >
-            {/* Close button */}
+            {/* Delete button */}
             <button
               onClick={(e) => { e.stopPropagation(); deleteCard(card.id) }}
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10"
+              className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full flex items-center justify-center z-10 shadow-sm hover:scale-110 transition-transform"
               style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}
+              title="Delete"
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
             {/* Note Card */}
