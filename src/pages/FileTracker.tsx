@@ -109,6 +109,10 @@ export default function FileTracker() {
     if (editingId && editInputRef.current) editInputRef.current.focus()
   }, [editingId])
 
+  useEffect(() => {
+    if (folderInputRef.current) folderInputRef.current.setAttribute('webkitdirectory', '')
+  }, [])
+
   const allAssets = [...userAssets, ...mockAssets]
 
   const filtered = allAssets.filter(a => {
@@ -127,6 +131,8 @@ export default function FileTracker() {
     for (let i = 0; i < files.length; i++) list.push(files[i])
     setPendingFiles(prev => [...prev, ...list])
     setUploadError('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    if (folderInputRef.current) folderInputRef.current.value = ''
   }
 
   const readAndUpload = (file: File) => {
@@ -208,8 +214,8 @@ export default function FileTracker() {
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Files</label>
                 <div className="border-2 border-dashed rounded-xl p-5 text-center" style={{ borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.1)' }}>
-                  <input ref={fileInputRef} type="file" multiple onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" accept="*/*" />
-                  <input ref={folderInputRef} type="file" multiple={false} onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" accept="*/*" webkitdirectory="" />
+                  <input ref={fileInputRef} type="file" multiple onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
+                  <input ref={folderInputRef} type="file" onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
                   <div className="flex flex-col sm:flex-row gap-3 justify-center mb-3">
                     <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
