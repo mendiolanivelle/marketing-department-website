@@ -58,9 +58,15 @@ const styles = `
   0% { transform: perspective(800px) rotateX(-120deg); }
   100% { transform: perspective(800px) rotateX(0deg); }
 }
+@keyframes zoomInBurst {
+  0% { opacity: 0; transform: scale(0.3); }
+  30% { opacity: 1; transform: scale(1); }
+  70% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(2); }
+}
 `
 
-type Phase = 'intro' | 'opening' | 'slideshow' | 'closing' | 'flash' | 'ended'
+type Phase = 'intro' | 'opening' | 'zoom-in' | 'slideshow' | 'closing' | 'flash' | 'ended'
 
 export default function PublicShowcase() {
   const [phase, setPhase] = useState<Phase>('intro')
@@ -123,7 +129,8 @@ export default function PublicShowcase() {
   useEffect(() => {
     preloadAll()
     const t1 = setTimeout(() => setPhase('opening'), 2000)
-    const t2 = setTimeout(() => {
+    const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
+    const t3 = setTimeout(() => {
       if (imagesReady) setPhase('slideshow')
       else {
         const poll = setInterval(() => {
@@ -131,8 +138,8 @@ export default function PublicShowcase() {
         }, 100)
         setTimeout(() => clearInterval(poll), 10000)
       }
-    }, 3200)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    }, 3800)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [restartCount, preloadAll, imagesReady])
 
   // Auto-advance during slideshow ΓÇö stays on last slide, does not auto-close
@@ -311,6 +318,27 @@ export default function PublicShowcase() {
               }}
             />
             </div>
+          </div>
+        )}
+
+        {/* ====== ZOOM-IN TRANSITION ====== */}
+        {phase === 'zoom-in' && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{
+              backgroundColor: '#1B1A1C',
+            }}
+          >
+            <div
+              style={{
+                width: 400,
+                height: 400,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,89,0,0.9) 0%, rgba(255,89,0,0.3) 40%, transparent 70%)',
+                filter: 'blur(40px)',
+                animation: 'zoomInBurst 0.4s ease-out forwards',
+              }}
+            />
           </div>
         )}
 
