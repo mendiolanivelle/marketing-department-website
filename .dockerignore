@@ -16,3 +16,6 @@ coverage
 !.env.example
 .DS_Store
 supabase/.temp
+node-portable
+watched-leads/processed
+watched-leads/errors

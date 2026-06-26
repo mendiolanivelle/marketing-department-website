@@ -1,0 +1,22 @@
+# Binary files — disable diff and delta compression for faster cloning
+public/portfolio/*.jpg binary -diff -delta
+public/portfolio/*.jpeg binary -diff -delta
+public/portfolio/*.png binary -diff -delta
+*.jpg binary -diff -delta
+*.jpeg binary -diff -delta
+*.png binary -diff -delta
+*.gif binary -diff -delta
+*.ico binary -diff -delta
+*.svg text
+*.webp binary -diff -delta
+*.avif binary -diff -delta
+*.mp4 binary -diff -delta
+*.webm binary -diff -delta
+*.zip binary -diff -delta
+*.gz binary -diff -delta
+*.mjs text
+*.js text
+*.ts text
+*.tsx text
+*.css text
+*.json text
