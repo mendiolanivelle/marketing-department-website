@@ -92,14 +92,22 @@ export default function FileTracker() {
   const [showUpload, setShowUpload] = useState(false)
   const [uploadCategory, setUploadCategory] = useState('Presentations')
   const [uploadError, setUploadError] = useState('')
-  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(userAssets))
   }, [userAssets])
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) editInputRef.current.focus()
+  }, [editingId])
 
   const allAssets = [...userAssets, ...mockAssets]
 
@@ -114,38 +122,50 @@ export default function FileTracker() {
     return acc
   }, {} as Record<string, number>)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) { setPendingFile(null); return }
-    setPendingFile(file)
+  const handleFilesSelected = (files: FileList) => {
+    const list: File[] = []
+    for (let i = 0; i < files.length; i++) list.push(files[i])
+    setPendingFiles(prev => [...prev, ...list])
     setUploadError('')
   }
 
-  const handleUpload = () => {
-    if (!pendingFile) { setUploadError('Please select a file'); return }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const asset: Asset = {
-        id: generateId(),
-        name: pendingFile.name,
-        category: uploadCategory,
-        type: pendingFile.type || 'application/octet-stream',
-        dataUrl: reader.result as string,
-        addedAt: new Date().toISOString(),
-        size: pendingFile.size,
+  const readAndUpload = (file: File) => {
+    return new Promise<void>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const asset: Asset = {
+          id: generateId(),
+          name: file.name,
+          category: uploadCategory,
+          type: file.type || 'application/octet-stream',
+          dataUrl: reader.result as string,
+          addedAt: new Date().toISOString(),
+          size: file.size,
+        }
+        setUserAssets(prev => [asset, ...prev])
+        resolve()
       }
-      setUserAssets(prev => [asset, ...prev])
-      setPendingFile(null)
-      setUploadError('')
-      setShowUpload(false)
-    }
-    reader.onerror = () => setUploadError('Failed to read file. The file may be too large for browser storage.')
-    reader.readAsDataURL(pendingFile)
+      reader.onerror = () => { setUploadError('Some files failed to read. They may be too large.'); resolve() }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleUpload = async () => {
+    if (pendingFiles.length === 0) { setUploadError('Please select at least one file'); return }
+    setUploadError('')
+    const files = [...pendingFiles]
+    setPendingFiles([])
+    setShowUpload(false)
+    for (const file of files) await readAndUpload(file)
+  }
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleDelete = (id: string) => {
     setUserAssets(prev => prev.filter(a => a.id !== id))
-    setPreviewAsset(null)
+    if (previewAsset?.id === id) setPreviewAsset(null)
   }
 
   const handleDownload = (asset: Asset) => {
@@ -153,9 +173,20 @@ export default function FileTracker() {
     const a = document.createElement('a')
     a.href = asset.dataUrl
     a.download = asset.name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  }
+
+  const startEditing = (asset: Asset) => {
+    if (asset.isMock) return
+    setEditingId(asset.id)
+    setEditValue(asset.name)
+  }
+
+  const saveEdit = () => {
+    const trimmed = editValue.trim()
+    if (!trimmed || !editingId) { setEditingId(null); return }
+    setUserAssets(prev => prev.map(a => a.id === editingId ? { ...a, name: trimmed } : a))
+    setEditingId(null)
   }
 
   const thumbnailColor = (cat: string) => CATEGORY_COLORS[cat] || '#FF5900'
@@ -165,56 +196,63 @@ export default function FileTracker() {
       {/* Upload modal */}
       {showUpload && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowUpload(false)}>
-          <div className="relative rounded-2xl border w-full max-w-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#CACDD7' }}>
-              <h2 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Upload New Asset</h2>
-              <button onClick={() => setShowUpload(false)} className="p-1 rounded-lg transition" style={{ color: '#CACDD7' }}>
+          <div className="relative rounded-2xl border w-full max-w-lg max-h-[85vh] flex flex-col" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
+              <h2 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Upload Assets</h2>
+              <button onClick={() => { setShowUpload(false); setPendingFiles([]); setUploadError('') }} className="p-1 rounded-lg transition" style={{ color: '#CACDD7' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              {uploadError && (
-                <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#FF590010', color: '#FF5900', border: '1px solid #FF590030' }}>{uploadError}</div>
-              )}
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+              {uploadError && <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#FF590010', color: '#FF5900', border: '1px solid #FF590030' }}>{uploadError}</div>}
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>File</label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition hover:border-[#FF5900]"
-                  style={{ borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.1)' }}
-                >
-                  <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" />
-                  {pendingFile ? (
-                    <div>
-                      <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{pendingFile.name}</p>
-                      <p className="text-xs mt-1" style={{ color: '#CACDD7' }}>{formatSize(pendingFile.size)}</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <svg className="w-10 h-10 mx-auto mb-2" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                      <p className="text-sm" style={{ color: '#3E4048', fontWeight: 500 }}>Click to select a file</p>
-                      <p className="text-xs mt-1" style={{ color: '#CACDD7' }}>Any file type, no size limit</p>
-                    </div>
-                  )}
+                <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Files</label>
+                <div className="border-2 border-dashed rounded-xl p-5 text-center" style={{ borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.1)' }}>
+                  <input ref={fileInputRef} type="file" multiple onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" accept="*/*" />
+                  <input ref={folderInputRef} type="file" multiple={false} onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" accept="*/*" webkitdirectory="" />
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center mb-3">
+                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                      Select Files
+                    </button>
+                    <button onClick={() => folderInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ border: '2px solid #FF5900', color: '#FF5900', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                      Select Folder
+                    </button>
+                  </div>
+                  <p className="text-xs" style={{ color: '#CACDD7' }}>Any file type, no size limit</p>
                 </div>
               </div>
+              {/* Pending file list */}
+              {pendingFiles.length > 0 && (
+                <div>
+                  <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>{pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''} selected</label>
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 border rounded-lg p-2" style={{ borderColor: '#CACDD7' }}>
+                    {pendingFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
+                        <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span className="truncate flex-1" style={{ color: '#1B1A1C' }}>{f.name}</span>
+                        <span className="text-xs flex-shrink-0" style={{ color: '#CACDD7' }}>{formatSize(f.size)}</span>
+                        <button onClick={() => removePendingFile(i)} className="p-0.5 rounded flex-shrink-0 hover:bg-black/5" style={{ color: '#FF5900' }}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Category</label>
-                <select
-                  value={uploadCategory}
-                  onChange={e => setUploadCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg border outline-none text-sm"
-                  style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }}
-                >
-                  {CATEGORIES.filter(c => c !== 'All Files').map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                <select value={uploadCategory} onChange={e => setUploadCategory(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg border outline-none text-sm" style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }}>
+                  {CATEGORIES.filter(c => c !== 'All Files').map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div className="flex justify-end gap-3 px-6 py-4 border-t" style={{ borderColor: '#CACDD7' }}>
-              <button onClick={() => { setShowUpload(false); setPendingFile(null); setUploadError('') }} className="px-4 py-2 rounded-lg text-sm transition" style={{ color: '#3E4048', fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleUpload} disabled={!pendingFile} className="px-5 py-2 rounded-lg text-sm transition disabled:opacity-50" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>Upload</button>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
+              <button onClick={() => { setShowUpload(false); setPendingFiles([]); setUploadError('') }} className="px-4 py-2 rounded-lg text-sm transition" style={{ color: '#3E4048', fontWeight: 500 }}>Cancel</button>
+              <button onClick={handleUpload} disabled={pendingFiles.length === 0} className="px-5 py-2 rounded-lg text-sm transition disabled:opacity-50" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                Upload {pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}
+              </button>
             </div>
           </div>
         </div>
@@ -258,48 +296,23 @@ export default function FileTracker() {
       <aside className={`flex-shrink-0 hidden sm:flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-14' : 'w-56'}`} style={{ backgroundColor: '#3E4048' }}>
         <div className="flex items-center justify-between px-3 pt-6 pb-4 border-b flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           {!sidebarCollapsed && <h2 className="text-sm font-semibold tracking-wider uppercase truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>Categories</h2>}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 ${sidebarCollapsed ? 'mx-auto' : ''}`}
-            style={{ color: 'rgba(255,255,255,0.5)' }}
-            title={sidebarCollapsed ? 'Expand categories' : 'Collapse categories'}
-          >
-            <svg className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7" />
-            </svg>
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className={`p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 ${sidebarCollapsed ? 'mx-auto' : ''}`} style={{ color: 'rgba(255,255,255,0.5)' }} title={sidebarCollapsed ? 'Expand categories' : 'Collapse categories'}>
+            <svg className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7" /></svg>
           </button>
         </div>
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
           {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+            <button key={cat} onClick={() => setActiveCategory(cat)}
               className={`w-full flex items-center rounded-lg text-sm transition-all duration-200 text-left ${sidebarCollapsed ? 'justify-center py-2.5' : 'justify-between px-3 py-2.5'}`}
-              style={{
-                backgroundColor: activeCategory === cat ? '#FF5900' : 'transparent',
-                color: activeCategory === cat ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
-                fontWeight: activeCategory === cat ? 600 : 400,
-              }}
+              style={{ backgroundColor: activeCategory === cat ? '#FF5900' : 'transparent', color: activeCategory === cat ? '#FFFFFF' : 'rgba(255,255,255,0.7)', fontWeight: activeCategory === cat ? 600 : 400 }}
               onMouseEnter={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#FFFFFF' } }}
               onMouseLeave={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' } }}
-              title={sidebarCollapsed ? cat : undefined}
-            >
-              {sidebarCollapsed ? (
-                <span className="text-xs font-bold">{cat.charAt(0)}</span>
-              ) : (
-                <>
-                  <span className="truncate">{cat}</span>
-                  <span className="text-xs ml-2 flex-shrink-0" style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
-                </>
-              )}
+              title={sidebarCollapsed ? cat : undefined}>
+              {sidebarCollapsed ? <span className="text-xs font-bold">{cat.charAt(0)}</span> : <><span className="truncate">{cat}</span><span className="text-xs ml-2 flex-shrink-0" style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span></>}
             </button>
           ))}
         </nav>
-        {!sidebarCollapsed && (
-          <div className="px-4 py-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-            <div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} file{filtered.length !== 1 ? 's' : ''} found</div>
-          </div>
-        )}
+        {!sidebarCollapsed && <div className="px-4 py-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}><div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} file{filtered.length !== 1 ? 's' : ''} found</div></div>}
       </aside>
 
       {/* Mobile categories */}
@@ -318,14 +331,9 @@ export default function FileTracker() {
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1">
               <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input type="text" placeholder="Search files by name..." value={search} onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none text-sm transition"
-                style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }} />
+              <input type="text" placeholder="Search files by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none text-sm transition" style={{ borderColor: '#CACDD7', color: '#1B1A1C', backgroundColor: '#FFFFFF' }} />
             </div>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all hover:-translate-y-0.5"
-              style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>
+            <button onClick={() => setShowUpload(true)} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               Upload New Asset
             </button>
@@ -342,12 +350,8 @@ export default function FileTracker() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map(asset => (
-                <div key={asset.id}
-                  className="rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg"
-                  style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
-                  onMouseEnter={() => setHoveredId(asset.id)}
-                  onMouseLeave={() => setHoveredId(null)}>
-                  {/* Thumbnail */}
+                <div key={asset.id} className="rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
+                  onMouseEnter={() => setHoveredId(asset.id)} onMouseLeave={() => setHoveredId(null)}>
                   <div className="h-36 flex items-center justify-center overflow-hidden" style={{ backgroundColor: 'rgba(202,205,215,0.2)' }}>
                     {asset.dataUrl && isImage(asset.type) ? (
                       <img src={asset.dataUrl} alt={asset.name} className="w-full h-full object-contain p-2" />
@@ -358,11 +362,18 @@ export default function FileTracker() {
                       </div>
                     )}
                   </div>
-                  {/* Card body */}
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm truncate" style={{ color: '#1B1A1C', fontWeight: 600 }}>{asset.name}</p>
+                        {editingId === asset.id ? (
+                          <input ref={editInputRef} type="text" value={editValue} onChange={e => setEditValue(e.target.value)}
+                            onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
+                            className="w-full px-1.5 py-0.5 rounded border text-sm outline-none"
+                            style={{ borderColor: '#FF5900', color: '#1B1A1C' }} />
+                        ) : (
+                          <p className="text-sm truncate cursor-pointer hover:underline" style={{ color: '#1B1A1C', fontWeight: 600 }}
+                            onClick={() => startEditing(asset)} title="Click to rename">{asset.name}</p>
+                        )}
                       </div>
                       <div className={`flex items-center gap-1 transition-opacity duration-200 ${hoveredId === asset.id ? 'opacity-100' : 'opacity-0'}`}>
                         {asset.dataUrl && isImage(asset.type) && (
@@ -381,10 +392,7 @@ export default function FileTracker() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: `${CATEGORY_COLORS[asset.category]}20`, color: CATEGORY_COLORS[asset.category] }}>
-                        {asset.category}
-                      </span>
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${CATEGORY_COLORS[asset.category]}20`, color: CATEGORY_COLORS[asset.category] }}>{asset.category}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 400 }}>{formatDate(asset.addedAt)}</span>
