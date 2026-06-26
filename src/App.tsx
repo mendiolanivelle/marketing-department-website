@@ -13,6 +13,7 @@ const Timeline = lazy(() => import('./pages/Timeline'))
 const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
+const Workspace = lazy(() => import('./pages/Workspace'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
   return (
@@ -69,6 +70,7 @@ function App() {
                             <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
                             <Route path="/leads" element={<LeadGeneration />} />
+<Route path="/workspace" element={<Workspace />} />
                           </Routes>
                         </Suspense>
                       </main>
