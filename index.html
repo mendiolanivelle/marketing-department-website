@@ -8,6 +8,37 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+      ;['log','warn','error','debug','info'].forEach(function(m){
+        var orig=console[m]; console[m]=function(){for(var i=0;i<arguments.length;i++){var a=String(arguments[i]);if(
+          a.indexOf('message port closed')>-1||
+          a.indexOf('runtime.lastError')>-1||
+          a.indexOf('i18next')>-1||
+          a.indexOf('Locize')>-1||
+          a.indexOf('pendingMailEnrichStorage')>-1||
+          a.indexOf('AuthUtils')>-1||
+          a.indexOf('Failed to fetch dynamically imported module')>-1||
+          a.indexOf('Importing a module script failed')>-1||
+          a.indexOf('Expected a JavaScript-or-Wasm module script')>-1
+        )return}orig.apply(console,arguments)}
+      })
+      window.addEventListener('error',function(e){var m=e.message||'';if(
+        m.indexOf('message port closed')>-1||
+        m.indexOf('runtime.lastError')>-1||
+        m.indexOf('i18next')>-1||
+        m.indexOf('Locize')>-1||
+        m.indexOf('pendingMailEnrichStorage')>-1||
+        m.indexOf('AuthUtils')>-1||
+        m.indexOf('Failed to fetch dynamically imported module')>-1||
+        m.indexOf('Importing a module script failed')>-1||
+        m.indexOf('Expected a JavaScript-or-Wasm module script')>-1
+      )e.preventDefault()})
+      window.addEventListener('unhandledrejection',function(e){var m=(e.reason&&e.reason.message)||String(e.reason||'');if(
+        m.indexOf('Failed to fetch dynamically imported module')>-1||
+        m.indexOf('Importing a module script failed')>-1||
+        m.indexOf('Expected a JavaScript-or-Wasm module script')>-1
+      ){e.preventDefault();sessionStorage.getItem('stale-chunk-reloaded')!=='true'&&(sessionStorage.setItem('stale-chunk-reloaded','true'),location.reload())}})
+    </script>
   </head>
   <body>
     <div id="root"></div>
