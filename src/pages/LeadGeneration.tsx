@@ -971,6 +971,34 @@ export default function LeadGeneration() {
     Help: ['Search menus', 'Help', 'Updates', 'Report a problem']
   }
 
+  const removeInFileDuplicates = async () => {
+    if (!duplicateModal || !selectedFile || !duplicateModal.dupes) return
+    const rowsToRemove: LeadRow[] = []
+    for (const d of duplicateModal.dupes) {
+      if (d.rows.length <= 1) continue
+      if (!d.rows[0]?.id) continue
+      for (let i = 1; i < d.rows.length; i++) rowsToRemove.push(d.rows[i])
+    }
+    if (rowsToRemove.length === 0) return
+
+    for (const row of rowsToRemove) {
+      try {
+        await checkAndRouteDuplicates([row.data], selectedFile.id, selectedFile.name, selectedFile.columns)
+        if (supabase) {
+          await supabase.from('lead_rows').delete().eq('id', row.id)
+        } else {
+          const saved = localStorage.getItem(`exodia-lead-rows-${selectedFile.id}`)
+          if (saved) {
+            const localRows: LeadRow[] = JSON.parse(saved)
+            localStorage.setItem(`exodia-lead-rows-${selectedFile.id}`, JSON.stringify(localRows.filter(r => r.id !== row.id)))
+          }
+        }
+      } catch {}
+    }
+    setRows(prev => prev.filter(r => !rowsToRemove.some(rm => rm.id === r.id)))
+    setDuplicateModal(null)
+  }
+
   if (selectedFile) {
     const currentFormat = getCurrentCellFormat()
 
@@ -1541,6 +1569,11 @@ export default function LeadGeneration() {
                 </ul>
                 <div className="flex gap-3 justify-end">
                   <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Dismiss</button>
+                  {duplicateModal.dupes?.[0]?.rows[0]?.id && (
+                    <button onClick={removeInFileDuplicates} className="px-4 py-2 text-sm rounded-lg transition hover:opacity-90" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}>
+                      Remove all duplicates
+                    </button>
+                  )}
                 </div>
               </>
             )}
