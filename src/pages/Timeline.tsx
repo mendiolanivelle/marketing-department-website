@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
 
 interface TimelineColumn {
   key: string
@@ -57,7 +56,6 @@ const columnColors: Record<string, string> = {
 }
 
 export default function Timeline() {
-  const { user } = useAuth()
   const [tables, setTables] = useState<TimelineTable[]>([])
   const [leads, setLeads] = useState<TimelineLead[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,18 +157,6 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
     if (currentIdx === -1 || currentIdx >= table.columns.length - 1) return
     const nextCol = table.columns[currentIdx + 1]
-
-    const sowTerms = ['sow', 'pricing', 'finalization', 'costing', 'creation']
-    const nextLabel = nextCol.label.toLowerCase()
-    const isSowCol = sowTerms.filter(t => nextLabel.includes(t)).length >= 2
-
-    if (isSowCol) {
-      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
-      if (!isSales) {
-        alert('Only sales@exodiagamedev.com can move leads beyond SOW & Pricing Finalization.')
-        return
-      }
-    }
 
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: nextCol.key } : l))
     if (supabase) {
