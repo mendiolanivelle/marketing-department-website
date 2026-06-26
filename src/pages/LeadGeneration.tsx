@@ -644,10 +644,71 @@ export default function LeadGeneration() {
     setEditValue(row.data[col] || '')
   }
 
+  const isEmailDuplicateAcrossFiles = async (email: string, excludeFileId: string, excludeRowId?: string): Promise<boolean> => {
+    const normalized = email.toLowerCase().trim()
+    if (supabase) {
+      const { data: allRows } = await supabase
+        .from('lead_rows')
+        .select('id, file_id, data')
+      if (allRows) {
+        for (const r of allRows) {
+          if (r.file_id === excludeFileId && excludeRowId && r.id === excludeRowId) continue
+          const file = files.find(f => f.id === r.file_id)
+          if (!file) continue
+          const emailCol = file.columns.find((h: string) => h.toLowerCase().includes('email'))
+          if (!emailCol) continue
+          const val = (r.data as Record<string, string>)[emailCol]
+          if (val && val.toLowerCase().trim() === normalized) return true
+        }
+      }
+    } else {
+      const savedFiles = localStorage.getItem('exodia-lead-files')
+      if (savedFiles) {
+        const allFiles: LeadFile[] = JSON.parse(savedFiles)
+        for (const f of allFiles) {
+          if (f.id === excludeFileId) continue
+          const emailCol = f.columns.find(h => h.toLowerCase().includes('email'))
+          if (!emailCol) continue
+          const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
+          if (savedRows) {
+            try {
+              const rows: LeadRow[] = JSON.parse(savedRows)
+              for (const r of rows) {
+                if (r.data[emailCol] && r.data[emailCol].toLowerCase().trim() === normalized) return true
+              }
+            } catch {}
+          }
+        }
+      }
+      // Also check within the same file (excluding the current row)
+      if (selectedFile && excludeFileId === selectedFile.id) {
+        for (const r of rows) {
+          if (excludeRowId && r.id === excludeRowId) continue
+          const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
+          if (emailCol && r.data[emailCol] && r.data[emailCol].toLowerCase().trim() === normalized) return true
+        }
+      }
+    }
+    return false
+  }
+
   const saveCellEdit = async () => {
     if (!editingCell || !selectedFile) return
     const row = rows.find(r => r.id === editingCell.rowId)
     if (!row) return
+
+    const emailCol = selectedFile.columns.find(h => h.toLowerCase().includes('email'))
+    const isEmailColumn = emailCol && editingCell.col.toLowerCase() === emailCol.toLowerCase()
+    const newVal = editValue.trim()
+
+    if (isEmailColumn && newVal) {
+      const isDup = await isEmailDuplicateAcrossFiles(newVal, selectedFile.id, editingCell.rowId)
+      if (isDup) {
+        alert(`Duplicate email detected: "${newVal}" already exists in another file or row. Edit cancelled.`)
+        setEditingCell(null)
+        return
+      }
+    }
 
     const newData = { ...row.data, [editingCell.col]: editValue }
     const now = new Date().toISOString()
