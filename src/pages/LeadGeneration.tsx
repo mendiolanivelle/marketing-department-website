@@ -123,6 +123,57 @@ export default function LeadGeneration() {
     meetingsLeft: 0,
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const historyRef = useRef<{ rows: LeadRow[]; columns: string[]; cellFormats: Record<string, CellFormat> }[]>([])
+  const historyIndexRef = useRef(-1)
+  const skipHistoryRef = useRef(false)
+
+  // Auto-push to history on every rows change
+  useEffect(() => {
+    if (skipHistoryRef.current) { skipHistoryRef.current = false; return }
+    if (!selectedFile) return
+    const snapshot = {
+      rows: JSON.parse(JSON.stringify(rows)),
+      columns: [...selectedFile.columns],
+      cellFormats: JSON.parse(JSON.stringify(cellFormats)),
+    }
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
+    historyRef.current.push(snapshot)
+    if (historyRef.current.length > 50) historyRef.current.shift()
+    historyIndexRef.current = historyRef.current.length - 1
+  }, [rows])
+
+  const saveSnapshot = useCallback(() => {
+    if (!selectedFile) return
+    const snapshot = {
+      rows: JSON.parse(JSON.stringify(rows)),
+      columns: [...selectedFile.columns],
+      cellFormats: JSON.parse(JSON.stringify(cellFormats)),
+    }
+    historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1)
+    historyRef.current.push(snapshot)
+    if (historyRef.current.length > 50) historyRef.current.shift()
+    historyIndexRef.current = historyRef.current.length - 1
+  }, [rows, selectedFile, cellFormats])
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current <= 0) return
+    historyIndexRef.current--
+    const snapshot = historyRef.current[historyIndexRef.current]
+    skipHistoryRef.current = true
+    setRows(snapshot.rows)
+    setCellFormats(snapshot.cellFormats)
+    setSelectedFile(prev => prev ? { ...prev, columns: snapshot.columns } : prev)
+  }, [])
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current >= historyRef.current.length - 1) return
+    historyIndexRef.current++
+    const snapshot = historyRef.current[historyIndexRef.current]
+    skipHistoryRef.current = true
+    setRows(snapshot.rows)
+    setCellFormats(snapshot.cellFormats)
+    setSelectedFile(prev => prev ? { ...prev, columns: snapshot.columns } : prev)
+  }, [])
 
   const fetchFiles = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -467,6 +518,8 @@ export default function LeadGeneration() {
   const openFile = async (file: LeadFile) => {
     setSelectedFile(file)
     await fetchRows(file.id)
+    historyRef.current = []
+    historyIndexRef.current = -1
   }
 
   const closeFile = () => {
@@ -476,6 +529,8 @@ export default function LeadGeneration() {
     setEditingHeader(null)
     setCurrentCellRef('A1')
     setFormulaValue('')
+    historyRef.current = []
+    historyIndexRef.current = -1
   }
 
   const handleCellClick = (row: LeadRow, col: string, rowIdx: number, colIdx: number) => {
@@ -659,6 +714,7 @@ export default function LeadGeneration() {
 
   const applyFormat = (format: Partial<CellFormat>) => {
     if (!editingCell) return
+    saveSnapshot()
     const cellKey = `${editingCell.rowId}-${editingCell.col}`
     setCellFormats(prev => ({
       ...prev,
@@ -741,12 +797,12 @@ export default function LeadGeneration() {
 
         {/* Toolbar */}
         <div className="flex items-center gap-1 px-2 py-1 border-b border-[#CACDD7] bg-[rgba(202,205,215,0.15)] flex-wrap">
-          <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Undo">
+          <button onClick={undo} className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Undo">
             <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
           </button>
-          <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Redo">
+          <button onClick={redo} className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Redo">
             <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
             </svg>
