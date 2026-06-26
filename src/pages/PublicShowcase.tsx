@@ -62,19 +62,6 @@ const styles = `
   0% { transform: perspective(800px) rotateX(-120deg); }
   100% { transform: perspective(800px) rotateX(0deg); }
 }
-@keyframes cursorAppear {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-@keyframes cursorMoveToFolder {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(-30vw, 30vh); }
-}
-@keyframes cursorClick {
-  0%, 100% { transform: translate(-30vw, 30vh) scale(1); }
-  40% { transform: translate(-30vw, calc(30vh + 4px)) scale(0.9); }
-  60% { transform: translate(-30vw, calc(30vh + 4px)) scale(0.9); }
-}
 `
 
 type Phase = 'intro' | 'opening' | 'slideshow' | 'closing' | 'flash' | 'ended'
@@ -142,7 +129,7 @@ export default function PublicShowcase() {
   // Start sequence ΓÇö wait for images to actually load before slideshow
   useEffect(() => {
     preloadAll()
-    const t1 = setTimeout(() => setPhase('opening'), 4000)
+    const t1 = setTimeout(() => setPhase('opening'), 2000)
     const t2 = setTimeout(() => {
       if (imagesReady) setPhase('slideshow')
       else {
@@ -151,7 +138,7 @@ export default function PublicShowcase() {
         }, 100)
         setTimeout(() => clearInterval(poll), 10000)
       }
-    }, 5200)
+    }, 3200)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [restartCount, preloadAll, imagesReady])
 
@@ -333,23 +320,6 @@ export default function PublicShowcase() {
                 zIndex: 3,
               }}
             />
-            {/* Mouse cursor that clicks the folder to open it */}
-            {phase === 'intro' && (
-              <div
-                className="fixed"
-                style={{
-                  top: '20%',
-                  left: '80%',
-                  zIndex: 60,
-                  animation: 'cursorAppear 0.3s ease-out 1.8s both, cursorMoveToFolder 1.2s ease-in-out 2.1s both, cursorClick 0.4s ease-in-out 3.3s both',
-                  pointerEvents: 'none',
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="rgba(255,89,0,0.95)" width="36" height="36" style={{ filter: 'drop-shadow(0 0 10px rgba(255,89,0,0.6))' }}>
-                  <path d="M5.5 2.5v19l5.5-5.5H18l-5-5.5 5-5.5H11L5.5 2.5z" />
-                </svg>
-              </div>
-            )}
             </div>
           </div>
         )}
