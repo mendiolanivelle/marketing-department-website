@@ -56,6 +56,7 @@ const columnColors: Record<string, string> = {
 }
 
 export default function Timeline() {
+  const { user } = useAuth()
   const [tables, setTables] = useState<TimelineTable[]>([])
   const [leads, setLeads] = useState<TimelineLead[]>([])
   const [loading, setLoading] = useState(true)
@@ -147,6 +148,21 @@ export default function Timeline() {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('text/plain')
     if (!leadId || !supabase) return
+
+    // Check if the target column is at or past SOW
+    const table = tables.find(t => t.id === tableId)
+    if (table) {
+      const targetIdx = table.columns.findIndex(c => c.key === columnKey)
+      const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
+      if (sowIdx !== -1 && targetIdx >= sowIdx) {
+        const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
+        if (!isSales) {
+          alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
+          return
+        }
+      }
+    }
+
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_key: columnKey, table_id: tableId } : l))
     try {
       await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() }).eq('id', leadId)
@@ -157,6 +173,16 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
     if (currentIdx === -1 || currentIdx >= table.columns.length - 1) return
     const nextCol = table.columns[currentIdx + 1]
+
+    // Only sales can move leads at or past "SOW and Costing Creation"
+    const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
+    if (sowIdx !== -1 && currentIdx >= sowIdx) {
+      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
+      if (!isSales) {
+        alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
+        return
+      }
+    }
 
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: nextCol.key } : l))
     if (supabase) {
@@ -170,6 +196,17 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
     if (currentIdx <= 0) return
     const prevCol = table.columns[currentIdx - 1]
+
+    // Only sales can move leads at or past "SOW and Costing Creation"
+    const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
+    if (sowIdx !== -1 && currentIdx >= sowIdx) {
+      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
+      if (!isSales) {
+        alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
+        return
+      }
+    }
+
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: prevCol.key } : l))
     if (supabase) {
       try {
