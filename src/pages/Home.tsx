@@ -11,10 +11,9 @@ const announcements = [
 
 const quickLinks = [
   { label: 'Calendar', icon: '&#128197;', to: '/calendar' },
-  { label: 'Team Wiki', icon: '&#128218;', to: '/team' },
-  { label: 'Submit Request', icon: '&#128221;', to: '/contact' },
+  { label: 'Our Team', icon: '&#128101;', to: '/about#team' },
+  { label: 'Submit Request', icon: '&#128221;', to: '/about#contact' },
   { label: 'Message Templates', icon: '&#128196;', to: '/templates' },
-  { label: 'Brand Assets & Guidelines', icon: '&#128193;', to: '/services' },
 ]
 
 export default function Home() {

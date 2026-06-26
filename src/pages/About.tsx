@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 
 interface TeamMember {
   id: number
@@ -20,6 +21,17 @@ function getInitials(name: string) {
 }
 
 export default function About() {
+  const location = useLocation()
+
+  // Scroll to hash on mount/hash change
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '')
+      const el = document.getElementById(id)
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    }
+  }, [location])
+
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
     const saved = localStorage.getItem('exodia-team')
     return saved ? JSON.parse(saved) : [
@@ -247,7 +259,7 @@ export default function About() {
           {/* Team Members */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl sm:text-4xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Team</h2>
+              <h2 id="team" className="text-2xl sm:text-4xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Team</h2>
               <p className="text-base sm:text-lg mt-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Meet the people behind the work</p>
             </div>
             <button onClick={() => setShowAddMember(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
@@ -528,7 +540,7 @@ export default function About() {
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
           <div>
-            <h2 className="text-2xl sm:text-4xl mb-4" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>Reach Out to Us</h2>
+            <h2 id="contact" className="text-2xl sm:text-4xl mb-4" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>Reach Out to Us</h2>
             <p className="text-sm sm:text-base mb-5 leading-relaxed" style={{ color: 'var(--btn-primary-text)', opacity: 0.8, fontWeight: 300 }}>
               Need marketing support? Have a question about brand guidelines? Reach us through the channels below.
             </p>
