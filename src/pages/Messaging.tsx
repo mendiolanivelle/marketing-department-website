@@ -370,7 +370,7 @@ export default function Messaging() {
 
         {/* Search */}
         <div className="relative mb-4">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -499,10 +499,10 @@ export default function Messaging() {
                     <option value="replied">{statusConfig.replied.label}</option>
                     <option value="follow-up">{statusConfig['follow-up'].label}</option>
                   </select>
-                  <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
+                  <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Delete">
+                  <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Delete">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
@@ -588,7 +588,7 @@ export default function Messaging() {
             <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-hidden" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
               <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-primary)' }}>
                 <h3 className="text-lg" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Details</h3>
-                <button onClick={() => { setSelectedDetailLead(null); setDetailNotes('') }} className="p-1 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}>
+                <button onClick={() => { setSelectedDetailLead(null); setDetailNotes('') }} className="p-1 rounded-lg transition" style={{ color: 'var(--accent)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -688,7 +688,7 @@ export default function Messaging() {
 
         {/* Search Bar */}
         <div className="relative mb-6">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -713,7 +713,7 @@ export default function Messaging() {
             <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="sticky top-0 border-b px-6 py-4 flex items-center justify-between rounded-t-2xl" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{editingId ? 'Edit Template' : 'New Template'}</h2>
-                <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 rounded-full transition" style={{ color: 'var(--text-secondary)' }}>
+                <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -771,7 +771,7 @@ export default function Messaging() {
               if (results.length === 0) {
                 return (
                   <div className="text-center py-16 rounded-2xl border-2 exodia-card" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                    <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{query ? 'No templates match your search' : 'No templates yet'}</p>
                   </div>
                 )
@@ -786,21 +786,21 @@ export default function Messaging() {
                           <h3 className="text-sm sm:text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{template.title}</h3>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => handleCopy(`Subject: ${template.subject}\n\n${template.body}`, template.id)} className="p-2 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Copy">
+                          <button onClick={() => handleCopy(`Subject: ${template.subject}\n\n${template.body}`, template.id)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Copy">
                             {copiedId === template.id
                               ? <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                               : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
                           </button>
-                          <button onClick={() => handleEdit(template)} className="p-2 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Edit">
+                          <button onClick={() => handleEdit(template)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                           {deleteConfirmId === template.id ? (
                             <div className="flex items-center gap-1">
                               <button onClick={() => handleDelete(template.id)} className="p-2 rounded-lg bg-red-50 transition" title="Confirm"><svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></button>
-                              <button onClick={() => setDeleteConfirmId(null)} className="p-2 rounded-lg transition" style={{ color: 'var(--text-muted)' }} title="Cancel"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                              <button onClick={() => setDeleteConfirmId(null)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Cancel"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                             </div>
                           ) : (
-                            <button onClick={() => setDeleteConfirmId(template.id)} className="p-2 rounded-lg hover:bg-red-50 transition" style={{ color: 'var(--text-muted)' }} title="Delete"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            <button onClick={() => setDeleteConfirmId(template.id)} className="p-2 rounded-lg hover:bg-red-50 transition" style={{ color: 'var(--accent)' }} title="Delete"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                           )}
                         </div>
                       </div>

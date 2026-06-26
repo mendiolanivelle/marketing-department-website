@@ -915,7 +915,7 @@ export default function LeadGeneration() {
             <button
               onClick={() => { setSelectedFile(null); setRows([]); setEditingCell(null); setEditingHeader(null) }}
               className="p-1.5 rounded-lg hover:bg-[rgba(202,205,215,0.3)] transition"
-              style={{ color: 'var(--text-secondary)' }}
+              style={{ color: 'var(--accent)' }}
               title="Back to files"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -962,17 +962,17 @@ export default function LeadGeneration() {
         {/* Toolbar */}
         <div className="flex items-center gap-1 px-2 py-1 border-b border-[#CACDD7] bg-[rgba(202,205,215,0.15)] flex-wrap">
           <button onClick={undo} className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Undo">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
           </button>
           <button onClick={redo} className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Redo">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" />
             </svg>
           </button>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Print">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
           </button>
@@ -1037,28 +1037,28 @@ export default function LeadGeneration() {
             <span className="text-sm text-[#3E4048] border-b-2 border-red-500">A</span>
           </button>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Fill color">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
           </button>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Borders">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
             </svg>
           </button>
           <div className="w-px h-6 bg-gray-300 mx-1"></div>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Align left">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
             </svg>
           </button>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Align center">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M4 18h16" />
             </svg>
           </button>
           <button className="p-1.5 hover:bg-[rgba(202,205,215,0.3)] rounded" title="Align right">
-            <svg className="w-4 h-4 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M10 12h10M4 18h16" />
             </svg>
           </button>
@@ -1336,7 +1336,7 @@ export default function LeadGeneration() {
             <div className="relative rounded-2xl border w-full max-w-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-primary)' }}>
                 <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Create New Spreadsheet</h2>
-                <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="p-1 rounded-full transition" style={{ color: 'var(--text-secondary)' }}>
+                <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -1390,7 +1390,7 @@ export default function LeadGeneration() {
                           <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-50 flex-shrink-0" title="Delete" style={{ color: 'var(--text-muted)' }}>
+                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-50 flex-shrink-0" title="Delete" style={{ color: 'var(--accent)' }}>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -1425,7 +1425,7 @@ export default function LeadGeneration() {
                           <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-50 flex-shrink-0" title="Delete" style={{ color: 'var(--text-muted)' }}>
+                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-50 flex-shrink-0" title="Delete" style={{ color: 'var(--accent)' }}>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>

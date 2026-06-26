@@ -350,12 +350,12 @@ export default function Calendar() {
               </h1>
               <div className="flex items-center gap-1">
                 <button onClick={goToPrevMonth} className="p-1.5 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
-                  <svg className="w-5 h-5 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button onClick={goToNextMonth} className="p-1.5 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
-                  <svg className="w-5 h-5 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -431,7 +431,7 @@ export default function Calendar() {
                             onClick={(e) => { e.stopPropagation(); openCreateModal(dateKey) }}
                             className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-[rgba(202,205,215,0.3)] transition opacity-0 group-hover:opacity-100"
                           >
-                            <svg className="w-3 h-3 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                           </button>
@@ -507,7 +507,7 @@ export default function Calendar() {
                 <button
                   onClick={() => { openEditModal(viewItem); setViewItem(null) }}
                   className="p-2 rounded-lg transition"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'var(--accent)' }}
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,7 +517,7 @@ export default function Calendar() {
                 <button
                   onClick={() => { handleDelete(viewItem.id); setViewItem(null) }}
                   className="p-2 rounded-lg transition"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'var(--accent)' }}
                   title="Delete"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,7 +527,7 @@ export default function Calendar() {
                 <button
                   onClick={() => setViewItem(null)}
                   className="p-2 rounded-lg transition"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'var(--accent)' }}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -543,7 +543,7 @@ export default function Calendar() {
                 <div className="flex flex-wrap gap-4">
                   {viewItem.start_time && (
                     <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
@@ -553,7 +553,7 @@ export default function Calendar() {
                   )}
                   {viewItem.location && (
                     <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -582,7 +582,7 @@ export default function Calendar() {
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                         style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
                       >
-                        <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         {email}
@@ -631,7 +631,7 @@ export default function Calendar() {
                 {editingItem ? 'Edit Item' : 'Create New Item'}
               </h2>
               <button onClick={() => setShowModal(false)} className="p-1 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
-                <svg className="w-5 h-5 text-[#3E4048]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -775,7 +775,7 @@ export default function Calendar() {
                         key={email}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[rgba(202,205,215,0.2)] text-[#3E4048] rounded-full text-xs font-medium"
                       >
-                        <svg className="w-3 h-3 text-[#CACDD7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         {email}

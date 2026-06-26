@@ -532,7 +532,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
               <button
                 onClick={() => { setShowSearch(false); setSearchQuery('') }}
                 className="p-2 rounded-lg"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: 'var(--accent)' }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -543,7 +543,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
             <button
               onClick={() => setShowSearch(true)}
               className="p-2 rounded-lg border transition"
-              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--accent)' }}
               title="Search timelines"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,17 +653,17 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                     <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedLead.contact} &middot; {selectedLead.email}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingLead({ ...selectedLead })} className="p-2 rounded-lg transition" style={{ color: 'var(--text-secondary)' }} title="Edit">
+                    <button onClick={() => setEditingLead({ ...selectedLead })} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button onClick={() => deleteLead(selectedLead.id)} className="p-2 rounded-lg transition" style={{ color: 'var(--text-secondary)' }} title="Delete">
+                    <button onClick={() => deleteLead(selectedLead.id)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Delete">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
-                    <button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg transition" style={{ color: 'var(--text-secondary)' }}>
+                    <button onClick={() => setSelectedLead(null)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }}>
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
@@ -751,7 +751,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                                 <button
                                   onClick={() => { setEditingNoteIndex(i); setEditingNoteValue(note) }}
                                   className="p-1 rounded transition"
-                                  style={{ color: 'var(--text-muted)' }}
+                                  style={{ color: 'var(--accent)' }}
                                   title="Edit note"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -761,7 +761,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                                 <button
                                   onClick={() => deleteNote(i)}
                                   className="p-1 rounded transition"
-                                  style={{ color: 'var(--text-muted)' }}
+                                  style={{ color: 'var(--accent)' }}
                                   title="Delete note"
                                 >
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -807,7 +807,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                           <button
                             onClick={() => deleteAttachment(i)}
                             className="p-1 rounded opacity-0 group-hover:opacity-100 transition"
-                            style={{ color: 'var(--text-muted)' }}
+                            style={{ color: 'var(--accent)' }}
                             title="Remove attachment"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -969,7 +969,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                 <button
                   onClick={() => deleteTimelineTable(table.id)}
                   className="p-1.5 rounded-lg transition"
-                  style={{ color: 'var(--border-primary)' }}
+                  style={{ color: 'var(--accent)' }}
                   title="Delete table"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1067,7 +1067,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                             deleteColumn(table.id, col.key)
                           }}
                           className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
-                          style={{ color: 'var(--text-muted)' }}
+                          style={{ color: 'var(--accent)' }}
                           title="Delete column"
                           onDragStart={(e) => e.stopPropagation()}
                         >
@@ -1101,7 +1101,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                               <button
                                 onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
                                 className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--text-muted)' }}
+                                style={{ color: 'var(--accent)' }}
                                 title="Move to previous column"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1121,7 +1121,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                               <button
                                 onClick={(e) => { e.stopPropagation(); setEditingLead({ ...lead }) }}
                                 className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--border-primary)' }}
+                                style={{ color: 'var(--accent)' }}
                                 title="Edit"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1131,7 +1131,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
                               <button
                                 onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }}
                                 className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--border-primary)' }}
+                                style={{ color: 'var(--accent)' }}
                                 title="Delete"
                               >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
