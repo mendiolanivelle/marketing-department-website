@@ -60,8 +60,8 @@ const styles = `
 }
 @keyframes zoomInBurst {
   0% { opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
+  30% { opacity: 1; }
+  80% { opacity: 1; }
   100% { opacity: 0; }
 }
 `
@@ -138,7 +138,7 @@ export default function PublicShowcase() {
         }, 100)
         setTimeout(() => clearInterval(poll), 10000)
       }
-    }, 4000)
+    }, 5000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [restartCount, preloadAll, imagesReady])
 
@@ -327,7 +327,7 @@ export default function PublicShowcase() {
             className="fixed inset-0 z-50"
             style={{
               backgroundColor: '#FF5900',
-              animation: 'zoomInBurst 0.6s ease-in-out forwards',
+              animation: 'zoomInBurst 1.6s ease-in-out forwards',
             }}
           />
         )}
