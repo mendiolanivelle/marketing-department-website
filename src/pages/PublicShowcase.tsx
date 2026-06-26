@@ -345,8 +345,8 @@ export default function PublicShowcase() {
                   pointerEvents: 'none',
                 }}
               >
-                <svg viewBox="0 0 24 24" fill="rgba(255,89,0,0.9)" width="36" height="36" style={{ filter: 'drop-shadow(0 0 8px rgba(255,89,0,0.5))' }}>
-                  <path d="M5 3l13.5 11.5-6.5.5L13 20l-2 1-2.5-6.5L5 18V3z" />
+                <svg viewBox="0 0 24 24" fill="rgba(255,89,0,0.95)" width="36" height="36" style={{ filter: 'drop-shadow(0 0 10px rgba(255,89,0,0.6))' }}>
+                  <path d="M5.5 2.5v19l5.5-5.5H18l-5-5.5 5-5.5H11L5.5 2.5z" />
                 </svg>
               </div>
             )}
