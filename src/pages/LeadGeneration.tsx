@@ -123,6 +123,15 @@ export default function LeadGeneration() {
     meetingsLeft: 0,
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [duplicateModal, setDuplicateModal] = useState<{
+    type: 'upload' | 'cell-edit'
+    count?: number
+    email?: string
+    rowId?: string
+    fileId?: string
+    rowData?: Record<string, string>
+    sourceFileName?: string
+  } | null>(null)
   const historyRef = useRef<{ rows: LeadRow[]; columns: string[]; cellFormats: Record<string, CellFormat> }[]>([])
   const historyIndexRef = useRef(-1)
   const skipHistoryRef = useRef(false)
@@ -565,7 +574,9 @@ export default function LeadGeneration() {
         }
 
         const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
-          if (duplicateCount > 0) alert(`${duplicateCount} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
+          if (duplicateCount > 0) {
+            setDuplicateModal({ type: 'upload', count: duplicateCount, sourceFileName: newFile.name })
+          }
       }
 
       setFiles(prev => [newFile, ...prev])
@@ -704,7 +715,13 @@ export default function LeadGeneration() {
     if (isEmailColumn && newVal) {
       const isDup = await isEmailDuplicateAcrossFiles(newVal, selectedFile.id, editingCell.rowId)
       if (isDup) {
-        alert(`Duplicate email detected: "${newVal}" already exists in another file or row. Edit cancelled.`)
+        setDuplicateModal({
+          type: 'cell-edit',
+          email: newVal,
+          rowId: editingCell.rowId,
+          fileId: selectedFile.id,
+          rowData: row.data,
+        })
         setEditingCell(null)
         return
       }
@@ -1436,6 +1453,77 @@ export default function LeadGeneration() {
           </div>
         </div>
       </div>
+
+      {/* Duplicate Notification Modal */}
+      {duplicateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setDuplicateModal(null)} />
+          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-md w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(255,89,0,0.1)' }}>
+                <svg className="w-5 h-5" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+              </div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Duplicate Lead Detected</h3>
+            </div>
+
+            {duplicateModal.type === 'upload' && (
+              <>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: '#FF5900' }}>{duplicateModal.count}</strong> duplicate lead(s) from <strong>"{duplicateModal.sourceFileName}"</strong> were found and automatically moved to the <strong>"Duplicate Leads"</strong> file under Spreadsheets.
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setDuplicateModal(null)}
+                    className="px-4 py-2 text-sm rounded-lg transition"
+                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </>
+            )}
+
+            {duplicateModal.type === 'cell-edit' && (
+              <>
+                <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                  The email <strong style={{ color: '#FF5900' }}>"{duplicateModal.email}"</strong> already exists in another file or row. What would you like to do?
+                </p>
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setDuplicateModal(null)}
+                    className="px-4 py-2 text-sm rounded-lg transition"
+                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!duplicateModal.rowId || !duplicateModal.fileId || !selectedFile) return
+                      const row = rows.find(r => r.id === duplicateModal.rowId)
+                      if (!row) return
+                      await checkAndRouteDuplicates(
+                        [duplicateModal.rowData || row.data],
+                        duplicateModal.fileId,
+                        selectedFile.name,
+                        selectedFile.columns
+                      )
+                      if (supabase) {
+                        await supabase.from('lead_rows').delete().eq('id', duplicateModal.rowId)
+                      }
+                      setRows(prev => prev.filter(r => r.id !== duplicateModal.rowId))
+                      setDuplicateModal(null)
+                    }}
+                    className="px-4 py-2 text-sm rounded-lg transition hover:opacity-90"
+                    style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 500 }}
+                  >
+                    Remove from sheet
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
