@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity, getActivityLog } from '../lib/activityLogger'
 import type { ActivityEntry } from '../lib/activityLogger'
