@@ -6,6 +6,7 @@ interface Asset {
   category: string
   type: string
   dataUrl?: string
+  url?: string
   addedAt: string
   size: number
   isMock?: boolean
@@ -50,8 +51,10 @@ function formatDate(iso: string): string {
 }
 
 function isImage(type: string): boolean { return type.startsWith('image/') }
+function isLink(type: string): boolean { return type === 'link' }
 
 function getFileTypeIcon(type: string) {
+  if (isLink(type)) return 'link'
   if (isImage(type)) return 'image'
   if (type.includes('pdf')) return 'pdf'
   if (type.includes('spreadsheet') || type.includes('excel') || type.includes('sheet')) return 'sheet'
@@ -60,6 +63,7 @@ function getFileTypeIcon(type: string) {
 }
 
 function getExt(type: string): string {
+  if (isLink(type)) return 'URL'
   const map: Record<string, string> = { 'application/pdf': 'PDF', 'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/svg+xml': 'SVG', 'image/gif': 'GIF', 'image/webp': 'WEBP', 'text/plain': 'TXT', 'text/csv': 'CSV' }
   return map[type] || type.split('/').pop()?.toUpperCase() || 'FILE'
 }
@@ -67,6 +71,8 @@ function getExt(type: string): string {
 function renderTypeIcon(type: string, size: number, color: string) {
   const icon = getFileTypeIcon(type)
   switch (icon) {
+    case 'link':
+      return <svg className={`w-${size} h-${size}`} style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
     case 'image':
       return <svg className={`w-${size} h-${size}`} style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
     case 'pdf':
@@ -82,6 +88,15 @@ function renderTypeIcon(type: string, size: number, color: string) {
 
 function generateId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8) }
 
+function isValidUrl(str: string): boolean {
+  try { new URL(str); return true } catch { return false }
+}
+
+function normalizeUrl(str: string): string {
+  if (!str.startsWith('http://') && !str.startsWith('https://')) return 'https://' + str
+  return str
+}
+
 export default function FileTracker() {
   const [userAssets, setUserAssets] = useState<Asset[]>(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
@@ -90,9 +105,12 @@ export default function FileTracker() {
   const [activeCategory, setActiveCategory] = useState('All Files')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [uploadMode, setUploadMode] = useState<'file' | 'link'>('file')
   const [uploadCategory, setUploadCategory] = useState('Presentations')
   const [uploadError, setUploadError] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [linkName, setLinkName] = useState('')
+  const [linkUrl, setLinkUrl] = useState('')
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -157,12 +175,33 @@ export default function FileTracker() {
   }
 
   const handleUpload = async () => {
-    if (pendingFiles.length === 0) { setUploadError('Please select at least one file'); return }
-    setUploadError('')
-    const files = [...pendingFiles]
-    setPendingFiles([])
-    setShowUpload(false)
-    for (const file of files) await readAndUpload(file)
+    if (uploadMode === 'file') {
+      if (pendingFiles.length === 0) { setUploadError('Please select at least one file'); return }
+      setUploadError('')
+      const files = [...pendingFiles]
+      setPendingFiles([])
+      setShowUpload(false)
+      for (const file of files) await readAndUpload(file)
+    } else {
+      const name = linkName.trim()
+      if (!name) { setUploadError('Please enter a name for the link'); return }
+      const url = normalizeUrl(linkUrl.trim())
+      if (!isValidUrl(url)) { setUploadError('Please enter a valid URL'); return }
+      const asset: Asset = {
+        id: generateId(),
+        name,
+        category: uploadCategory,
+        type: 'link',
+        url,
+        addedAt: new Date().toISOString(),
+        size: 0,
+      }
+      setUserAssets(prev => [asset, ...prev])
+      setLinkName('')
+      setLinkUrl('')
+      setUploadError('')
+      setShowUpload(false)
+    }
   }
 
   const removePendingFile = (index: number) => {
@@ -180,6 +219,10 @@ export default function FileTracker() {
     a.href = asset.dataUrl
     a.download = asset.name
     document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  }
+
+  const openLink = (asset: Asset) => {
+    if (asset.url) window.open(asset.url, '_blank', 'noopener,noreferrer')
   }
 
   const startEditing = (asset: Asset) => {
@@ -204,48 +247,84 @@ export default function FileTracker() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowUpload(false)}>
           <div className="relative rounded-2xl border w-full max-w-lg max-h-[85vh] flex flex-col" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
-              <h2 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Upload Assets</h2>
+              <h2 className="text-lg" style={{ color: '#1B1A1C', fontWeight: 700 }}>Add Asset</h2>
               <button onClick={() => { setShowUpload(false); setPendingFiles([]); setUploadError('') }} className="p-1 rounded-lg transition" style={{ color: '#CACDD7' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
               {uploadError && <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#FF590010', color: '#FF5900', border: '1px solid #FF590030' }}>{uploadError}</div>}
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Files</label>
-                <div className="border-2 border-dashed rounded-xl p-5 text-center" style={{ borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.1)' }}>
-                  <input ref={fileInputRef} type="file" multiple onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
-                  <input ref={folderInputRef} type="file" onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center mb-3">
-                    <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                      Select Files
-                    </button>
-                    <button onClick={() => folderInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ border: '2px solid #FF5900', color: '#FF5900', fontWeight: 600 }}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                      Select Folder
-                    </button>
-                  </div>
-                  <p className="text-xs" style={{ color: '#CACDD7' }}>Any file type, no size limit</p>
-                </div>
+              {/* Mode toggle */}
+              <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: '#CACDD7' }}>
+                <button onClick={() => setUploadMode('file')} className="flex-1 py-2 text-sm font-medium transition" style={{ backgroundColor: uploadMode === 'file' ? '#FF5900' : 'transparent', color: uploadMode === 'file' ? '#FFFFFF' : '#3E4048' }}>
+                  <span className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    File Upload
+                  </span>
+                </button>
+                <button onClick={() => setUploadMode('link')} className="flex-1 py-2 text-sm font-medium transition" style={{ backgroundColor: uploadMode === 'link' ? '#FF5900' : 'transparent', color: uploadMode === 'link' ? '#FFFFFF' : '#3E4048' }}>
+                  <span className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                    Link / URL
+                  </span>
+                </button>
               </div>
-              {/* Pending file list */}
-              {pendingFiles.length > 0 && (
-                <div>
-                  <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>{pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''} selected</label>
-                  <div className="max-h-40 overflow-y-auto space-y-1.5 border rounded-lg p-2" style={{ borderColor: '#CACDD7' }}>
-                    {pendingFiles.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        <span className="truncate flex-1" style={{ color: '#1B1A1C' }}>{f.name}</span>
-                        <span className="text-xs flex-shrink-0" style={{ color: '#CACDD7' }}>{formatSize(f.size)}</span>
-                        <button onClick={() => removePendingFile(i)} className="p-0.5 rounded flex-shrink-0 hover:bg-black/5" style={{ color: '#FF5900' }}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              {/* File upload section */}
+              {uploadMode === 'file' ? (
+                <>
+                  <div>
+                    <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Files</label>
+                    <div className="border-2 border-dashed rounded-xl p-5 text-center" style={{ borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.1)' }}>
+                      <input ref={fileInputRef} type="file" multiple onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
+                      <input ref={folderInputRef} type="file" onChange={e => { if (e.target.files) handleFilesSelected(e.target.files) }} className="hidden" />
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center mb-3">
+                        <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                          Select Files
+                        </button>
+                        <button onClick={() => folderInputRef.current?.click()} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ border: '2px solid #FF5900', color: '#FF5900', fontWeight: 600 }}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                          Select Folder
                         </button>
                       </div>
-                    ))}
+                      <p className="text-xs" style={{ color: '#CACDD7' }}>Any file type, no size limit</p>
+                    </div>
                   </div>
-                </div>
+                  {pendingFiles.length > 0 && (
+                    <div>
+                      <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>{pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''} selected</label>
+                      <div className="max-h-40 overflow-y-auto space-y-1.5 border rounded-lg p-2" style={{ borderColor: '#CACDD7' }}>
+                        {pendingFiles.map((f, i) => (
+                          <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
+                            <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <span className="truncate flex-1" style={{ color: '#1B1A1C' }}>{f.name}</span>
+                            <span className="text-xs flex-shrink-0" style={{ color: '#CACDD7' }}>{formatSize(f.size)}</span>
+                            <button onClick={() => removePendingFile(i)} className="p-0.5 rounded flex-shrink-0 hover:bg-black/5" style={{ color: '#FF5900' }}>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Name</label>
+                    <input type="text" value={linkName} onChange={e => setLinkName(e.target.value)}
+                      placeholder="e.g. Google Drive - Brand Assets"
+                      className="w-full px-3.5 py-2.5 rounded-lg border outline-none text-sm"
+                      style={{ borderColor: '#CACDD7', color: '#1B1A1C' }} />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>URL</label>
+                    <input type="url" value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                      placeholder="https://drive.google.com/..."
+                      className="w-full px-3.5 py-2.5 rounded-lg border outline-none text-sm"
+                      style={{ borderColor: '#CACDD7', color: '#1B1A1C' }} />
+                  </div>
+                </>
               )}
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#3E4048', fontWeight: 500 }}>Category</label>
@@ -255,9 +334,9 @@ export default function FileTracker() {
               </div>
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
-              <button onClick={() => { setShowUpload(false); setPendingFiles([]); setUploadError('') }} className="px-4 py-2 rounded-lg text-sm transition" style={{ color: '#3E4048', fontWeight: 500 }}>Cancel</button>
-              <button onClick={handleUpload} disabled={pendingFiles.length === 0} className="px-5 py-2 rounded-lg text-sm transition disabled:opacity-50" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
-                Upload {pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}
+              <button onClick={() => { setShowUpload(false); setPendingFiles([]); setLinkName(''); setLinkUrl(''); setUploadError('') }} className="px-4 py-2 rounded-lg text-sm transition" style={{ color: '#3E4048', fontWeight: 500 }}>Cancel</button>
+              <button onClick={handleUpload} disabled={uploadMode === 'file' ? pendingFiles.length === 0 : !linkName.trim() || !linkUrl.trim()} className="px-5 py-2 rounded-lg text-sm transition disabled:opacity-50" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                {uploadMode === 'file' ? `Upload${pendingFiles.length > 0 ? ` (${pendingFiles.length})` : ''}` : 'Add Link'}
               </button>
             </div>
           </div>
@@ -268,7 +347,6 @@ export default function FileTracker() {
       {previewAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setPreviewAsset(null)}>
           <div className="relative rounded-2xl border w-full max-w-4xl max-h-[90vh] flex flex-col" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }} onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#CACDD7' }}>
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 {renderTypeIcon(previewAsset.type, 6, CATEGORY_COLORS[previewAsset.category] || '#FF5900')}
@@ -278,11 +356,18 @@ export default function FileTracker() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            {/* Body */}
             <div className="flex-1 overflow-auto flex flex-col lg:flex-row">
-              {/* Preview area */}
               <div className="flex-1 min-h-64 lg:min-h-0 flex items-center justify-center p-6" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
-                {previewAsset.dataUrl && isImage(previewAsset.type) ? (
+                {isLink(previewAsset.type) ? (
+                  <div className="text-center">
+                    {renderTypeIcon(previewAsset.type, 20, CATEGORY_COLORS[previewAsset.category] || '#FF5900')}
+                    <p className="text-sm mt-4 mb-3 max-w-xs break-all" style={{ color: '#3E4048', fontWeight: 500 }}>{previewAsset.url}</p>
+                    <button onClick={() => openLink(previewAsset)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      Open Link
+                    </button>
+                  </div>
+                ) : previewAsset.dataUrl && isImage(previewAsset.type) ? (
                   <img src={previewAsset.dataUrl} alt={previewAsset.name} className="max-w-full max-h-[40vh] lg:max-h-[55vh] object-contain rounded-lg" />
                 ) : (
                   <div className="text-center">
@@ -292,10 +377,9 @@ export default function FileTracker() {
                   </div>
                 )}
               </div>
-              {/* Overview panel */}
               <div className="w-full lg:w-72 flex-shrink-0 border-t lg:border-t-0 lg:border-l p-6 space-y-5 overflow-y-auto" style={{ borderColor: '#CACDD7' }}>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>File Name</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Name</label>
                   {!previewAsset.isMock ? (
                     <input type="text" defaultValue={previewAsset.name}
                       onBlur={e => { const v = e.target.value.trim(); if (v) setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, name: v } : a)) }}
@@ -306,7 +390,6 @@ export default function FileTracker() {
                     <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{previewAsset.name}</p>
                   )}
                 </div>
-
                 <div>
                   <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Category</label>
                   {!previewAsset.isMock ? (
@@ -321,26 +404,33 @@ export default function FileTracker() {
                       style={{ backgroundColor: `${CATEGORY_COLORS[previewAsset.category]}20`, color: CATEGORY_COLORS[previewAsset.category] }}>{previewAsset.category}</span>
                   )}
                 </div>
-
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>File Type</label>
-                  <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{previewAsset.type || 'Unknown'} ({getExt(previewAsset.type)})</p>
+                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>{isLink(previewAsset.type) ? 'URL' : 'File Type'}</label>
+                  {isLink(previewAsset.type) ? (
+                    <a href={previewAsset.url} target="_blank" rel="noopener noreferrer" className="text-sm underline break-all" style={{ color: '#FF5900' }}>{previewAsset.url}</a>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{previewAsset.type || 'Unknown'} ({getExt(previewAsset.type)})</p>
+                  )}
                 </div>
-
-                <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Size</label>
-                  <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{formatSize(previewAsset.size)}</p>
-                </div>
-
+                {!isLink(previewAsset.type) && (
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Size</label>
+                    <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{formatSize(previewAsset.size)}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Date Added</label>
                   <p className="text-sm" style={{ color: '#1B1A1C', fontWeight: 500 }}>{formatDate(previewAsset.addedAt)}</p>
                 </div>
-
-                {/* Actions */}
                 <div className="pt-3 space-y-2">
-                  {!previewAsset.isMock && previewAsset.dataUrl && (
-                    <button onClick={() => { handleDownload(previewAsset) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                  {isLink(previewAsset.type) && previewAsset.url && (
+                    <button onClick={() => openLink(previewAsset)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      Open Link
+                    </button>
+                  )}
+                  {!previewAsset.isMock && previewAsset.dataUrl && !isLink(previewAsset.type) && (
+                    <button onClick={() => handleDownload(previewAsset)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', fontWeight: 600 }}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       Download
                     </button>
@@ -417,12 +507,17 @@ export default function FileTracker() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map(asset => (
                 <div key={asset.id}
-                  onClick={() => setPreviewAsset(asset)}
+                  onClick={() => { if (isLink(asset.type) && asset.url) { window.open(asset.url, '_blank', 'noopener,noreferrer') } else { setPreviewAsset(asset) } }}
                   className="rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg cursor-pointer"
                   style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}
                   onMouseEnter={() => setHoveredId(asset.id)} onMouseLeave={() => setHoveredId(null)}>
                   <div className="h-36 flex items-center justify-center overflow-hidden" style={{ backgroundColor: 'rgba(202,205,215,0.2)' }}>
-                    {asset.dataUrl && isImage(asset.type) ? (
+                    {isLink(asset.type) ? (
+                      <div className="flex flex-col items-center gap-1" style={{ color: thumbnailColor(asset.category) }}>
+                        {renderTypeIcon(asset.type, 8, thumbnailColor(asset.category))}
+                        <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 300 }}>URL</span>
+                      </div>
+                    ) : asset.dataUrl && isImage(asset.type) ? (
                       <img src={asset.dataUrl} alt={asset.name} className="w-full h-full object-contain p-2" />
                     ) : (
                       <div className="flex flex-col items-center gap-1" style={{ color: thumbnailColor(asset.category) }}>
@@ -446,7 +541,7 @@ export default function FileTracker() {
                         )}
                       </div>
                       <div className={`flex items-center gap-1 transition-opacity duration-200 ${hoveredId === asset.id ? 'opacity-100' : 'opacity-0'}`}>
-                        {!asset.isMock && asset.dataUrl && (
+                        {!asset.isMock && !isLink(asset.type) && asset.dataUrl && (
                           <button onClick={e => { e.stopPropagation(); handleDownload(asset) }} className="p-1.5 rounded-lg transition hover:scale-105" style={{ color: '#3E4048', backgroundColor: 'rgba(202,205,215,0.3)' }} title="Download">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                           </button>
@@ -461,7 +556,11 @@ export default function FileTracker() {
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 400 }}>{formatDate(asset.addedAt)}</span>
-                      <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 400 }}>{formatSize(asset.size)}</span>
+                      {!isLink(asset.type) ? (
+                        <span className="text-xs" style={{ color: '#CACDD7', fontWeight: 400 }}>{formatSize(asset.size)}</span>
+                      ) : (
+                        <span className="text-xs" style={{ color: '#FF5900', fontWeight: 400 }}>Link</span>
+                      )}
                     </div>
                   </div>
                 </div>
