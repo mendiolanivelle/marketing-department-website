@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { logActivity } from '../lib/activityLogger'
 
 interface TimelineColumn {
   key: string
@@ -283,11 +284,13 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       setTables(prev => [data, ...prev])
       setShowAddTable(false)
       setNewTableTitle('')
+      logActivity('Timeline', `Created table "${data.title}"`)
     } catch (err) { console.error('Error adding table:', err) }
   }
 
   const deleteTimelineTable = async (tableId: string) => {
     if (!confirm('Delete this timeline table and all its leads?') || !supabase) return
+    const table = tables.find(t => t.id === tableId)
     try {
       const { error } = await supabase.from('timeline_tables').delete().eq('id', tableId)
       if (error) throw error
@@ -303,6 +306,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
         .eq('id', tableId)
       if (error) throw error
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, title: editingTableTitleValue.trim() } : t))
+      logActivity('Timeline', `Renamed table to "${editingTableTitleValue.trim()}"`)
     } catch (err) { console.error('Error updating table title:', err) }
     setEditingTableTitle(null)
   }
@@ -384,6 +388,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     setLeads(prev => [...prev, newLead])
     setShowAddLead(false)
     setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
+    logActivity('Timeline', `Added lead "${leadForm.company}"`)
     try {
       const { data, error } = await supabase
         .from('timeline_leads')
@@ -422,8 +427,10 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
 
   const deleteLead = async (leadId: string) => {
     if (!confirm('Delete this lead?') || !supabase) return
+    const lead = leads.find(l => l.id === leadId)
     setLeads(prev => prev.filter(l => l.id !== leadId))
     setSelectedLead(null)
+    if (lead) logActivity('Timeline', `Deleted lead "${lead.company}"`)
     try {
       const { error } = await supabase.from('timeline_leads').delete().eq('id', leadId)
       if (error) throw error
@@ -437,6 +444,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     setNewNote('')
+    logActivity('Timeline', `Added note to "${selectedLead.company}"`)
     try {
       await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error adding note:', err) }
@@ -504,7 +512,8 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     setLastEmailSent(today)
     setShowSendEmail(false)
     setEmailSubject('')
-    setEmailBody('')
+setEmailBody('')
+    logActivity('Timeline', `Emailed "${selectedLead.company}"`)
     try {
       await supabase.from('timeline_leads').update({ last_email_sent: today }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error updating email date:', err) }

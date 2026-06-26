@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 
 type ItemType = 'event' | 'task' | 'meeting'
 
@@ -306,6 +307,7 @@ export default function Calendar() {
       setShowModal(false)
       setEditingItem(null)
       setForm({ ...defaultForm })
+      logActivity('Calendar', editingItem ? `Updated "${payload.title}" (${payload.type})` : `Created "${payload.title}" (${payload.type})`)
     } catch (err) {
       console.error('Error saving calendar item:', err)
       alert('Failed to save item')
@@ -316,6 +318,7 @@ export default function Calendar() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this item?')) return
+    const item = items.find(i => i.id === id)
     try {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase
@@ -325,6 +328,7 @@ export default function Calendar() {
         if (error) throw error
       }
       setItems(prev => prev.filter(i => i.id !== id))
+      if (item) logActivity('Calendar', `Deleted "${item.title}"`)
     } catch (err) {
       console.error('Error deleting calendar item:', err)
       alert('Failed to delete item')

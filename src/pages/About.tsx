@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
+import { logActivity } from '../lib/activityLogger'
 
 interface TeamMember {
   id: number
@@ -78,14 +79,20 @@ export default function About() {
     setNewMember({ name: '', role: '', bio: '' })
     setNewMemberPhoto(null)
     setShowAddMember(false)
+    logActivity('About', `Added team member "${newMember.name.trim()}"`)
   }
 
-  const deleteMember = (id: number) => { setTeamMembers(teamMembers.filter(m => m.id !== id)) }
+  const deleteMember = (id: number) => {
+    const member = teamMembers.find(m => m.id === id)
+    setTeamMembers(teamMembers.filter(m => m.id !== id))
+    if (member) logActivity('About', `Removed team member "${member.name}"`)
+  }
 
   const saveMemberEdit = () => {
     if (!editingMember) return
     setTeamMembers(teamMembers.map(m => m.id === editingMember.id ? { ...editingMember, initials: getInitials(editingMember.name) } : m))
     setEditingMember(null)
+    logActivity('About', `Edited team member "${editingMember.name}"`)
   }
 
   const handlePhotoUpload = (member: TeamMember) => {
@@ -152,14 +159,20 @@ export default function About() {
     setOpenRoles([...openRoles, { ...newRole, id }])
     setNewRole({ title: '', type: 'Full-time - Hybrid' })
     setShowAddRole(false)
+    logActivity('About', `Added open role "${newRole.title.trim()}"`)
   }
 
-  const deleteRole = (id: number) => { setOpenRoles(openRoles.filter(r => r.id !== id)) }
+  const deleteRole = (id: number) => {
+    const role = openRoles.find(r => r.id === id)
+    setOpenRoles(openRoles.filter(r => r.id !== id))
+    if (role) logActivity('About', `Removed open role "${role.title}"`)
+  }
 
   const saveRoleEdit = () => {
     if (!editingRole) return
     setOpenRoles(openRoles.map(r => r.id === editingRole.id ? editingRole : r))
     setEditingRole(null)
+    logActivity('About', `Edited open role "${editingRole.title}"`)
   }
 
   return (
@@ -559,7 +572,7 @@ export default function About() {
                 </div>
               ))}
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted!'); form.reset() }} className="space-y-2.5">
+            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted!'); form.reset(); logActivity('About', `Contact form submitted by "${data.name}"`) }} className="space-y-2.5">
               <input name="name" required placeholder="Your Name" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
               <input name="email" required placeholder="Your Email" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
               <textarea name="message" required rows={2} placeholder="Briefly describe your request..." className="w-full px-3.5 py-2 rounded-lg outline-none text-sm resize-none" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />

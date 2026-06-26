@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 
 interface OutreachLead {
   id: number
@@ -143,21 +144,27 @@ export default function Messaging() {
     setLeads(sortLeads([...leads, { ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '' }]))
     setNewLead({ name: '', email: '', company: '', role: '' })
     setShowAdd(false)
+    logActivity('Lead', `Added "${newLead.name.trim()}" (${newLead.email.trim()})`)
   }
 
   const deleteLead = (id: number) => {
+    const lead = leads.find(l => l.id === id)
     setLeads(leads.filter(l => l.id !== id))
+    if (lead) logActivity('Lead', `Deleted "${lead.name}"`)
   }
 
   const updateStatus = (id: number, status: OutreachLead['status']) => {
+    const lead = leads.find(l => l.id === id)
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     setLeads(sortLeads(leads.map(l => l.id === id ? { ...l, status, lastContacted: today } : l)))
+    if (lead) logActivity('Lead', `Updated "${lead.name}" status to ${status}`)
   }
 
   const saveLeadEdit = () => {
     if (!editingLead) return
     setLeads(sortLeads(leads.map(l => l.id === editingLead.id ? editingLead : l)))
     setEditingLead(null)
+    logActivity('Lead', `Edited "${editingLead.name}"`)
   }
 
   const sendEmail = () => {
@@ -170,6 +177,7 @@ export default function Messaging() {
     setEmailSubject('')
     setEmailBody('')
     setSelectedLead(null)
+    logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
   }
 
   const addNote = (id: number, note: string) => {
@@ -269,6 +277,7 @@ export default function Messaging() {
         if (error) throw error
         setTemplates(prev => prev.map(t => t.id === editingId ? { ...t, ...data, updated_at: new Date().toISOString() } : t))
         setSuccessMessage('Template updated successfully!')
+        logActivity('Template', `Updated "${data.title}"`)
       } else {
         const { data: newData, error } = await supabase
           .from('message_templates')
@@ -277,6 +286,7 @@ export default function Messaging() {
         if (error) throw error
         if (newData) setTemplates(prev => [newData[0], ...prev])
         setSuccessMessage('Template created successfully!')
+        logActivity('Template', `Created "${data.title}"`)
       }
       reset()
       setShowForm(false)
@@ -301,6 +311,7 @@ export default function Messaging() {
 
   const handleDelete = async (id: string) => {
     setErrorMessage(null)
+    const template = templates.find(t => t.id === id)
 
     if (!isSupabaseConfigured || !supabase) {
       setErrorMessage('Supabase is not configured. Please check your environment variables.')
@@ -317,6 +328,7 @@ export default function Messaging() {
 
       setSuccessMessage('Template deleted successfully!')
       await fetchTemplates()
+      if (template) logActivity('Template', `Deleted "${template.title}"`)
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error deleting template:', err)

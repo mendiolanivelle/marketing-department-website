@@ -1,15 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-
-interface ActivityEntry {
-  id: number
-  action: string
-  detail: string
-  timestamp: string
-}
-
-const MAX_ACTIVITIES = 50
+import { logActivity, getActivityLog } from '../lib/activityLogger'
+import type { ActivityEntry } from '../lib/activityLogger'
 
 const announcements = [
   { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting', content: 'Join us for the Q3 campaign planning session where we will discuss upcoming initiatives and strategies.' },
@@ -59,23 +52,13 @@ export default function Home() {
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
-  const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => {
-    const saved = localStorage.getItem('exodia-activity-log')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>(() => getActivityLog())
 
-  const logActivity = useCallback((action: string, detail: string) => {
-    const entry: ActivityEntry = {
-      id: Date.now(),
-      action,
-      detail,
-      timestamp: new Date().toLocaleString(),
-    }
-    setActivityLog(prev => {
-      const next = [entry, ...prev].slice(0, MAX_ACTIVITIES)
-      localStorage.setItem('exodia-activity-log', JSON.stringify(next))
-      return next
-    })
+  // Refresh activity log when the page gains focus (other tabs may have added activities)
+  useEffect(() => {
+    const refresh = () => setActivityLog(getActivityLog())
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
   }, [])
 
   // Persist tasks and announcements to localStorage

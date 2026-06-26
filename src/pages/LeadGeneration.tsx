@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 
 interface LeadFile {
   id: string
@@ -593,6 +594,7 @@ export default function LeadGeneration() {
       setFiles(prev => [newFile, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
       fetchLeadStats()
+      logActivity('LeadGen', `Uploaded "${newFile.name}" (${parsedRows.length} rows)`)
     } catch (err) {
       console.error('Error uploading CSV:', err)
       alert('Failed to upload CSV file')
@@ -634,6 +636,7 @@ export default function LeadGeneration() {
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
       fetchLeadStats()
+      logActivity('LeadGen', `Created spreadsheet "${name}"`)
     } catch (err) {
       console.error('Error creating spreadsheet:', err)
       alert('Failed to create spreadsheet')
@@ -767,11 +770,12 @@ export default function LeadGeneration() {
     setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData, updated_at: now } : r))
     setEditingCell(null)
 
-    if (supabase) {
-      try {
-        await supabase.from('lead_rows').update({ data: newData, updated_at: now }).eq('id', editingCell.rowId)
-      } catch (err) { console.error('Error saving cell:', err) }
-    }
+if (supabase) {
+        try {
+          await supabase.from('lead_rows').update({ data: newData, updated_at: now }).eq('id', editingCell.rowId)
+        } catch (err) { console.error('Error saving cell:', err) }
+      }
+      logActivity('LeadGen', `Edited cell in "${selectedFile.name}"`)
   }
 
   const handleHeaderEdit = (index: number) => {
@@ -844,10 +848,12 @@ export default function LeadGeneration() {
 
   const deleteFile = async (fileId: string) => {
     if (!confirm('Delete this file and all its data?') || !supabase) return
+    const file = files.find(f => f.id === fileId)
     const { error } = await supabase.from('lead_files').delete().eq('id', fileId)
     if (!error) {
       setFiles(prev => prev.filter(f => f.id !== fileId))
       if (selectedFile?.id === fileId) closeFile()
+      if (file) logActivity('LeadGen', `Deleted "${file.name}"`)
     }
   }
 

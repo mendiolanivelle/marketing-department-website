@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { logActivity } from '../lib/activityLogger'
 
 interface Asset {
   id: string
@@ -167,6 +168,7 @@ export default function FileTracker() {
         }
         setUserAssets(prev => [asset, ...prev])
         resolve()
+        logActivity('Files', `Uploaded "${file.name}"`)
       }
       reader.onerror = () => { setUploadError('Some files failed to read. They may be too large.'); resolve() }
       reader.readAsDataURL(file)
@@ -200,6 +202,7 @@ export default function FileTracker() {
       setLinkUrl('')
       setUploadError('')
       setShowUpload(false)
+      logActivity('Files', `Added link "${name}" (${url})`)
     }
   }
 
@@ -208,8 +211,10 @@ export default function FileTracker() {
   }
 
   const handleDelete = (id: string) => {
+    const asset = userAssets.find(a => a.id === id)
     setUserAssets(prev => prev.filter(a => a.id !== id))
     if (previewAsset?.id === id) setPreviewAsset(null)
+    if (asset) logActivity('Files', `Deleted "${asset.name}"`)
   }
 
   const handleDownload = (asset: Asset) => {
