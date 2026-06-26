@@ -7,6 +7,7 @@ interface WorkspaceCard {
   y: number
   content: string
   todos?: { id: string; text: string; done: boolean }[]
+  columnItems?: string[]
   imageUrl?: string
   width?: number
   height?: number
@@ -38,16 +39,19 @@ export default function Workspace() {
       x: 60 + Math.random() * 300,
       y: 60 + Math.random() * 300,
       content: type === 'note' ? 'New note...' : type === 'link' ? 'https://' : type === 'column' ? 'Column' : '',
-      width: type === 'column' ? 260 : type === 'image' ? 280 : 220,
-      height: type === 'column' ? 320 : type === 'note' ? 160 : 200,
+      width: type === 'column' ? 240 : type === 'image' ? 280 : 220,
+      height: type === 'column' ? 300 : type === 'note' ? 160 : 200,
     }
     if (type === 'todo') {
       base.todos = []
       base.height = 180
     }
+    if (type === 'column') {
+      base.columnItems = []
+    }
     if (type === 'image') {
       base.imageUrl = ''
-      base.content = 'Paste image URL or click to upload'
+      base.content = 'Click to upload or paste URL'
     }
     setCards(prev => [...prev, base])
     setActiveTool(null)
@@ -108,6 +112,26 @@ export default function Workspace() {
 
   const deleteTodo = (cardId: string, todoId: string) => {
     setCards(prev => prev.map(c => c.id === cardId ? { ...c, todos: c.todos?.filter(t => t.id !== todoId) } : c))
+  }
+
+  const addColumnItem = (cardId: string) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, columnItems: [...(c.columnItems || []), ''] } : c))
+  }
+
+  const updateColumnItem = (cardId: string, idx: number, val: string) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, columnItems: c.columnItems?.map((item, i) => i === idx ? val : item) } : c))
+  }
+
+  const deleteColumnItem = (cardId: string, idx: number) => {
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, columnItems: c.columnItems?.filter((_, i) => i !== idx) } : c))
+  }
+
+  const handleImageUpload = (cardId: string, file: File) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setCards(prev => prev.map(c => c.id === cardId ? { ...c, imageUrl: reader.result as string, content: '' } : c))
+    }
+    reader.readAsDataURL(file)
   }
 
   const tools = [
@@ -258,9 +282,35 @@ export default function Workspace() {
                   style={{ color: '#1B1A1C', borderColor: '#CACDD7', backgroundColor: 'transparent' }}
                   onMouseDown={e => e.stopPropagation()}
                 />
-                <div className="flex-1 flex items-center justify-center rounded-lg" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
-                  <p className="text-xs" style={{ color: '#CACDD7' }}>Drag items here</p>
+                <div className="flex-1 overflow-y-auto space-y-1 mb-2">
+                  {card.columnItems?.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-1 group" onMouseDown={e => e.stopPropagation()}>
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#FF5900' }} />
+                      <input
+                        type="text"
+                        value={item}
+                        onChange={e => updateColumnItem(card.id, idx, e.target.value)}
+                        className="flex-1 text-xs outline-none px-1.5 py-1 rounded"
+                        style={{ color: '#1B1A1C', backgroundColor: 'rgba(202,205,215,0.1)' }}
+                      />
+                      <button onClick={() => deleteColumnItem(card.id, idx)} className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50">
+                        <svg className="w-3 h-3" style={{ color: '#EF4444' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  {(!card.columnItems || card.columnItems.length === 0) && (
+                    <p className="text-xs text-center py-4" style={{ color: '#CACDD7' }}>No items yet</p>
+                  )}
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); addColumnItem(card.id) }}
+                  className="w-full py-1.5 text-xs rounded-lg transition flex items-center justify-center gap-1"
+                  style={{ backgroundColor: 'rgba(255,89,0,0.1)', color: '#FF5900', fontWeight: 500 }}
+                  onMouseDown={e => e.stopPropagation()}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  Add item
+                </button>
               </div>
             )}
 
@@ -271,16 +321,27 @@ export default function Workspace() {
                   <div className="flex-1 relative rounded-lg overflow-hidden mb-2" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }}>
                     <img src={card.imageUrl} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   </div>
-                ) : null}
-                <input
-                  type="text"
-                  value={card.imageUrl || ''}
-                  onChange={e => updateImageUrl(card.id, e.target.value)}
-                  className="w-full text-xs outline-none border rounded-lg px-2 py-1"
-                  style={{ color: '#1B1A1C', borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.08)' }}
-                  placeholder="Paste image URL..."
-                  onMouseDown={e => e.stopPropagation()}
-                />
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center rounded-lg mb-2 cursor-pointer" style={{ backgroundColor: 'rgba(202,205,215,0.1)' }} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = (e: any) => { if (e.target.files?.[0]) handleImageUpload(card.id, e.target.files[0]) }; inp.click() }}>
+                    <svg className="w-8 h-8 mb-1" style={{ color: '#CACDD7' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <p className="text-xs" style={{ color: '#CACDD7' }}>Click to upload</p>
+                  </div>
+                )}
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={card.imageUrl || ''}
+                    onChange={e => updateImageUrl(card.id, e.target.value)}
+                    className="flex-1 text-xs outline-none border rounded-lg px-2 py-1"
+                    style={{ color: '#1B1A1C', borderColor: '#CACDD7', backgroundColor: 'rgba(202,205,215,0.08)' }}
+                    placeholder="Or paste image URL..."
+                    onMouseDown={e => e.stopPropagation()}
+                  />
+                  <label className="px-2 py-1 rounded-lg cursor-pointer text-xs flex items-center gap-1" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImageUpload(card.id, e.target.files[0]) }} />
+                  </label>
+                </div>
               </div>
             )}
           </div>
