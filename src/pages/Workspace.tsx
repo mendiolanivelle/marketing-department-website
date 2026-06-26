@@ -221,7 +221,7 @@ export default function Workspace() {
       <div ref={canvasRef} className="absolute inset-0 overflow-hidden">
         {/* Grid dots background */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: 'radial-gradient(circle, rgba(62,64,72,0.1) 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, rgba(62,64,72,0.25) 1px, transparent 1px)',
           backgroundSize: '24px 24px',
         }} />
 

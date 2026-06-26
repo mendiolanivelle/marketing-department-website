@@ -61,7 +61,7 @@ function App() {
                   <div className="min-h-screen flex theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                     <Sidebar />
                     <div className="flex-1 flex flex-col min-w-0">
-                      <main className="flex-1">
+                      <main className="flex-1 flex flex-col">
                         <Suspense fallback={<RouteFallback />}>
                           <Routes>
                             <Route path="/dashboard" element={<Home />} />
@@ -70,7 +70,7 @@ function App() {
                             <Route path="/templates" element={<Messaging />} />
                             <Route path="/calendar" element={<Calendar />} />
                             <Route path="/leads" element={<LeadGeneration />} />
-<Route path="/workspace" element={<Workspace />} />
+<Route path="/workspace" element={<div className="flex-1"><Workspace /></div>} />
                           </Routes>
                         </Suspense>
                       </main>
