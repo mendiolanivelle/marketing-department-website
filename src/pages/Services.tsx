@@ -48,7 +48,7 @@ export default function Services() {
       <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {services.map((service, index) => (
-            <div key={index} className="bg-white p-6 sm:p-9 rounded-2xl border border-[#CACDD7] hover:border-[#CACDD7] hover:shadow-xl hover:-translate-y-1 transition-all">
+            <div key={index} className="bg-white p-6 sm:p-9 rounded-2xl border-2 border-[#CACDD7] exodia-card hover:border-[#CACDD7] hover:shadow-xl hover:-translate-y-1 transition-all">
               <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: service.icon }}></div>
               <h3 className="text-lg sm:text-xl font-bold text-[#1B1A1C] mb-2 sm:mb-3">{service.title}</h3>
               <p className="text-[#3E4048] text-sm leading-relaxed mb-4 sm:mb-5">{service.description}</p>

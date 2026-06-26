@@ -116,7 +116,7 @@ export default function ReachOut() {
           { label: 'Sent', count: leads.filter(l => l.status === 'sent').length },
           { label: 'Replied', count: leads.filter(l => l.status === 'replied').length },
         ].map((stat, i) => (
-          <div key={i} className="p-4 rounded-xl border text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div key={i} className="p-4 rounded-xl border-2 exodia-card text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <div className="text-2xl sm:text-3xl mb-1" style={{ color: stat.color || 'var(--text-primary)', fontWeight: 700 }}>{stat.count}</div>
             <div className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
           </div>
@@ -149,7 +149,7 @@ export default function ReachOut() {
           return (
             <div
               key={lead.id}
-              className="group rounded-xl border p-4 sm:p-5 transition-all hover:shadow-md"
+              className="group rounded-xl border-2 exodia-card p-4 sm:p-5 transition-all hover:shadow-md"
               style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `4px solid ${status.color}` }}
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

@@ -919,7 +919,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       {/* Timeline Tables */}
       <div className="space-y-8">
         {filteredTables.map((table) => (
-          <div key={table.id} className="rounded-2xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div key={table.id} className="rounded-2xl border-2 exodia-card p-4 sm:p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             {/* Table Header */}
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-3 flex-1 min-w-0">

@@ -1260,7 +1260,7 @@ export default function LeadGeneration() {
 
         {/* Lead Pipeline Dashboard */}
         <div
-          className="block rounded-2xl border p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all theme-transition"
+          className="block rounded-2xl border-2 exodia-card p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all theme-transition"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
         >
           <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
@@ -1373,13 +1373,13 @@ export default function LeadGeneration() {
             {loading ? (
               <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--text-primary)' }}></div></div>
             ) : files.filter(f => f.source === 'csv').length === 0 ? (
-              <div className="text-center py-12 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div className="text-center py-12 rounded-2xl border-2 exodia-card" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No CSV files uploaded yet</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                 {files.filter(f => f.source === 'csv').map((file) => (
-                  <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
+                  <div key={file.id} className="group rounded-xl border-2 exodia-card p-4 cursor-pointer transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
@@ -1408,13 +1408,13 @@ export default function LeadGeneration() {
             {loading ? (
               <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--text-primary)' }}></div></div>
             ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
-              <div className="text-center py-12 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div className="text-center py-12 rounded-2xl border-2 exodia-card" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No spreadsheets created yet</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                 {files.filter(f => f.source === 'spreadsheet').map((file) => (
-                  <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
+                  <div key={file.id} className="group rounded-xl border-2 exodia-card p-4 cursor-pointer transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>

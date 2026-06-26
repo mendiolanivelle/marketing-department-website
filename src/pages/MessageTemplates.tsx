@@ -391,7 +391,7 @@ export default function MessageTemplates() {
           {filteredTemplates.map((template) => (
             <div
               key={template.id}
-              className="bg-white rounded-2xl border border-[#CACDD7] p-4 sm:p-6 hover:border-[#CACDD7] transition-all"
+              className="bg-white rounded-2xl border-2 border-[#CACDD7] exodia-card p-4 sm:p-6 hover:border-[#CACDD7] transition-all"
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="min-w-0 flex-1">

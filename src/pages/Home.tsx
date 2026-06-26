@@ -394,7 +394,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* My Tasks Widget */}
-            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
               </div>
@@ -471,7 +471,7 @@ export default function Home() {
             </div>
 
             {/* Recent Activity Feed */}
-            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128337; Recent Activity</h2>
               </div>
@@ -497,7 +497,7 @@ export default function Home() {
             </div>
 
             {/* Quick Links */}
-            <div className="rounded-2xl border p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128279; Quick Links</h2>
               <div className="space-y-2.5">
                 {quickLinks.map((link, i) => (
@@ -527,7 +527,7 @@ export default function Home() {
               { icon: '&#128200;', title: 'Q2 Results', desc: 'Lead generation up 23% and engagement rate improved by 18% quarter-over-quarter.' },
               { icon: '&#129309;', title: 'Cross-Team Collab', desc: 'Working with Sales, Product, and Customer Success on the Q3 go-to-market plan.' },
             ].map((item, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: item.icon }}></div>
                 <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.desc}</p>

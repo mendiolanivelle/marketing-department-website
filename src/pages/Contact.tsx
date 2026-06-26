@@ -66,7 +66,7 @@ export default function Contact() {
             </div>
           </div>
 
-          <div className="bg-white p-6 sm:p-10 rounded-2xl border border-[#CACDD7]">
+          <div className="bg-white p-6 sm:p-10 rounded-2xl border-2 border-[#CACDD7] exodia-card">
             {submitted && (
               <div className="bg-[rgba(255,89,0,0.05)] border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 text-sm font-medium">
                 Request submitted! We'll review it and get back to you within 1-2 business days.

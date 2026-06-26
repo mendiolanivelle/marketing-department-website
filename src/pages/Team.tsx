@@ -20,7 +20,7 @@ export default function Team() {
       <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {teamMembers.map((member, index) => (
-            <div key={index} className="bg-white p-6 sm:p-9 rounded-2xl border border-[#CACDD7] text-center hover:border-[#CACDD7] hover:shadow-xl hover:-translate-y-1 transition-all">
+            <div key={index} className="bg-white p-6 sm:p-9 rounded-2xl border-2 border-[#CACDD7] exodia-card text-center hover:border-[#CACDD7] hover:shadow-xl hover:-translate-y-1 transition-all">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#1B1A1C] flex items-center justify-center mx-auto mb-4 sm:mb-5">
                 <span className="text-white text-lg sm:text-xl font-bold">{member.initials}</span>
               </div>
@@ -43,7 +43,7 @@ export default function Team() {
               { title: 'Marketing Coordinator', type: 'Full-time - Hybrid' },
               { title: 'Senior Content Strategist', type: 'Full-time - Remote' },
             ].map((role, index) => (
-              <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white border border-[#CACDD7] rounded-xl hover:border-[#CACDD7] hover:shadow-md transition gap-2 sm:gap-0">
+              <div key={index} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white border-2 border-[#CACDD7] exodia-card rounded-xl hover:border-[#CACDD7] hover:shadow-md transition gap-2 sm:gap-0">
                 <h4 className="font-semibold text-[#1B1A1C]">{role.title}</h4>
                 <span className="text-sm text-[#3E4048]">{role.type}</span>
               </div>

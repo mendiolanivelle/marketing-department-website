@@ -162,6 +162,14 @@ p, span, div, a, button, input, textarea, select, label {
 .exodia-border { border-color: var(--border-primary); }
 .exodia-border-secondary { border-color: var(--border-secondary); }
 
+/* Card shadow for subtle separation from white background */
+.exodia-card {
+  box-shadow: 0 4px 16px rgba(27,26,28,0.06), 0 0 0 1px rgba(27,26,28,0.08);
+}
+.dark .exodia-card {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.06);
+}
+
 .exodia-btn-primary {
   background-color: var(--btn-primary-bg);
   color: var(--btn-primary-text);

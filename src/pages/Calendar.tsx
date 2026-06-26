@@ -341,7 +341,7 @@ export default function Calendar() {
   return (
     <div className="min-h-screen bg-[rgba(202,205,215,0.15)]">
       <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-2xl border border-[#CACDD7] overflow-hidden">
+        <div className="bg-white rounded-2xl border-2 border-[#CACDD7] exodia-card overflow-hidden">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-[#CACDD7] gap-3">
             <div className="flex items-center gap-3 sm:gap-4">

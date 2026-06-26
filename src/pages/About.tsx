@@ -219,7 +219,7 @@ export default function About() {
               { icon: '&#128221;', title: 'Content & Comms', desc: 'Blog, social media, internal communications, PR, and content strategy.' },
               { icon: '&#128202;', title: 'Analytics & Ops', desc: 'Marketing analytics, reporting, budget management, and tool administration.' },
             ].map((team, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: team.icon }}></div>
                 <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{team.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{team.desc}</p>
@@ -243,7 +243,7 @@ export default function About() {
               { icon: '&#127919;', title: 'Impact', desc: 'Every initiative we undertake is tied to measurable business outcomes and company goals.' },
               { icon: '&#128172;', title: 'Transparency', desc: 'We share our plans, results, and learnings openly with the entire organization.' },
             ].map((value, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border transition-all hover:shadow-lg text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:shadow-lg text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: value.icon }}></div>
                 <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{value.desc}</p>
@@ -269,7 +269,7 @@ export default function About() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
             {teamMembers.map((member) => (
-              <div key={member.id} onClick={() => setSelectedMember(member)} className="group p-6 sm:p-8 rounded-2xl border text-center transition-all hover:shadow-lg relative cursor-pointer" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div key={member.id} onClick={() => setSelectedMember(member)} className="group p-6 sm:p-8 rounded-2xl border-2 exodia-card text-center transition-all hover:shadow-lg relative cursor-pointer" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                   <button onClick={() => setEditingMember(member)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--text-muted)' }} title="Edit">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -312,7 +312,7 @@ export default function About() {
             </p>
             <div className="inline-flex flex-col gap-3 max-w-xl w-full">
               {openRoles.map((role) => (
-                <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border-2 exodia-card transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                   <div className="text-left">
                     <h4 className="text-sm sm:text-base" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{role.title}</h4>
                     <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{role.type}</span>
@@ -499,7 +499,7 @@ export default function About() {
               { icon: '&#128200;', title: 'Analytics & Reporting', desc: 'Access marketing dashboards, request custom reports, and track KPIs.', features: ['Performance Dashboards', 'Custom Reports', 'KPI Tracking', 'Data Walkthroughs'] },
               { icon: '&#127758;', title: 'Event & Webinar Support', desc: 'Promotion, logistics, and post-event follow-up for internal events and conferences.', features: ['Event Promotion', 'Webinar Setup', 'Conference Planning', 'Post-Event Reports'] },
             ].map((service, i) => (
-              <div key={i} className="p-6 sm:p-9 rounded-2xl border transition-all hover:-translate-y-1 hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <div key={i} className="p-6 sm:p-9 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" dangerouslySetInnerHTML={{ __html: service.icon }}></div>
                 <h3 className="text-lg sm:text-xl mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{service.title}</h3>
                 <p className="text-sm leading-relaxed mb-4 sm:mb-5" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{service.desc}</p>

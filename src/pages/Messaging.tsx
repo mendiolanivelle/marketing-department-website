@@ -391,7 +391,7 @@ export default function Messaging() {
             { label: 'Follow Up', count: leads.filter(l => l.status === 'follow-up').length, color: '#4A90D9' },
             { label: 'Replied', count: leads.filter(l => l.status === 'replied').length, color: '#FF5900' },
           ].map((stat, i) => (
-            <div key={i} className="p-4 rounded-xl border text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div key={i} className="p-4 rounded-xl border-2 exodia-card text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="text-2xl sm:text-3xl mb-1" style={{ color: stat.color || 'var(--text-primary)', fontWeight: 700 }}>{stat.count}</div>
               <div className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
             </div>
@@ -440,7 +440,7 @@ export default function Messaging() {
             return (
               <div
                 key={lead.id}
-                className="group rounded-xl border p-4 sm:p-5 transition-all hover:shadow-md cursor-pointer"
+                className="group rounded-xl border-2 exodia-card p-4 sm:p-5 transition-all hover:shadow-md cursor-pointer"
                 style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `4px solid ${status.color}` }}
                 onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
               >
@@ -770,7 +770,7 @@ export default function Messaging() {
                 : templates
               if (results.length === 0) {
                 return (
-                  <div className="text-center py-16 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                  <div className="text-center py-16 rounded-2xl border-2 exodia-card" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                     <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{query ? 'No templates match your search' : 'No templates yet'}</p>
                   </div>
@@ -779,7 +779,7 @@ export default function Messaging() {
               return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {results.map((template) => (
-                    <div key={template.id} className="rounded-2xl border p-4 sm:p-6 transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                    <div key={template.id} className="rounded-2xl border-2 exodia-card p-4 sm:p-6 transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="min-w-0 flex-1">
                           <span className="inline-block px-2 py-0.5 rounded-md text-xs mb-2" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 500 }}>{template.category}</span>
