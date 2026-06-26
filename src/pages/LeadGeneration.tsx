@@ -661,20 +661,15 @@ export default function LeadGeneration() {
         if (matchingRows.length > 1) dupes.push({ email, rows: matchingRows })
       }
       if (dupes.length > 0) {
-        // Use setTimeout to ensure this runs after the render triggered by setSelectedFile
-        setTimeout(() => {
-          setDuplicateModal({
-            type: 'in-file',
-            count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
-            email: dupes[0].email,
-            dupes,
-          })
-        }, 0)
+        setDuplicateModal({
+          type: 'in-file',
+          count: dupes.reduce((sum, d) => sum + d.rows.length - 1, 0),
+          email: dupes[0].email,
+          dupes,
+        })
       }
     }
   }
-
-  const closeFile = () => {
 
   const closeFile = () => {
     setSelectedFile(null)
