@@ -200,7 +200,7 @@ export default function Workspace() {
             <span className="text-[9px] font-medium">Shapes</span>
           </button>
           {showShapeMenu && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 rounded-2xl border shadow-lg grid grid-cols-3 gap-1" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-2xl border shadow-lg flex flex-row gap-0.5" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
               {shapes.map(shape => (
                 <button
                   key={shape.key}
