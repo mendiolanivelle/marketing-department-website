@@ -521,18 +521,38 @@ export default function Home() {
           <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Highlights</h2>
           <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Key metrics and focus areas for this quarter</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              { icon: '&#127919;', title: 'Active Campaigns', desc: '12 campaigns currently running across digital, print, and event channels.' },
-              { icon: '&#127912;', title: 'Brand Refresh', desc: 'New brand guidelines v2.0 are live. Review the updated assets and templates.' },
-              { icon: '&#128200;', title: 'Q2 Results', desc: 'Lead generation up 23% and engagement rate improved by 18% quarter-over-quarter.' },
-              { icon: '&#129309;', title: 'Cross-Team Collab', desc: 'Working with Sales, Product, and Customer Success on the Q3 go-to-market plan.' },
-            ].map((item, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                {i === 0 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> : i === 1 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> : i === 2 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> : <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>}
-                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{item.desc}</p>
-              </div>
-            ))}
+            <Link to="/leads" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+            >
+              <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>12</div>
+              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Campaigns</div>
+            </Link>
+
+            <Link to="/about" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+            >
+              <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>v2.0</div>
+              <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Current Brand Guidelines</div>
+              <span className="text-xs font-medium" style={{ color: '#FF5900' }}>View Assets &rarr;</span>
+            </Link>
+
+            <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>+23%</div>
+              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Q2 Lead Gen Growth</div>
+            </div>
+
+            <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>3</div>
+              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Cross-Team Projects</div>
+            </div>
           </div>
         </div>
       </section>
