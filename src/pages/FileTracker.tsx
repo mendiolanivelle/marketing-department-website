@@ -112,7 +112,6 @@ export default function FileTracker() {
   const [linkName, setLinkName] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -241,7 +240,7 @@ export default function FileTracker() {
   const thumbnailColor = (cat: string) => CATEGORY_COLORS[cat] || '#FF5900'
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
       {/* Upload modal */}
       {showUpload && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowUpload(false)}>
@@ -448,41 +447,24 @@ export default function FileTracker() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside className={`flex-shrink-0 hidden sm:flex flex-col transition-all duration-300 ${sidebarCollapsed ? 'w-14' : 'w-56'}`} style={{ backgroundColor: '#3E4048' }}>
-        <div className="flex items-center justify-between px-3 pt-6 pb-4 border-b flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          {!sidebarCollapsed && <h2 className="text-sm font-semibold tracking-wider uppercase truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>Categories</h2>}
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className={`p-1.5 rounded-lg transition-all duration-200 flex-shrink-0 hover:scale-105 ${sidebarCollapsed ? 'mx-auto' : ''}`} style={{ color: 'rgba(255,255,255,0.5)' }} title={sidebarCollapsed ? 'Expand categories' : 'Collapse categories'}>
-            <svg className={`w-4 h-4 transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7" /></svg>
-          </button>
-        </div>
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`w-full flex items-center rounded-lg text-sm transition-all duration-200 text-left ${sidebarCollapsed ? 'justify-center py-2.5' : 'justify-between px-3 py-2.5'}`}
-              style={{ backgroundColor: activeCategory === cat ? '#FF5900' : 'transparent', color: activeCategory === cat ? '#FFFFFF' : 'rgba(255,255,255,0.7)', fontWeight: activeCategory === cat ? 600 : 400 }}
-              onMouseEnter={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#FFFFFF' } }}
-              onMouseLeave={e => { if (activeCategory !== cat) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' } }}
-              title={sidebarCollapsed ? cat : undefined}>
-              {sidebarCollapsed ? <span className="text-xs font-bold">{cat.charAt(0)}</span> : <><span className="truncate">{cat}</span><span className="text-xs ml-2 flex-shrink-0" style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span></>}
-            </button>
-          ))}
-        </nav>
-        {!sidebarCollapsed && <div className="px-4 py-4 border-t flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}><div className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{filtered.length} file{filtered.length !== 1 ? 's' : ''} found</div></div>}
-      </aside>
-
-      {/* Mobile categories */}
-      <div className="sm:hidden flex gap-2 px-4 pt-4 pb-2 overflow-x-auto">
+      {/* Category toolbar */}
+      <div className="flex items-center gap-1 sm:gap-1.5 px-4 sm:px-6 py-2.5 overflow-x-auto border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#CACDD7' }}>
         {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setActiveCategory(cat)} className="px-4 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all"
-            style={{ backgroundColor: activeCategory === cat ? '#FF5900' : '#3E4048', color: activeCategory === cat ? '#FFFFFF' : 'rgba(255,255,255,0.7)', fontWeight: activeCategory === cat ? 600 : 400 }}>
-            {cat} ({categoryCounts[cat]})
+          <button key={cat} onClick={() => setActiveCategory(cat)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm whitespace-nowrap transition-all flex-shrink-0"
+            style={{
+              backgroundColor: activeCategory === cat ? '#FF5900' : 'rgba(202,205,215,0.25)',
+              color: activeCategory === cat ? '#FFFFFF' : '#3E4048',
+              fontWeight: activeCategory === cat ? 600 : 400,
+            }}>
+            {cat}
+            <span className={`text-xs ${activeCategory === cat ? 'text-white/70' : ''}`} style={{ opacity: 0.6 }}>({categoryCounts[cat]})</span>
           </button>
         ))}
       </div>
 
       {/* Main */}
-      <div className="flex-1 min-w-0">
+      <div>
         <div className="sticky top-0 z-10 px-4 sm:px-6 py-4 border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1">
