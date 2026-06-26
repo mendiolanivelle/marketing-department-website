@@ -345,24 +345,43 @@ export default function LeadGeneration() {
     sourceFileName: string,
     columns: string[]
   ): Promise<number> => {
-    if (!isSupabaseConfigured || !supabase || rowsToCheck.length === 0) return 0
+    if (rowsToCheck.length === 0) return 0
 
     const emailCol = columns.find(h => h.toLowerCase().includes('email'))
     if (!emailCol) return 0
 
-    const { data: allRows } = await supabase
-      .from('lead_rows')
-      .select('file_id, data')
-      .neq('file_id', sourceFileId)
-
     const existingEmails = new Set<string>()
-    if (allRows) {
-      allRows.forEach(r => {
-        const data = r.data as Record<string, string>
-        if (data[emailCol]) {
-          existingEmails.add(data[emailCol].toLowerCase().trim())
+
+    if (supabase) {
+      const { data: allRows } = await supabase
+        .from('lead_rows')
+        .select('file_id, data')
+        .neq('file_id', sourceFileId)
+
+      if (allRows) {
+        allRows.forEach(r => {
+          const data = r.data as Record<string, string>
+          if (data[emailCol]) existingEmails.add(data[emailCol].toLowerCase().trim())
+        })
+      }
+    } else {
+      // localStorage mode — read other files' rows
+      const savedFiles = localStorage.getItem('exodia-lead-files')
+      if (savedFiles) {
+        const allFiles: LeadFile[] = JSON.parse(savedFiles)
+        for (const f of allFiles) {
+          if (f.id === sourceFileId) continue
+          const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
+          if (savedRows) {
+            try {
+              const rows: LeadRow[] = JSON.parse(savedRows)
+              rows.forEach(r => {
+                if (r.data[emailCol]) existingEmails.add(r.data[emailCol].toLowerCase().trim())
+              })
+            } catch {}
+          }
         }
-      })
+      }
     }
 
     const duplicateRows: Record<string, string>[] = []
@@ -379,41 +398,79 @@ export default function LeadGeneration() {
 
     if (duplicateRows.length === 0) return 0
 
-    let { data: dupFile } = await supabase
-      .from('lead_files')
-      .select('*')
-      .eq('name', 'Duplicate Leads')
-      .single()
-
-    if (!dupFile) {
-      const { data: newDupFile, error: dupFileError } = await supabase
+    if (supabase) {
+      let { data: dupFile } = await supabase
         .from('lead_files')
-        .insert([{ name: 'Duplicate Leads', columns: [...columns, 'Source File'], source: 'spreadsheet' }])
-        .select()
+        .select('*')
+        .eq('name', 'Duplicate Leads')
         .single()
-      if (dupFileError) throw dupFileError
-      dupFile = newDupFile
+
+      if (!dupFile) {
+        const { data: newDupFile, error: dupFileError } = await supabase
+          .from('lead_files')
+          .insert([{ name: 'Duplicate Leads', columns: [...columns, 'Source File'], source: 'spreadsheet' }])
+          .select()
+          .single()
+        if (dupFileError) throw dupFileError
+        dupFile = newDupFile
+      }
+
+      const { data: existingDupRows } = await supabase
+        .from('lead_rows')
+        .select('row_index')
+        .eq('file_id', dupFile.id)
+        .order('row_index', { ascending: false })
+        .limit(1)
+
+      const startIdx = existingDupRows && existingDupRows.length > 0 ? existingDupRows[0].row_index + 1 : 0
+
+      const dupInserts = duplicateRows.map((row, idx) => ({
+        file_id: dupFile.id,
+        row_index: startIdx + idx,
+        data: { ...row, 'Source File': sourceFileName },
+      }))
+
+      const { error: dupRowsError } = await supabase.from('lead_rows').insert(dupInserts)
+      if (dupRowsError) throw dupRowsError
+
+      await fetchFiles()
+    } else {
+      // localStorage mode — create/update "Duplicate Leads" file
+      let savedFiles = localStorage.getItem('exodia-lead-files')
+      let allFiles: LeadFile[] = savedFiles ? JSON.parse(savedFiles) : []
+      let dupFile = allFiles.find(f => f.name === 'Duplicate Leads')
+
+      if (!dupFile) {
+        dupFile = {
+          id: crypto.randomUUID(),
+          name: 'Duplicate Leads',
+          columns: [...columns, 'Source File'],
+          source: 'spreadsheet',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        allFiles.unshift(dupFile)
+        localStorage.setItem('exodia-lead-files', JSON.stringify(allFiles))
+        setFiles(allFiles)
+      }
+
+      const savedDupRows = localStorage.getItem(`exodia-lead-rows-${dupFile.id}`)
+      const existingDupRows: LeadRow[] = savedDupRows ? JSON.parse(savedDupRows) : []
+      const startIdx = existingDupRows.length > 0 ? Math.max(...existingDupRows.map(r => r.row_index)) + 1 : 0
+
+      const now = new Date().toISOString()
+      const newRows: LeadRow[] = duplicateRows.map((row, idx) => ({
+        id: crypto.randomUUID(),
+        file_id: dupFile!.id,
+        row_index: startIdx + idx,
+        data: { ...row, 'Source File': sourceFileName },
+        created_at: now,
+        updated_at: now,
+      }))
+
+      localStorage.setItem(`exodia-lead-rows-${dupFile.id}`, JSON.stringify([...existingDupRows, ...newRows]))
     }
 
-    const { data: existingDupRows } = await supabase
-      .from('lead_rows')
-      .select('row_index')
-      .eq('file_id', dupFile.id)
-      .order('row_index', { ascending: false })
-      .limit(1)
-
-    const startIdx = existingDupRows && existingDupRows.length > 0 ? existingDupRows[0].row_index + 1 : 0
-
-    const dupInserts = duplicateRows.map((row, idx) => ({
-      file_id: dupFile.id,
-      row_index: startIdx + idx,
-      data: { ...row, 'Source File': sourceFileName },
-    }))
-
-    const { error: dupRowsError } = await supabase.from('lead_rows').insert(dupInserts)
-    if (dupRowsError) throw dupRowsError
-
-    await fetchFiles()
     return duplicateRows.length
   }
 
@@ -445,15 +502,34 @@ export default function LeadGeneration() {
         const emailCol = headers.find(h => h.toLowerCase().includes('email'))
         let existingEmails = new Set<string>()
 
-        if (emailCol && supabase) {
-          const { data: allRows } = await supabase
-            .from('lead_rows')
-            .select('data')
-          if (allRows) {
-            allRows.forEach(r => {
-              const data = r.data as Record<string, string>
-              if (data[emailCol]) existingEmails.add(data[emailCol].toLowerCase().trim())
-            })
+        if (emailCol) {
+          if (supabase) {
+            const { data: allRows } = await supabase
+              .from('lead_rows')
+              .select('data')
+            if (allRows) {
+              allRows.forEach(r => {
+                const data = r.data as Record<string, string>
+                if (data[emailCol]) existingEmails.add(data[emailCol].toLowerCase().trim())
+              })
+            }
+          } else {
+            // localStorage mode — read all rows across all files
+            const savedFiles = localStorage.getItem('exodia-lead-files')
+            if (savedFiles) {
+              const allFiles: LeadFile[] = JSON.parse(savedFiles)
+              for (const f of allFiles) {
+                const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
+                if (savedRows) {
+                  try {
+                    const rows: LeadRow[] = JSON.parse(savedRows)
+                    rows.forEach(r => {
+                      if (r.data[emailCol]) existingEmails.add(r.data[emailCol].toLowerCase().trim())
+                    })
+                  } catch {}
+                }
+              }
+            }
           }
         }
 
@@ -474,13 +550,22 @@ export default function LeadGeneration() {
           if (supabase) {
             const { error: rowsError } = await supabase.from('lead_rows').insert(rowInserts)
             if (rowsError) throw rowsError
+          } else {
+            const now = new Date().toISOString()
+            const localRows: LeadRow[] = rowInserts.map(r => ({
+              id: crypto.randomUUID(),
+              file_id: r.file_id,
+              row_index: r.row_index,
+              data: r.data,
+              created_at: now,
+              updated_at: now,
+            }))
+            localStorage.setItem(`exodia-lead-rows-${newFile.id}`, JSON.stringify(localRows))
           }
         }
 
-        if (supabase) {
-          const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
+        const duplicateCount = await checkAndRouteDuplicates(parsedRows, newFile.id, newFile.name, headers)
           if (duplicateCount > 0) alert(`${duplicateCount} duplicate lead(s) detected and moved to "Duplicate Leads" file.`)
-        }
       }
 
       setFiles(prev => [newFile, ...prev])
