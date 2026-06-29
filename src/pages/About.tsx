@@ -124,7 +124,9 @@ export default function About() {
             </div>
           </div>
           <a
-            href="#"
+            href="https://drive.google.com/file/d/1ZuSni_40B4OHwnqVavdOJM3khugClavL/view?usp=sharing"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5"
             style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
           >
