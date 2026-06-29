@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { jsPDF } from 'jspdf'
 
 interface Submission {
   id: string
@@ -61,148 +60,167 @@ export default function AcceptanceCriteria() {
     }
   }
 
-  const generatePDF = (sub: Submission): jsPDF => {
-    const doc = new jsPDF({ format: 'a4', unit: 'mm' })
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const margin = 15
-    const orange = '#FF5900'
-    let y = margin
+  const generatePDF = (sub: Submission): Blob => {
+    const esc = (t: string) => (t || '—').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\n/g, '\\n')
+    const pt = (mm: number) => Math.round(mm * 2.83465 * 10) / 10
+    const pw = pt(210), ph = 841.89, mg = pt(15), cw = pw - 2 * mg
 
-    const addSection = (title: string, callback: () => void) => {
-      if (y > 260) { doc.addPage(); y = margin }
-      doc.setFillColor(255, 89, 0)
-      doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(9)
-      doc.text(title, margin + 2, y + 5)
-      y += 12
-      doc.setTextColor(27, 26, 28)
-      doc.setFontSize(8)
-      callback()
-      y += 3
+    const streams: string[] = []
+    let curStream = ''
+    let y = 15
+    let pageIdx = 0
+    const MAX_Y = 275
+
+    const w = (s: string) => { curStream += s + '\n' }
+    const color = (r: number, g: number, b: number) => w(r / 255 + ' ' + g / 255 + ' ' + b / 255 + ' rg')
+    const colorg = (r: number, g: number, b: number) => w(r / 255 + ' ' + g / 255 + ' ' + b / 255 + ' RG')
+    const fnt = (id: string, sz: number) => w('/' + id + ' ' + sz + ' Tf')
+    const txt = (x: number, yPos: number, t: string) => w(pt(x) + ' ' + pt(yPos) + ' Td (' + esc(t) + ') Tj')
+    const rect = (x: number, y2: number, w2: number, h2: number) => w(pt(x) + ' ' + pt(y2) + ' ' + pt(w2) + ' ' + pt(h2) + ' re')
+    const fill = () => w('f')
+    const nextPage = () => {
+      curStream += 'ET'
+      streams.push(curStream)
+      curStream = 'BT\n'
+      y = 15
+      pageIdx++
     }
 
-    const addRow = (label: string, value: string) => {
-      if (y > 275) { doc.addPage(); y = margin + 10 }
-      doc.setFontSize(8)
-      doc.setTextColor(107, 114, 128)
-      doc.text(label, margin, y)
-      y += 3.5
-      doc.setTextColor(27, 26, 28)
-      const lines = doc.splitTextToSize(value || '—', pageWidth - 2 * margin - 50)
-      lines.forEach((l: string) => {
-        if (y > 275) { doc.addPage(); y = margin }
-        doc.text(l, margin + 50, y)
-        y += 3.5
-      })
-      y += 1
-    }
-
-    const addMultiRow = (label: string, items: string[] | any[]) => {
-      addRow(label, items && items.length > 0 ? items.join(', ') : '—')
-    }
-
-    doc.setFillColor(255, 89, 0)
-    doc.rect(margin, y, pageWidth - 2 * margin, 12, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(14)
-    doc.text('Exodia Game Dev - Acceptance Criteria Form', margin + 2, y + 8)
+    w('BT')
+    color(255, 89, 0)
+    rect(15, y, 180, 12)
+    fill()
+    color(255, 255, 255)
+    fnt('F2', 16)
+    txt(17, y + 3.5, 'Exodia Game Dev - Acceptance Criteria Form')
     y += 18
 
-    addSection('Section 1: Basic Project Information', () => {
-      addRow('Client / Studio Name', sub.client_name)
-      addRow('Project Name', sub.project_name)
-      addRow('Point of Contact', sub.contact)
-      addRow('Email', sub.email)
-      addRow('Project Type', sub.project_type)
-      addMultiRow('Target Platform', sub.target_platform)
-      addRow('Timezone', sub.timezone)
-      addRow('Expected Start Date', sub.start_date)
-      addRow('Expected Deadline', sub.deadline)
-      addRow('Budget Range', sub.budget)
-      addRow('Project Document Link', sub.doc_link)
+    const check = () => { if (y > MAX_Y) nextPage() }
+    const section = (title: string, fn: () => void) => {
+      check(); color(255, 89, 0); rect(15, y, 180, 7); fill()
+      color(255, 255, 255); fnt('F1', 9); txt(17, y + 2.5, title); y += 10
+      color(27, 26, 28); fnt('F1', 8); fn(); y += 2
+    }
+
+    const row = (label: string, value: string) => {
+      check()
+      colorg(107, 114, 128); fnt('F1', 8); txt(15, y, label)
+      color(27, 26, 28); fnt('F1', 8)
+      const val = value || '—'
+      const maxW = Math.floor((cw - 50) / 1.6)
+      for (let i = 0; i < val.length; i += maxW) {
+        if (i > 0) { check(); txt(15, y, '') }
+        txt(i === 0 ? 65 : 15, y, val.substring(i, i + maxW))
+        if (i > 0) y += 3.5
+      }
+      y += 3.5
+    }
+
+    const multi = (label: string, items: string[] | any[]) => row(label, items?.length ? items.join(', ') : '—')
+
+    section('Section 1: Basic Project Information', () => {
+      row('Client / Studio Name', sub.client_name); row('Project Name', sub.project_name)
+      row('Point of Contact', sub.contact); row('Email', sub.email)
+      row('Project Type', sub.project_type); multi('Target Platform', sub.target_platform)
+      row('Timezone', sub.timezone); row('Expected Start Date', sub.start_date)
+      row('Expected Deadline', sub.deadline); row('Budget Range', sub.budget)
+      row('Project Document Link', sub.doc_link)
     })
 
-    addSection('Section 2: What You Want Us to Create', () => {
-      if (sub.deliverables && sub.deliverables.length > 0) {
-        const headers = ['Deliverable', 'Description', 'Criteria', 'Qty']
-        const colWidths = [35, 50, 50, 15]
-        doc.setFillColor(249, 250, 251)
-        headers.forEach((h, i) => {
-          const x = margin + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-          doc.rect(x, y - 3, colWidths[i], 6, 'F')
-          doc.text(h, x + 1, y)
-        })
-        y += 5
+    section('Section 2: What You Want Us to Create', () => {
+      if (sub.deliverables?.length) {
+        colorg(55, 65, 81); fnt('F2', 8)
+        txt(15, y, 'Deliverable'); txt(55, y, 'Description'); txt(115, y, 'Criteria'); txt(175, y, 'Qty')
+        y += 5; color(27, 26, 28); fnt('F1', 8)
         sub.deliverables.forEach((d: any) => {
-          if (y > 270) { doc.addPage(); y = margin }
-          const vals = [d.name || '—', d.description || '—', d.criteria || '—', String(d.quantity || '—')]
-          vals.forEach((v, i) => {
-            const x = margin + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-            doc.text(v, x + 1, y)
-          })
+          check(); txt(15, y, d.name || '—')
+          txt(55, y, (d.description || '—').substring(0, 28))
+          txt(115, y, (d.criteria || '—').substring(0, 28))
+          txt(175, y, String(d.quantity || '—'))
           y += 4
         })
-      } else {
-        doc.text('No deliverables specified.', margin, y)
-        y += 4
-      }
+      } else { fnt('F3', 8); txt(15, y, 'No deliverables specified.'); y += 4 }
     })
 
-    addSection('Section 3: Review & Approval', () => {
-      addMultiRow('Reviewers', sub.reviewer)
-      addRow('Review Rounds', sub.review_rounds)
-      addRow('Expected Review Time', sub.review_time)
-      addMultiRow('Basis for Approval', sub.approval_basis)
+    section('Section 3: Review & Approval', () => {
+      multi('Reviewers', sub.reviewer); row('Review Rounds', sub.review_rounds)
+      row('Expected Review Time', sub.review_time); multi('Basis for Approval', sub.approval_basis)
     })
 
-    addSection('Section 4: Project Governance', () => {
-      addMultiRow('Communication Tool', sub.comms_tool)
-      addMultiRow('Weekly Meeting', sub.weekly_meeting)
-      addRow('Meeting Time', sub.meeting_time)
-      addMultiRow('Daily Sync', sub.daily_sync)
-      addRow('Sync Time', sub.sync_time)
-      addMultiRow('Training', sub.training)
+    section('Section 4: Project Governance', () => {
+      multi('Communication Tool', sub.comms_tool); multi('Weekly Meeting', sub.weekly_meeting)
+      row('Meeting Time', sub.meeting_time); multi('Daily Sync', sub.daily_sync)
+      row('Sync Time', sub.sync_time); multi('Training', sub.training)
     })
 
-    addSection('Section 5: Technical Details', () => {
-      addMultiRow('Game Engine', sub.game_engine)
-      if (sub.tech_requirements) addRow('Technical Requirements', sub.tech_requirements)
-      if (sub.tools_software) addRow('Tools & Software', sub.tools_software)
-      if (sub.performance_constraints) addRow('Performance Constraints', sub.performance_constraints)
+    section('Section 5: Technical Details', () => {
+      multi('Game Engine', sub.game_engine)
+      if (sub.tech_requirements) row('Technical Requirements', sub.tech_requirements)
+      if (sub.tools_software) row('Tools & Software', sub.tools_software)
+      if (sub.performance_constraints) row('Performance Constraints', sub.performance_constraints)
     })
 
-    addSection('Section 6: Client Confirmation', () => {
-      if (y > 245) { doc.addPage(); y = margin + 10 }
-      doc.setFillColor(255, 247, 237)
-      doc.rect(margin, y - 3, pageWidth - 2 * margin, 15, 'F')
-      doc.setTextColor(154, 52, 18)
-      doc.setFontSize(7)
-      const confirmationText = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
-      const cLines = doc.splitTextToSize(confirmationText, pageWidth - 2 * margin - 4)
-      cLines.forEach((l: string) => {
-        if (y > 275) { doc.addPage(); y = margin }
-        doc.text(l, margin + 2, y)
-        y += 3
-      })
-      y += 4
-      addRow('Signed by', sub.signature)
-      addRow('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+    section('Section 6: Client Confirmation', () => {
+      check()
+      color(255, 247, 237); rect(15, y - 1, 180, 18); fill()
+      color(154, 52, 18); fnt('F1', 7)
+      const conf = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
+      for (let i = 0; i < conf.length; i += 110) { check(); txt(17, y, conf.substring(i, i + 110)); y += 3 }
+      y += 5
+      row('Signed by', sub.signature)
+      row('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
     })
 
-    doc.setFontSize(7)
-    doc.setTextColor(156, 163, 175)
-    doc.text(`Exodia Game Dev · Marketing Department · Submitted ${new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, doc.internal.pageSize.getHeight() - 10)
+    check()
+    colorg(156, 163, 175); fnt('F1', 7)
+    txt(15, y + 5, 'Exodia Game Dev \u00b7 Marketing Department \u00b7 Submitted ' + new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
 
-    return doc
+    curStream += 'ET'
+    streams.push(curStream)
+    const numPages = pageIdx + 1
+
+    let objIdx = 1
+    const obj = (s: string) => { const n = objIdx++; return { num: n, data: n + ' 0 obj\n' + s + '\nendobj' } }
+
+    const catalog = obj('<< /Type /Catalog /Pages ' + (objIdx + 1) + ' 0 R >>')
+    const fHelv = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
+    const fHelvB = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
+    const fHelvO = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>')
+    const fontObjNums = { F1: fHelv.num, F2: fHelvB.num, F3: fHelvO.num }
+
+    const pageObjNum = objIdx
+    const pagesObj = obj('<< /Type /Pages /Kids [' + Array.from({ length: numPages }, (_, i) => (pageObjNum + 1 + i * 2) + ' 0 R').join(' ') + '] /Count ' + numPages + ' >>')
+
+    const allObjs = [catalog, fHelv, fHelvB, fHelvO, pagesObj]
+    for (let i = 0; i < numPages; i++) {
+      const s = streams[i]
+      const fontRef = '/F1 ' + fontObjNums.F1 + ' 0 R /F2 ' + fontObjNums.F2 + ' 0 R /F3 ' + fontObjNums.F3 + ' 0 R'
+      const page = obj('<< /Type /Page /Parent ' + pagesObj.num + ' 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Contents ' + (objIdx + 1) + ' 0 R /Resources << /Font << ' + fontRef + ' >> >> >>')
+      const stream = obj('<< /Length ' + s.length + ' >>\nstream\n' + s + '\nendstream')
+      allObjs.push(page, stream)
+    }
+
+    const body = allObjs.map(o => o.data).join('\n')
+    let currentOff = '%PDF-1.4\n'.length
+    const offsets: number[] = []
+    for (const o of allObjs) {
+      offsets[o.num] = currentOff
+      currentOff += o.data.length + 1 // +1 for the '\n' from join
+    }
+    const xrefOff = currentOff
+    const xref = 'xref\n0 ' + (allObjs.length + 1) + '\n' +
+      '0000000000 65535 f \n' +
+      allObjs.map(o => String(offsets[o.num]).padStart(10, '0') + ' 00000 n \n').join('')
+    const trailer = 'trailer\n<< /Size ' + (allObjs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefOff + '\n%%EOF'
+
+    return new Blob(['%PDF-1.4\n' + body + '\n' + xref + trailer], { type: 'application/pdf' })
   }
 
   const uploadPDF = async (sub: Submission): Promise<string | null> => {
     if (!isSupabaseConfigured || !supabase) return null
     try {
-      const doc = generatePDF(sub)
-      const pdfBlob = doc.output('blob')
-      const fileName = `acceptance-form-${sub.id}.pdf`
+      const pdfBlob = generatePDF(sub)
+      const fileName = 'acceptance-form-' + sub.id + '.pdf'
       const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
       const { data, error } = await supabase.storage
         .from('acceptance-forms')
