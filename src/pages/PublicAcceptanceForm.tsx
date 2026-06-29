@@ -42,6 +42,9 @@ export default function PublicAcceptanceForm() {
             nextSeq = parseInt(parts[2], 10) + 1
           }
         }
+        if (nextSeq === 1) {
+          localStorage.removeItem('exodia-acceptance-last-id')
+        }
       } catch {}
     }
 
