@@ -345,7 +345,7 @@ export default function AcceptanceCriteria() {
                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
                     </td>
                     <td className="p-3">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{sub.id.substring(0, 8)}</span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{(sub.id || '').substring(0, 8)}</span>
                     </td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.client_name || '—'}</td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>
@@ -427,7 +427,7 @@ export default function AcceptanceCriteria() {
 <div>
                     <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
-                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {selectedSubmission.id.substring(0, 8)}</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {(selectedSubmission.id || '').substring(0, 8)}</p>
                   </div>
               </div>
               <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
