@@ -256,7 +256,9 @@ export default function AcceptanceCriteria() {
                           <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Name</th>
                           <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Description</th>
                           <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Criteria</th>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Ref Link</th>
                           <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Qty</th>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Service</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -265,11 +267,106 @@ export default function AcceptanceCriteria() {
                             <td className="p-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{d.name || '—'}</td>
                             <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.description || '—'}</td>
                             <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.criteria || '—'}</td>
+                            <td className="p-2" style={{ color: 'var(--accent)' }}>{d.reference ? <a href={d.reference} target="_blank" rel="noopener noreferrer" className="hover:underline">Link</a> : '—'}</td>
                             <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.quantity || '—'}</td>
+                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.serviceType || '—'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Review & Approval */}
+              {(selectedSubmission.reviewer?.length > 0 || selectedSubmission.review_rounds) && (
+                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Review & Approval</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedSubmission.reviewer?.length > 0 && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Reviewers</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.reviewer as string[]).join(', ')}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.review_rounds && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Review Rounds</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.review_rounds}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.review_time && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Review Time</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.review_time}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Project Governance */}
+              {(selectedSubmission.comms_tool?.length > 0 || selectedSubmission.weekly_meeting?.length > 0) && (
+                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Project Governance</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedSubmission.comms_tool?.length > 0 && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Communication</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.comms_tool as string[]).join(', ')}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.weekly_meeting?.length > 0 && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Weekly Meeting</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.weekly_meeting as string[]).join(', ')}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.meeting_time && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Meeting Time</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.meeting_time}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.training?.length > 0 && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Training</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.training as string[]).join(', ')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Technical Details */}
+              {(selectedSubmission.game_engine?.length > 0 || selectedSubmission.tech_requirements) && (
+                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Technical Details</p>
+                  <div className="space-y-2 text-sm">
+                    {selectedSubmission.game_engine?.length > 0 && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Game Engine</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.game_engine as string[]).join(', ')}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.tech_requirements && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tech Requirements</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.tech_requirements}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.tools_software && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tools & Software</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.tools_software}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.performance_constraints && (
+                      <div>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Constraints</p>
+                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.performance_constraints}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
