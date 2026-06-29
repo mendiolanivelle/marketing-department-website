@@ -9,9 +9,28 @@ interface Submission {
   email: string
   project_type: string
   target_platform: string[]
+  timezone: string
+  start_date: string
+  deadline: string
   budget: string
+  doc_link: string
   deliverables: any[]
+  reviewer: string[]
+  review_rounds: string
+  review_time: string
+  approval_basis: string[]
+  comms_tool: string[]
+  weekly_meeting: string[]
+  meeting_time: string
+  daily_sync: string[]
+  sync_time: string
+  training: string[]
+  game_engine: string[]
+  tech_requirements: string
+  tools_software: string
+  performance_constraints: string
   signature: string
+  signature_date: string
   created_at: string
 }
 
@@ -20,26 +39,40 @@ export default function AcceptanceCriteria() {
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        setLoading(false)
-        return
-      }
-      try {
-        const { data, error } = await supabase
-          .from('acceptance_forms')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (error) throw error
-        setSubmissions(data || [])
-      } catch (err) {
-        console.error('Error fetching submissions:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchSubmissions = async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setLoading(false)
+      return
     }
+    try {
+      const { data, error } = await supabase
+        .from('acceptance_forms')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      setSubmissions(data || [])
+    } catch (err) {
+      console.error('Error fetching submissions:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchSubmissions()
+    if (!isSupabaseConfigured || !supabase) return
+
+    // Realtime subscription for new submissions
+    const channel = supabase
+      .channel('acceptance_forms_changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'acceptance_forms' }, () => {
+        fetchSubmissions()
+      })
+      .subscribe()
+
+    return () => {
+      try { supabase.removeChannel(channel) } catch {}
+    }
   }, [])
 
   return (
@@ -48,7 +81,7 @@ export default function AcceptanceCriteria() {
         <div>
           <h1 className="text-2xl sm:text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Acceptance Criteria Forms</h1>
           <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            View all client-submitted acceptance criteria forms from the public form link.
+            View all client-submitted acceptance criteria forms. New submissions appear in real time.
           </p>
         </div>
         <a
@@ -65,6 +98,28 @@ export default function AcceptanceCriteria() {
         </a>
       </div>
 
+      {/* Stats row */}
+      {!loading && submissions.length > 0 && (
+        <div className="flex gap-3 sm:gap-4 mb-4 flex-wrap">
+          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total</span>
+            <span className="ml-2 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{submissions.length}</span>
+          </div>
+          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pending</span>
+            <span className="ml-2 text-sm font-bold" style={{ color: '#EA580C' }}>{submissions.filter(s => s.project_type === 'Pending').length}</span>
+          </div>
+          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Base</span>
+            <span className="ml-2 text-sm font-bold" style={{ color: 'var(--accent)' }}>{submissions.filter(s => s.project_type === 'Project Base').length}</span>
+          </div>
+          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Staff Aug</span>
+            <span className="ml-2 text-sm font-bold" style={{ color: '#2563EB' }}>{submissions.filter(s => s.project_type === 'Staff Augmentation').length}</span>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
@@ -78,37 +133,67 @@ export default function AcceptanceCriteria() {
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Public link: /acceptance-form</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {submissions.map((sub) => (
-            <div
-              key={sub.id}
-              onClick={() => setSelectedSubmission(sub)}
-              className="rounded-2xl overflow-hidden cursor-pointer transition-all hover:shadow-md theme-transition"
-              style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)' }}
-            >
-              <div className="p-4 sm:p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base mb-1" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{sub.project_name || 'Untitled'}</h3>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-                      {sub.client_name} &middot; {sub.contact}
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                      {new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="px-2.5 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
-                      {sub.project_type || 'N/A'}
-                    </span>
-                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Client</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Contact</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Type</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Platform</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Budget</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Submitted</th>
+                  <th className="p-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((sub) => (
+                  <tr
+                    key={sub.id}
+                    onClick={() => setSelectedSubmission(sub)}
+                    className="cursor-pointer transition hover:opacity-80"
+                    style={{ borderTop: '1px solid var(--border-secondary)' }}
+                  >
+                    <td className="p-3">
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
+                    </td>
+                    <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.client_name || '—'}</td>
+                    <td className="p-3" style={{ color: 'var(--text-secondary)' }}>
+                      {sub.contact || '—'}
+                      {sub.email && <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{sub.email}</span>}
+                    </td>
+                    <td className="p-3">
+                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
+                        {sub.project_type || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1 flex-wrap">
+                        {(sub.target_platform || []).length > 0
+                          ? (sub.target_platform as string[]).slice(0, 2).map((p: string, i: number) => (
+                              <span key={i} className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{p}</span>
+                            ))
+                          : <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        }
+                      </div>
+                    </td>
+                    <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.budget || '—'}</td>
+                    <td className="p-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="p-3">
+                      <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -151,24 +236,47 @@ export default function AcceptanceCriteria() {
                   <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Submitted</p>
                   <p style={{ color: 'var(--text-primary)' }}>{new Date(selectedSubmission.created_at).toLocaleString()}</p>
                 </div>
-              </div>
-              {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 && (
                 <div>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Timezone</p>
+                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.timezone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Timeline</p>
+                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.start_date || '?'} → {selectedSubmission.deadline || '?'}</p>
+                </div>
+              </div>
+
+              {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 && (
+                <div className="mt-4">
                   <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Deliverables ({selectedSubmission.deliverables.length})</p>
-                  <div className="space-y-2">
-                    {selectedSubmission.deliverables.map((d: any, i: number) => (
-                      <div key={i} className="p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                        <p style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{d.name || 'Unnamed'}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{d.description}</p>
-                        {d.criteria && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Criteria: {d.criteria}</p>}
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Name</th>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Description</th>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Criteria</th>
+                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSubmission.deliverables.map((d: any, i: number) => (
+                          <tr key={i} style={{ borderTop: '1px solid var(--border-secondary)' }}>
+                            <td className="p-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{d.name || '—'}</td>
+                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.description || '—'}</td>
+                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.criteria || '—'}</td>
+                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.quantity || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-              <div>
+
+              <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
                 <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Signed by</p>
-                <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.signature}</p>
+                <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.signature || 'N/A'} {selectedSubmission.signature_date && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>on {selectedSubmission.signature_date}</span>}</p>
               </div>
             </div>
           </div>
