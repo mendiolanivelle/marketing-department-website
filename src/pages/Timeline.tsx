@@ -1018,6 +1018,8 @@ setEmailBody('')
                 const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
                 const colColor = columnColors[col.key] || 'var(--text-secondary)'
                 const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
+                const colIndex = table.columns.findIndex(c => c.key === col.key)
+                const borderColor = colIndex % 2 === 0 ? '#1B1A1C' : '#3E4048'
                 return (
                   <div
                     key={col.key}
@@ -1025,7 +1027,7 @@ setEmailBody('')
                     style={{
                       backgroundColor: 'var(--bg-card)',
                       opacity: isDraggedColumn ? 0.5 : 1,
-                      border: `2px solid ${colColor}`,
+                      border: `2px solid ${borderColor}`,
                       borderTop: `4px solid ${colColor}`,
                     }}
                     onDragOver={(e) => {
