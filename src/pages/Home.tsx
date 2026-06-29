@@ -14,7 +14,6 @@ const announcements = [
 const quickLinks = [
   { label: 'Calendar', icon: '&#128197;', to: '/calendar' },
   { label: 'Our Team', icon: '&#128101;', to: '/about#team' },
-  { label: 'Submit Request', icon: '&#128221;', to: '/about#contact' },
   { label: 'Message Templates', icon: '&#128196;', to: '/templates' },
 ]
 
@@ -260,84 +259,81 @@ export default function Home() {
           <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
             Your central portal for department resources, campaign requests, brand assets, and team updates.
           </p>
-          <div className="flex flex-col gap-4 justify-center items-center">
-            <Link to="/about#contact" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-primary" style={{ boxShadow: 'var(--shadow-md)' }}>
-              Submit a Request
-            </Link>
-            <Link to="/about#services" className="px-8 py-3.5 rounded-xl transition hover:-translate-y-0.5 w-full sm:w-auto exodia-btn-accent">
-              Marketing Capabilities
-            </Link>
-          </div>
+          
         </div>
       </section>
 
       <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
         <div className="max-w-7xl mx-auto">
-          {/* Announcements - Full Width */}
-          <div className="rounded-2xl border-2 p-4 sm:p-8 mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: '0 4px 16px rgba(27,26,28,0.06), 0 0 0 1px rgba(27,26,28,0.08)' }}>
-            <div className="flex items-center justify-between mb-4 sm:mb-5">
-              <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128227; Announcements</h2>
-              <button
-                onClick={() => setShowAddAnnouncement(true)}
-                className="p-2 rounded-lg transition flex items-center justify-center"
-                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-                title="Add announcement"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-              </button>
+          {/* Announcements - Redesigned */}
+          <div className="rounded-2xl overflow-hidden mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-md)' }}>
+            {/* Top accent bar */}
+            <div className="h-2" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, var(--accent))' }}></div>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4 sm:mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Announcements</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>{announcementsList.length} total</span>
+                </div>
+                <button
+                  onClick={() => setShowAddAnnouncement(true)}
+                  className="w-8 h-8 rounded-lg transition flex items-center justify-center hover:scale-105"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  title="Add announcement"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+              <ul className="space-y-2 sm:space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                {announcementsList.map((item, index) => (
+                  <li key={item.id}
+                    className="group flex flex-col sm:flex-row sm:items-center p-3.5 rounded-xl gap-2.5 sm:gap-3 transition-all hover:-translate-y-0.5 cursor-pointer theme-transition"
+                    style={{ backgroundColor: index % 2 === 0 ? 'var(--bg-secondary)' : 'color-mix(in srgb, var(--bg-secondary) 50%, transparent)', border: '1px solid color-mix(in srgb, var(--border-primary) 50%, transparent)' }}
+                    onClick={() => setSelectedAnnouncement(item)}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--accent)' }}></div>
+                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                        {item.tag}
+                      </span>
+                      <span className="text-sm truncate" style={{ color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: readAnnouncementIds.includes(item.id) ? 400 : 600 }}>
+                        {item.title}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 flex-shrink-0">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); startEditingAnnouncement(item) }}
+                        className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
+                        style={{ color: 'var(--accent)' }}
+                        title="Edit"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteAnnouncement(item.id) }}
+                        className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
+                        style={{ color: 'var(--accent)' }}
+                        title="Delete"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-2 sm:space-y-3 max-h-[320px] overflow-y-auto pr-1">
-              {announcementsList.map((item) => (
-                <li key={item.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 rounded-lg gap-2 sm:gap-3 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                  <div className="flex items-center gap-2.5 flex-1">
-                    <span className="px-2.5 py-0.5 rounded-md text-xs whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
-                      {item.tag}
-                    </span>
-                    <span
-                      className="text-sm cursor-pointer"
-                      style={{
-                        color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-secondary)',
-                        fontWeight: readAnnouncementIds.includes(item.id) ? 300 : 700,
-                      }}
-                      onClick={() => setSelectedAnnouncement(item)}
-                    >
-                      {item.title}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
-                    <button
-                      onClick={() => setSelectedAnnouncement(item)}
-                      className="px-3 py-1 text-xs rounded transition exodia-btn-accent"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => startEditingAnnouncement(item)}
-                      className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
-                      style={{ color: 'var(--accent)' }}
-                      title="Edit announcement"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => deleteAnnouncement(item.id)}
-                      className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
-                      style={{ color: 'var(--accent)' }}
-                      title="Delete announcement"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Lead Pipeline - Clickable */}
