@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { jsPDF } from 'jspdf'
 
 interface Submission {
   id: string
@@ -39,7 +40,7 @@ export default function AcceptanceCriteria() {
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
-  const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachment: '' })
+  const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
   const fetchSubmissions = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -57,6 +58,163 @@ export default function AcceptanceCriteria() {
       console.error('Error fetching submissions:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const generatePDF = (sub: Submission): jsPDF => {
+    const doc = new jsPDF({ format: 'a4', unit: 'mm' })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 15
+    const orange = '#FF5900'
+    let y = margin
+
+    const addSection = (title: string, callback: () => void) => {
+      if (y > 260) { doc.addPage(); y = margin }
+      doc.setFillColor(255, 89, 0)
+      doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(9)
+      doc.text(title, margin + 2, y + 5)
+      y += 12
+      doc.setTextColor(27, 26, 28)
+      doc.setFontSize(8)
+      callback()
+      y += 3
+    }
+
+    const addRow = (label: string, value: string) => {
+      if (y > 275) { doc.addPage(); y = margin + 10 }
+      doc.setFontSize(8)
+      doc.setTextColor(107, 114, 128)
+      doc.text(label, margin, y)
+      y += 3.5
+      doc.setTextColor(27, 26, 28)
+      const lines = doc.splitTextToSize(value || '—', pageWidth - 2 * margin - 50)
+      lines.forEach((l: string) => {
+        if (y > 275) { doc.addPage(); y = margin }
+        doc.text(l, margin + 50, y)
+        y += 3.5
+      })
+      y += 1
+    }
+
+    const addMultiRow = (label: string, items: string[] | any[]) => {
+      addRow(label, items && items.length > 0 ? items.join(', ') : '—')
+    }
+
+    doc.setFillColor(255, 89, 0)
+    doc.rect(margin, y, pageWidth - 2 * margin, 12, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(14)
+    doc.text('Exodia Game Dev - Acceptance Criteria Form', margin + 2, y + 8)
+    y += 18
+
+    addSection('Section 1: Basic Project Information', () => {
+      addRow('Client / Studio Name', sub.client_name)
+      addRow('Project Name', sub.project_name)
+      addRow('Point of Contact', sub.contact)
+      addRow('Email', sub.email)
+      addRow('Project Type', sub.project_type)
+      addMultiRow('Target Platform', sub.target_platform)
+      addRow('Timezone', sub.timezone)
+      addRow('Expected Start Date', sub.start_date)
+      addRow('Expected Deadline', sub.deadline)
+      addRow('Budget Range', sub.budget)
+      addRow('Project Document Link', sub.doc_link)
+    })
+
+    addSection('Section 2: What You Want Us to Create', () => {
+      if (sub.deliverables && sub.deliverables.length > 0) {
+        const headers = ['Deliverable', 'Description', 'Criteria', 'Qty']
+        const colWidths = [35, 50, 50, 15]
+        doc.setFillColor(249, 250, 251)
+        headers.forEach((h, i) => {
+          const x = margin + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+          doc.rect(x, y - 3, colWidths[i], 6, 'F')
+          doc.text(h, x + 1, y)
+        })
+        y += 5
+        sub.deliverables.forEach((d: any) => {
+          if (y > 270) { doc.addPage(); y = margin }
+          const vals = [d.name || '—', d.description || '—', d.criteria || '—', String(d.quantity || '—')]
+          vals.forEach((v, i) => {
+            const x = margin + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+            doc.text(v, x + 1, y)
+          })
+          y += 4
+        })
+      } else {
+        doc.text('No deliverables specified.', margin, y)
+        y += 4
+      }
+    })
+
+    addSection('Section 3: Review & Approval', () => {
+      addMultiRow('Reviewers', sub.reviewer)
+      addRow('Review Rounds', sub.review_rounds)
+      addRow('Expected Review Time', sub.review_time)
+      addMultiRow('Basis for Approval', sub.approval_basis)
+    })
+
+    addSection('Section 4: Project Governance', () => {
+      addMultiRow('Communication Tool', sub.comms_tool)
+      addMultiRow('Weekly Meeting', sub.weekly_meeting)
+      addRow('Meeting Time', sub.meeting_time)
+      addMultiRow('Daily Sync', sub.daily_sync)
+      addRow('Sync Time', sub.sync_time)
+      addMultiRow('Training', sub.training)
+    })
+
+    addSection('Section 5: Technical Details', () => {
+      addMultiRow('Game Engine', sub.game_engine)
+      if (sub.tech_requirements) addRow('Technical Requirements', sub.tech_requirements)
+      if (sub.tools_software) addRow('Tools & Software', sub.tools_software)
+      if (sub.performance_constraints) addRow('Performance Constraints', sub.performance_constraints)
+    })
+
+    addSection('Section 6: Client Confirmation', () => {
+      if (y > 245) { doc.addPage(); y = margin + 10 }
+      doc.setFillColor(255, 247, 237)
+      doc.rect(margin, y - 3, pageWidth - 2 * margin, 15, 'F')
+      doc.setTextColor(154, 52, 18)
+      doc.setFontSize(7)
+      const confirmationText = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
+      const cLines = doc.splitTextToSize(confirmationText, pageWidth - 2 * margin - 4)
+      cLines.forEach((l: string) => {
+        if (y > 275) { doc.addPage(); y = margin }
+        doc.text(l, margin + 2, y)
+        y += 3
+      })
+      y += 4
+      addRow('Signed by', sub.signature)
+      addRow('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+    })
+
+    doc.setFontSize(7)
+    doc.setTextColor(156, 163, 175)
+    doc.text(`Exodia Game Dev · Marketing Department · Submitted ${new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, doc.internal.pageSize.getHeight() - 10)
+
+    return doc
+  }
+
+  const uploadPDF = async (sub: Submission): Promise<string | null> => {
+    if (!isSupabaseConfigured || !supabase) return null
+    try {
+      const doc = generatePDF(sub)
+      const pdfBlob = doc.output('blob')
+      const fileName = `acceptance-form-${sub.id}.pdf`
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
+      const { data, error } = await supabase.storage
+        .from('acceptance-forms')
+        .upload(fileName, file, { upsert: true, contentType: 'application/pdf' })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage
+        .from('acceptance-forms')
+        .getPublicUrl(fileName)
+      return publicUrl
+    } catch (err) {
+      console.error('Error uploading PDF:', err)
+      return null
     }
   }
 
@@ -194,14 +352,15 @@ export default function AcceptanceCriteria() {
                     </td>
                     <td className="p-3">
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation()
+                          const pdfUrl = await uploadPDF(sub)
                           setSendForm({
                             to: sub.email || '',
                             subject: `Acceptance Criteria Form - ${sub.project_name || 'Untitled'}`,
                             body: `Dear ${sub.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${sub.project_name || 'Untitled'}" submitted on ${new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
-                            attachment: '',
-                            additionalAttachment: '',
+                            attachment: pdfUrl || '',
+                            additionalAttachments: [],
                           })
                           setSelectedSubmission(sub)
                           setShowSendModal(true)
@@ -460,13 +619,14 @@ export default function AcceptanceCriteria() {
               {/* Prepare to Send */}
               <div className="pt-4 text-center">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const pdfUrl = await uploadPDF(selectedSubmission)
                     setSendForm({
                       to: selectedSubmission.email || '',
                       subject: `Acceptance Criteria Form - ${selectedSubmission.project_name || 'Untitled'}`,
                       body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
-                      attachment: '',
-                      additionalAttachment: '',
+                      attachment: pdfUrl || '',
+                      additionalAttachments: [],
                     })
                     setShowSendModal(true)
                   }}
@@ -515,12 +675,56 @@ export default function AcceptanceCriteria() {
                     <input type="text" value={sendForm.attachment} onChange={(e) => setSendForm({ ...sendForm, attachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Paste a Google Drive or file link..." />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Additional Attachment Link</label>
-                    <input type="text" value={sendForm.additionalAttachment} onChange={(e) => setSendForm({ ...sendForm, additionalAttachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Optional additional link..." />
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Additional Attachment Links</label>
+                    <div className="space-y-2">
+                      {sendForm.additionalAttachments.map((link, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={link}
+                            onChange={(e) => {
+                              const updated = [...sendForm.additionalAttachments]
+                              updated[idx] = e.target.value
+                              setSendForm({ ...sendForm, additionalAttachments: updated })
+                            }}
+                            className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm"
+                            style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                            placeholder="Paste a link..."
+                          />
+                          <button
+                            onClick={() => {
+                              const updated = sendForm.additionalAttachments.filter((_, i) => i !== idx)
+                              setSendForm({ ...sendForm, additionalAttachments: updated })
+                            }}
+                            className="px-2 rounded-lg transition"
+                            style={{ color: '#EF4444' }}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => setSendForm({ ...sendForm, additionalAttachments: [...sendForm.additionalAttachments, ''] })}
+                        className="flex items-center gap-1.5 text-xs transition hover:opacity-70"
+                        style={{ color: '#FF5900', fontWeight: 500 }}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add another link
+                      </button>
+                    </div>
                   </div>
                   <button
                     onClick={() => {
-                      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(sendForm.to)}&su=${encodeURIComponent(sendForm.subject)}&body=${encodeURIComponent(sendForm.body + (sendForm.attachment ? '\n\nAttachment: ' + sendForm.attachment : '') + (sendForm.additionalAttachment ? '\nAdditional: ' + sendForm.additionalAttachment : ''))}`
+                      const attachmentLines = [
+                        sendForm.attachment ? 'PDF Form: ' + sendForm.attachment : '',
+                        ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
+                      ].filter(Boolean).join('\n')
+                      const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
+                      const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(sendForm.to) + '&su=' + encodeURIComponent(sendForm.subject) + '&body=' + encodeURIComponent(fullBody)
                       window.open(gmailUrl, '_blank')
                       setShowSendModal(false)
                     }}
