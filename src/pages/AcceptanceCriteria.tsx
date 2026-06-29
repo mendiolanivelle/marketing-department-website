@@ -47,7 +47,7 @@ export default function AcceptanceCriteria() {
     const d = new Date(sub.created_at)
     const yy = String(d.getFullYear()).slice(-2)
     const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const seq = String(Number(sub.id) % 1000).padStart(3, '0')
+    const seq = String(100 + Number(sub.id) % 900).padStart(3, '0')
     return 'AC-' + yy + mm + '-' + seq
   }
 
