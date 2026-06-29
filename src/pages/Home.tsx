@@ -339,11 +339,7 @@ export default function Home() {
           </div>
 
           {/* Lead Pipeline */}
-          <div
-            onClick={() => setShowPipeline(true)}
-            className="rounded-2xl overflow-hidden mb-6 sm:mb-8 cursor-pointer transition-all hover:shadow-lg theme-transition"
-            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}
-          >
+          <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
             <div className="h-1.5" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
             <div className="p-5 sm:p-8">
               <div className="flex items-center justify-between mb-5 sm:mb-6">
@@ -355,12 +351,14 @@ export default function Home() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Click to view full details</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Click any stat below to view full details</p>
                   </div>
                 </div>
-                <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                <button onClick={() => setShowPipeline(true)} className="p-2 rounded-lg transition hover:bg-black/5" style={{ color: 'var(--accent)' }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                 {[
@@ -370,7 +368,7 @@ export default function Home() {
                   { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', icon: 'M18.364 5.636a9 9 0 11-12.728 0 9 9 0 0112.728 0zM12 8v4m0 4h.01' },
                   { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                 ].map((stat, i) => (
-                  <div key={i} className="p-4 sm:p-5 rounded-xl border transition-all hover:-translate-y-0.5 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                  <div key={i} onClick={() => setShowPipeline(true)} className="p-4 sm:p-5 rounded-xl border transition-all hover:-translate-y-0.5 cursor-pointer theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
                     <svg className="w-5 h-5 mb-2" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d={stat.icon} />
                     </svg>
