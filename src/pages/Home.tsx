@@ -47,6 +47,16 @@ export default function Home() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
+  const [campaigns, setCampaigns] = useState(() => {
+    const saved = localStorage.getItem('exodia-campaigns')
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'HR Recruitment Drive', dept: 'HR', status: 'Ongoing', due: 'Jul 15' },
+      { id: 2, name: 'Q3 Product Launch', dept: 'Product', status: 'Pending', due: 'Aug 01' },
+      { id: 3, name: 'Brand Awareness Campaign', dept: 'Marketing', status: 'Pending', due: 'Jul 30' },
+      { id: 4, name: 'Holiday Promo Q4', dept: 'Sales', status: 'Done', due: 'Jun 28' },
+      { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: 'Jul 20' },
+    ]
+  })
 
   // Refresh activity log on mount and when navigating back to dashboard
   const location = useLocation()
@@ -70,6 +80,10 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
   }, [readAnnouncementIds])
+
+  useEffect(() => {
+    localStorage.setItem('exodia-campaigns', JSON.stringify(campaigns))
+  }, [campaigns])
 
   const fetchLeadStats = useCallback(async () => {
     const computeStats = (files: { id: string; name: string; columns: string[] }[], allRows: { file_id: string; data: Record<string, string> }[]) => {
@@ -377,6 +391,78 @@ export default function Home() {
                     <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Campaign Highlights */}
+          <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+            <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #FF8C33, #FF5900, #FF8C33)' }}></div>
+            <div className="p-5 sm:p-8">
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                      <path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Campaign Highlights</h2>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Quick glance at your campaign tracker</p>
+                  </div>
+                </div>
+                <Link to="/campaigns" className="text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1" style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}>
+                  View All Campaigns
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
+              {/* Mini Status Counters */}
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+                {[
+                  { label: 'Pending', value: campaigns.filter(c => c.status === 'Pending').length, color: '#1B1A1C' },
+                  { label: 'Ongoing', value: campaigns.filter(c => c.status === 'Ongoing').length, color: '#3E4048' },
+                  { label: 'Done (This Month)', value: campaigns.filter(c => c.status === 'Done').length, color: '#FF5900' },
+                ].map((stat, i) => (
+                  <div key={i} className="p-3 sm:p-4 rounded-xl text-center border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                    <div className="text-2xl sm:text-3xl mb-0.5" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Campaign Spotlight */}
+              <div>
+                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>CAMPAIGN SPOTLIGHT</p>
+                <div className="space-y-2">
+                  {campaigns
+                    .sort((a, b) => {
+                      const order: Record<string, number> = { Pending: 0, Ongoing: 1, Done: 2 }
+                      return (order[a.status] ?? 3) - (order[b.status] ?? 3)
+                    })
+                    .slice(0, 3)
+                    .map((camp) => {
+                      const statusColors: Record<string, { bg: string; text: string }> = {
+                        Pending: { bg: '#FFF7ED', text: '#EA580C' },
+                        Ongoing: { bg: '#EBF5FF', text: '#2563EB' },
+                        Done: { bg: '#F0FDF4', text: '#16A34A' },
+                      }
+                      const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
+                      return (
+                        <div key={camp.id} className="flex items-center gap-3 p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>
+                            {camp.status}
+                          </span>
+                          <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Due: {camp.due}</span>
+                        </div>
+                      )
+                    })}
+                </div>
               </div>
             </div>
           </div>
