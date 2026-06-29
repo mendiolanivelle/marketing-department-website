@@ -14,6 +14,8 @@ const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
 const FileTracker = lazy(() => import('./pages/FileTracker'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
+const Campaigns = lazy(() => import('./pages/Campaigns'))
+const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
@@ -73,6 +75,8 @@ function App() {
                             <Route path="/calendar" element={<Calendar />} />
 <Route path="/files" element={<FileTracker />} />
                             <Route path="/leads" element={<LeadGeneration />} />
+                            <Route path="/campaigns" element={<Campaigns />} />
+                            <Route path="/requests" element={<MarketingRequests />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
                           </Routes>
                         </Suspense>
