@@ -42,6 +42,15 @@ export default function AcceptanceCriteria() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
+  const formatId = (sub: Submission): string => {
+    if (sub.tracking_id) return sub.tracking_id
+    const d = new Date(sub.created_at)
+    const yy = String(d.getFullYear()).slice(-2)
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const seq = String(Number(sub.id) % 1000).padStart(3, '0')
+    return 'AC-' + yy + mm + '-' + seq
+  }
+
   const fetchSubmissions = async () => {
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
@@ -97,7 +106,7 @@ export default function AcceptanceCriteria() {
     y += 9
     color(255, 255, 255)
     fnt('F1', 7)
-    txt(17, y + 1.5, 'ID: ' + (sub.tracking_id || String(sub.id ?? '').substring(0, 8)))
+    txt(17, y + 1.5, 'ID: ' + (formatId(sub)))
     y += 18
 
     const check = () => { if (y > MAX_Y) nextPage() }
@@ -346,7 +355,7 @@ export default function AcceptanceCriteria() {
                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
                     </td>
                     <td className="p-3">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{sub.tracking_id || String(sub.id ?? '').substring(0, 8)}</span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{formatId(sub)}</span>
                     </td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.client_name || '—'}</td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>
@@ -428,7 +437,7 @@ export default function AcceptanceCriteria() {
 <div>
                     <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
-                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {selectedSubmission.tracking_id || String(selectedSubmission.id ?? '').substring(0, 8)}</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {formatId(selectedSubmission)}</p>
                   </div>
               </div>
               <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
