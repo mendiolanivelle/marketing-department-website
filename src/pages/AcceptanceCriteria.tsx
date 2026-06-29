@@ -688,6 +688,10 @@ export default function AcceptanceCriteria() {
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Message / Body</label>
                     <textarea value={sendForm.body} onChange={(e) => setSendForm({ ...sendForm, body: e.target.value })} rows={6} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
                   </div>
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Attachment Link</label>
+                    <input type="text" value={sendForm.attachment} onChange={(e) => setSendForm({ ...sendForm, attachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Paste a Google Drive or file link..." />
+                  </div>
                   {sendForm.attachment && (
                     <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E5E7EB', backgroundColor: '#FAFAFA' }}>
                       <div className="px-4 py-3 border-b text-xs font-medium flex items-center gap-2" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: '#374151' }}>
