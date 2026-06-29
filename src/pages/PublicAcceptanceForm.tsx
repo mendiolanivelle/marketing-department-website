@@ -25,6 +25,7 @@ export default function PublicAcceptanceForm() {
     const prefix = DOC_TYPE + '-' + yymm + '-'
 
     let nextSeq = 1
+    let dbQueried = false
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -34,6 +35,7 @@ export default function PublicAcceptanceForm() {
           .like('tracking_id', prefix + '%')
           .order('tracking_id', { ascending: false })
           .limit(1)
+        dbQueried = true
         if (data && data.length > 0 && data[0].tracking_id) {
           const parts = data[0].tracking_id.split('-')
           if (parts.length === 3) {
@@ -43,7 +45,7 @@ export default function PublicAcceptanceForm() {
       } catch {}
     }
 
-    if (nextSeq === 1) {
+    if (nextSeq === 1 && !dbQueried) {
       const lastRaw = localStorage.getItem('exodia-acceptance-last-id')
       if (lastRaw) {
         const parts = lastRaw.split('-')
