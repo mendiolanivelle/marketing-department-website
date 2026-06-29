@@ -48,7 +48,6 @@ export default function Home() {
       { id: 4, text: 'Prepare presentation for stakeholders', done: false },
     ]
   })
-  const [searchQuery, setSearchQuery] = useState('')
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
@@ -251,25 +250,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Global Search Bar */}
-      <div className="sticky top-0 z-30 px-4 sm:px-6 py-3 border-b theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search templates, assets, campaigns..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-lg border outline-none transition"
-              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
-            />
-          </div>
-        </div>
-      </div>
-
+      {/* Lead Stats Summary */}
+      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-4">
       {/* Hero Section */}
       <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-3xl mx-auto">
@@ -776,3 +758,4 @@ export default function Home() {
     </div>
   )
 }
+
