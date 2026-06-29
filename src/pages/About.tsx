@@ -190,9 +190,6 @@ export default function About() {
           <h1 className="text-4xl sm:text-5xl tracking-tight whitespace-nowrap" style={{ color: '#FFFFFF', fontWeight: 700 }}>
             Welcome to Marketing Department
           </h1>
-          <p className="text-lg sm:text-xl text-white/80 max-w-2xl mx-auto" style={{ fontWeight: 300 }}>
-            Learn about the Marketing department's mission, structure, and how we support the organization
-          </p>
         </div>
       </section>
 
