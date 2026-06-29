@@ -688,10 +688,30 @@ export default function AcceptanceCriteria() {
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Message / Body</label>
                     <textarea value={sendForm.body} onChange={(e) => setSendForm({ ...sendForm, body: e.target.value })} rows={6} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
                   </div>
-                  <div>
-                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Attachment Link</label>
-                    <input type="text" value={sendForm.attachment} onChange={(e) => setSendForm({ ...sendForm, attachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Paste a Google Drive or file link..." />
-                  </div>
+                  {sendForm.attachment && (
+                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E5E7EB', backgroundColor: '#FAFAFA' }}>
+                      <div className="px-4 py-3 border-b text-xs font-medium flex items-center gap-2" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: '#374151' }}>
+                        <svg className="w-4 h-4" style={{ color: '#FF5900' }} fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                          <path d="M14 2v6h6" fill="none" stroke="#fff" strokeWidth="2" />
+                          <path d="M16 13H8m0 4h8m-8-8h2" fill="none" stroke="#FF5900" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        Attached PDF — Acceptance Criteria Form
+                      </div>
+                      <div className="px-4 py-3 flex items-center justify-between">
+                        <a
+                          href={sendForm.attachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm underline truncate max-w-[70%]"
+                          style={{ color: '#2563EB' }}
+                        >
+                          {sendForm.attachment}
+                        </a>
+                        <span className="text-xs" style={{ color: '#6B7280' }}>PDF</span>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Additional Attachment Links</label>
                     <div className="space-y-2">
