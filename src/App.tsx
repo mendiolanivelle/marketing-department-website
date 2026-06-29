@@ -15,6 +15,7 @@ const Calendar = lazy(() => import('./pages/Calendar'))
 const FileTracker = lazy(() => import('./pages/FileTracker'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
 const Campaigns = lazy(() => import('./pages/Campaigns'))
+const AcceptanceCriteria = lazy(() => import('./pages/AcceptanceCriteria'))
 const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 
@@ -76,6 +77,7 @@ function App() {
 <Route path="/files" element={<FileTracker />} />
                             <Route path="/leads" element={<LeadGeneration />} />
                             <Route path="/campaigns" element={<Campaigns />} />
+                            <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
                             <Route path="/requests" element={<MarketingRequests />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
                           </Routes>
