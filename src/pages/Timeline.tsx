@@ -46,16 +46,7 @@ const defaultColumns = (): TimelineColumn[] => [
   { key: 'col-5', label: 'Closed Won' },
 ]
 
-const columnColors: Record<string, string> = {
-  'col-1': '#4A90D9',
-  'col-2': '#6366F1',
-  'col-3': '#8B5CF6',
-  'col-4': '#F59E0B',
-  'col-5': 'var(--accent)',
-  'col-6': 'var(--text-secondary)',
-  'col-7': '#10B981',
-  'col-8': '#EF4444',
-}
+
 
 export default function Timeline() {
   const { user } = useAuth()
@@ -1016,7 +1007,6 @@ setEmailBody('')
             <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4">
               {table.columns.map((col) => {
                 const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
-                const colColor = columnColors[col.key] || 'var(--text-secondary)'
                 const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
                 const colIndex = table.columns.findIndex(c => c.key === col.key)
                 const borderColor = colIndex % 2 === 0 ? '#1B1A1C' : '#3E4048'
@@ -1028,7 +1018,7 @@ setEmailBody('')
                       backgroundColor: 'var(--bg-card)',
                       opacity: isDraggedColumn ? 0.5 : 1,
                       border: `2px solid ${borderColor}`,
-                      borderTop: `4px solid ${colColor}`,
+                      borderTop: `4px solid ${borderColor}`,
                     }}
                     onDragOver={(e) => {
                       e.preventDefault()
@@ -1062,7 +1052,7 @@ setEmailBody('')
                       title="Drag to reorder column"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colColor }}></div>
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: borderColor }}></div>
                         {editingColumnLabel?.tableId === table.id && editingColumnLabel?.colKey === col.key ? (
                           <input
                             type="text"
