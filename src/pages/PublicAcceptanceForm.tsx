@@ -17,24 +17,44 @@ export default function PublicAcceptanceForm() {
 
   const DOC_TYPE = 'AC' // Change to 'REQ' or 'RPT' as needed
 
-  const generateId = (): string => {
+  const generateId = async (): Promise<string> => {
     const now = new Date()
     const yy = String(now.getFullYear()).slice(-2)
     const mm = String(now.getMonth() + 1).padStart(2, '0')
     const yymm = yy + mm
+    const prefix = DOC_TYPE + '-' + yymm + '-'
 
-    const lastRaw = localStorage.getItem('exodia-acceptance-last-id')
     let nextSeq = 1
 
-    if (lastRaw) {
-      const parts = lastRaw.split('-')
-      if (parts.length === 3 && parts[1] === yymm) {
-        nextSeq = parseInt(parts[2], 10) + 1
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await supabase
+          .from('acceptance_forms')
+          .select('tracking_id')
+          .like('tracking_id', prefix + '%')
+          .order('tracking_id', { ascending: false })
+          .limit(1)
+        if (data && data.length > 0 && data[0].tracking_id) {
+          const parts = data[0].tracking_id.split('-')
+          if (parts.length === 3) {
+            nextSeq = parseInt(parts[2], 10) + 1
+          }
+        }
+      } catch {}
+    }
+
+    if (nextSeq === 1) {
+      const lastRaw = localStorage.getItem('exodia-acceptance-last-id')
+      if (lastRaw) {
+        const parts = lastRaw.split('-')
+        if (parts.length === 3 && parts[1] === yymm) {
+          nextSeq = parseInt(parts[2], 10) + 1
+        }
       }
     }
 
     const seq = String(nextSeq).padStart(3, '0')
-    const newId = DOC_TYPE + '-' + yymm + '-' + seq
+    const newId = prefix + seq
     localStorage.setItem('exodia-acceptance-last-id', newId)
     return newId
   }
@@ -118,7 +138,7 @@ export default function PublicAcceptanceForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trackingId = generateId()
+    const trackingId = await generateId()
     const submission = { ...form, submittedAt: new Date().toISOString(), trackingId }
     localStorage.setItem('exodia-acceptance-form', JSON.stringify(submission))
 
