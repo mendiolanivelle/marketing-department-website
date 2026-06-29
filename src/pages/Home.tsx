@@ -11,11 +11,7 @@ const announcements = [
   { id: 4, title: 'Annual Review Submissions Due July 1', date: 'Jun 15, 2026', tag: 'Deadline', content: 'Please submit your annual performance reviews by July 1st to HR.' },
 ]
 
-const quickLinks = [
-  { label: 'Calendar', icon: '&#128197;', to: '/calendar' },
-  { label: 'Our Team', icon: '&#128101;', to: '/about#team' },
-  { label: 'Message Templates', icon: '&#128196;', to: '/templates' },
-]
+const quickLinks = []
 
 export default function Home() {
   const [leadStats, setLeadStats] = useState({
@@ -251,38 +247,88 @@ export default function Home() {
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Hero Section */}
-      <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <section className="pt-12 pb-8 px-4 sm:px-6 text-center sm:pt-20 sm:pb-12 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-5xl mb-4 sm:mb-6 tracking-tight" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-            Welcome to the <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Marketing Hub</span>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--accent-light)' }}>
+            <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl sm:text-5xl mb-3 tracking-tight" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+            Marketing Hub
           </h1>
-          <p className="text-base sm:text-xl mb-6 sm:mb-10 leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            Your central portal for department resources, campaign requests, brand assets, and team updates.
+          <p className="text-base sm:text-lg" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+            Central portal for department resources, campaigns, and team updates
           </p>
-          
         </div>
       </section>
 
-      <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-6 sm:-mt-10">
+      <section className="px-4 sm:px-6 pb-12 sm:pb-20 -mt-4 sm:-mt-6">
         <div className="max-w-7xl mx-auto">
-          {/* Announcements - Redesigned */}
-          <div className="rounded-2xl overflow-hidden mb-4 sm:mb-6 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-md)' }}>
-            {/* Top accent bar */}
-            <div className="h-2" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, var(--accent))' }}></div>
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4 sm:mb-5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+          {/* Lead Pipeline */}
+          <div
+            onClick={() => setShowPipeline(true)}
+            className="rounded-2xl overflow-hidden mb-6 sm:mb-8 cursor-pointer transition-all hover:shadow-lg theme-transition"
+            style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}
+          >
+            <div className="h-1.5" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+            <div className="p-5 sm:p-8">
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Click to view full details</p>
+                  </div>
+                </div>
+                <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+                {[
+                  { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
+                  { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+                  { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
+                  { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', icon: 'M18.364 5.636a9 9 0 11-12.728 0 9 9 0 0112.728 0zM12 8v4m0 4h.01' },
+                  { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                ].map((stat, i) => (
+                  <div key={i} className="p-4 sm:p-5 rounded-xl border transition-all hover:-translate-y-0.5 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                    <svg className="w-5 h-5 mb-2" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d={stat.icon} />
+                    </svg>
+                    <div className="text-3xl sm:text-4xl mb-1" style={{ color: i === 2 || i === 4 ? 'var(--accent)' : 'var(--text-primary)', fontWeight: 700 }}>{stat.value}</div>
+                    <div className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Announcements */}
+          <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+            <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #FF8C33, var(--accent), #FF8C33)' }}></div>
+            <div className="p-5 sm:p-8">
+              <div className="flex items-center justify-between mb-5 sm:mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
                     <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                     </svg>
                   </div>
-                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Announcements</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>{announcementsList.length} total</span>
+                  <div>
+                    <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Announcements</h2>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{announcementsList.length} updates</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowAddAnnouncement(true)}
-                  className="w-8 h-8 rounded-lg transition flex items-center justify-center hover:scale-105"
+                  className="w-9 h-9 rounded-xl transition flex items-center justify-center hover:scale-105"
                   style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
                   title="Add announcement"
                 >
@@ -291,192 +337,162 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
-              <ul className="space-y-2 sm:space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-                {announcementsList.map((item, index) => (
-                  <li key={item.id}
-                    className="group flex flex-col sm:flex-row sm:items-center p-3.5 rounded-xl gap-2.5 sm:gap-3 transition-all hover:-translate-y-0.5 cursor-pointer theme-transition"
-                    style={{ backgroundColor: index % 2 === 0 ? 'var(--bg-secondary)' : 'color-mix(in srgb, var(--bg-secondary) 50%, transparent)', border: '1px solid color-mix(in srgb, var(--border-primary) 50%, transparent)' }}
-                    onClick={() => setSelectedAnnouncement(item)}
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--accent)' }}></div>
-                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-                        {item.tag}
-                      </span>
-                      <span className="text-sm truncate" style={{ color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: readAnnouncementIds.includes(item.id) ? 400 : 600 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {announcementsList.slice(0, 4).map((item, index) => {
+                  const tagColors: Record<string, { bg: string; text: string }> = {
+                    Meeting: { bg: '#EBF5FF', text: '#2563EB' },
+                    Update: { bg: '#FFF7ED', text: '#EA580C' },
+                    Event: { bg: '#F0FDF4', text: '#16A34A' },
+                    Deadline: { bg: '#FEF2F2', text: '#DC2626' },
+                  }
+                  const tc = tagColors[item.tag] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedAnnouncement(item)}
+                      className="group rounded-xl p-4 sm:p-5 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer theme-transition"
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-medium" style={{ backgroundColor: tc.bg, color: tc.text }}>
+                          {item.tag}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
+                      </div>
+                      <p className="text-sm font-medium mb-2" style={{ color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: readAnnouncementIds.includes(item.id) ? 400 : 600 }}>
                         {item.title}
-                      </span>
+                      </p>
+                      <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+                        {item.content}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2.5 flex-shrink-0">
-                      <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
+                  )
+                })}
+              </div>
+              {announcementsList.length > 4 && (
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={() => setSelectedAnnouncement(announcementsList[4])}
+                    className="text-xs px-4 py-1.5 rounded-lg transition"
+                    style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}
+                  >
+                    View {announcementsList.length - 4} more
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom row: My Tasks + Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {/* My Tasks */}
+            <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+              <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33)' }}></div>
+              <div className="p-5 sm:p-7">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>My Tasks</h2>
+                </div>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Add a task..."
+                    value={newTaskText}
+                    onChange={(e) => setNewTaskText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
+                    className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
+                    style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                  />
+                  <button
+                    onClick={addTask}
+                    className="px-3 py-2 rounded-lg transition flex items-center justify-center"
+                    style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+                <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                  {tasks.map((task) => (
+                    <li key={task.id} className="group flex items-center gap-3 p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <input
+                        type="checkbox"
+                        checked={task.done}
+                        onChange={() => toggleTask(task.id)}
+                        className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
+                        style={{ accentColor: 'var(--accent)' }}
+                      />
+                      {editingTaskId === task.id ? (
+                        <input
+                          type="text"
+                          value={editingTaskText}
+                          onChange={(e) => setEditingTaskText(e.target.value)}
+                          onBlur={saveTaskEdit}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveTaskEdit(); if (e.key === 'Escape') { setEditingTaskId(null); setEditingTaskText('') } }}
+                          className="flex-1 text-sm px-2 py-0.5 border rounded outline-none"
+                          style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          className="text-sm flex-1 cursor-pointer"
+                          style={{ color: task.done ? 'var(--accent)' : 'var(--text-secondary)', fontWeight: 300, textDecoration: task.done ? 'line-through' : 'none' }}
+                          onDoubleClick={() => startEditingTask(task)}
+                        >
+                          {task.text}
+                        </span>
+                      )}
                       <button
-                        onClick={(e) => { e.stopPropagation(); startEditingAnnouncement(item) }}
-                        className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
+                        onClick={() => deleteTask(task.id)}
+                        className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 flex-shrink-0"
                         style={{ color: 'var(--accent)' }}
-                        title="Edit"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteAnnouncement(item.id) }}
-                        className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
-                        style={{ color: 'var(--accent)' }}
-                        title="Delete"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Lead Pipeline - Clickable */}
-          <div
-            onClick={() => setShowPipeline(true)}
-            className="block rounded-2xl border-2 p-4 sm:p-8 mb-4 sm:mb-6 hover:shadow-md transition-all cursor-pointer theme-transition"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: '0 4px 16px rgba(27,26,28,0.06), 0 0 0 1px rgba(27,26,28,0.08)' }}
-          >
-            <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-              {[
-                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
-                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
-                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
-                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
-                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
-              ].map((stat, i) => (
-                <div key={i} className="p-3 sm:p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="text-xs sm:text-sm mb-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
-                  <div className="text-2xl sm:text-3xl" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
-                  <div className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* My Tasks Widget */}
-            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#9989; My Tasks</h2>
-              </div>
-              {/* Add Task Input - moved below title */}
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  placeholder="Add a new task..."
-                  value={newTaskText}
-                  onChange={(e) => setNewTaskText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
-                  className="flex-1 px-3 py-2 text-sm border rounded-lg outline-none"
-                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
-                />
-                <button
-                  onClick={addTask}
-                  className="px-3 py-2 rounded-lg transition flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-                  title="Add task"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-              </div>
-              <ul className="space-y-2 sm:space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {tasks.map((task) => (
-                  <li key={task.id} className="group flex items-center gap-3 p-3 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                    <input
-                      type="checkbox"
-                      checked={task.done}
-                      onChange={() => toggleTask(task.id)}
-                      className="w-4 h-4 rounded cursor-pointer flex-shrink-0"
-                      style={{ accentColor: 'var(--accent)' }}
-                    />
-                    {editingTaskId === task.id ? (
-                      <input
-                        type="text"
-                        value={editingTaskText}
-                        onChange={(e) => setEditingTaskText(e.target.value)}
-                        onBlur={saveTaskEdit}
-                        onKeyDown={(e) => { if (e.key === 'Enter') saveTaskEdit(); if (e.key === 'Escape') { setEditingTaskId(null); setEditingTaskText('') } }}
-                        className="flex-1 text-sm px-2 py-0.5 border rounded outline-none"
-                        style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-                        autoFocus
-                      />
-                    ) : (
-                      <span
-                        className="text-sm flex-1 cursor-pointer"
-                        style={{
-                          color: task.done ? 'var(--accent)' : 'var(--text-secondary)',
-                          fontWeight: 300,
-                          textDecoration: task.done ? 'line-through' : 'none'
-                        }}
-                        onDoubleClick={() => startEditingTask(task)}
-                        title="Double-click to edit"
-                      >
-                        {task.text}
-                      </span>
-                    )}
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 flex-shrink-0"
-                      style={{ color: 'var(--accent)' }}
-                      title="Delete task"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Recent Activity Feed */}
-            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg sm:text-xl text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128337; Recent Activity</h2>
-              </div>
-              {activityLog.length === 0 ? (
-                <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
-                  <p className="text-sm">No activity yet</p>
-                </div>
-              ) : (
-                <ul className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {activityLog.map((entry) => (
-                    <li key={entry.id} className="p-2.5 rounded-lg theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-                          {entry.action}
-                        </span>
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{entry.timestamp}</span>
-                      </div>
-                      <p className="text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{entry.detail}</p>
                     </li>
                   ))}
                 </ul>
-              )}
+              </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="rounded-2xl border-2 exodia-card p-4 sm:p-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <h2 className="text-lg sm:text-xl mb-4 sm:mb-5 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>&#128279; Quick Links</h2>
-              <div className="space-y-2.5">
-                {quickLinks.map((link, i) => (
-                  <Link key={i} to={link.to} className="flex items-center gap-2.5 p-3 rounded-lg text-sm transition theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontWeight: 300 }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                  >
-                    {i === 0 ? <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> : i === 1 ? <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> : i === 2 ? <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg> : <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
+            {/* Recent Activity */}
+            <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+              <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF8C33, var(--accent))' }}></div>
+              <div className="p-5 sm:p-7">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                    <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
+                </div>
+                {activityLog.length === 0 ? (
+                  <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm">No activity yet</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                    {activityLog.slice(0, 8).map((entry) => (
+                      <li key={entry.id} className="p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                            {entry.action}
+                          </span>
+                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{entry.timestamp}</span>
+                        </div>
+                        <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{entry.detail}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
