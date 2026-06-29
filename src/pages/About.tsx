@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { logActivity } from '../lib/activityLogger'
 
 interface TeamMember {
@@ -11,9 +10,9 @@ interface TeamMember {
 }
 
 const defaultMembers: TeamMember[] = [
-  { id: 1, name: 'Maxene Pableo', role: 'Marketing Dept Head', email: 'maxene@exodiagamedev.com' },
-  { id: 2, name: 'Sarah Chen', role: 'VP of Marketing', email: 'sarah@exodiagamedev.com' },
-  { id: 3, name: 'Marcus Johnson', role: 'Creative Director', email: 'marcus@exodiagamedev.com' },
+  { id: 1, name: 'Maxene Pableo', role: 'Marketing Coordinator', email: 'maxene_pableo@exodiagamedev.com' },
+  { id: 2, name: 'Sarah Chen', role: 'Marketing Associate', email: 'sarah@exodiagamedev.com' },
+  { id: 3, name: 'Marcus Johnson', role: 'Social Media Manager', email: 'marcus@exodiagamedev.com' },
   { id: 4, name: 'Emily Rodriguez', role: 'Digital Marketing Manager', email: 'emily@exodiagamedev.com' },
 ]
 
@@ -23,6 +22,12 @@ function getInitials(name: string) {
 
 export default function About() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
+    const version = localStorage.getItem('exodia-team-directory-v')
+    if (version !== '2') {
+      localStorage.removeItem('exodia-team-directory')
+      localStorage.setItem('exodia-team-directory-v', '2')
+      return defaultMembers
+    }
     const saved = localStorage.getItem('exodia-team-directory')
     return saved ? JSON.parse(saved) : defaultMembers
   })
@@ -260,16 +265,18 @@ export default function About() {
                 </div>
 
                 {/* Action Button */}
-                <div className="flex items-center justify-center gap-2">
-                  <Link
-                    to={member.email ? `/templates?to=${encodeURIComponent(member.email)}` : '/templates'}
-                    className="px-4 py-1.5 text-xs rounded-lg border transition hover:-translate-y-0.5"
+                <div className="flex justify-center">
+                  <a
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(member.email)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-1.5 text-xs rounded-lg border transition hover:-translate-y-0.5"
                     style={{ borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 500 }}
                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = '#FFFFFF' }}
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--accent)' }}
                   >
                     Message
-                  </Link>
+                  </a>
                   <button
                     onClick={() => deleteMember(member.id)}
                     className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
