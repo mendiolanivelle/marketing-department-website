@@ -12,6 +12,31 @@ interface DeliverableRow {
 
 export default function PublicAcceptanceForm() {
   const [submitted, setSubmitted] = useState(false)
+  const [generatedId, setGeneratedId] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const DOC_TYPE = 'AC' // Change to 'REQ' or 'RPT' as needed
+
+  const generateId = (): string => {
+    const now = new Date()
+    const yy = String(now.getFullYear()).slice(-2)
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const yymm = yy + mm
+
+    const lastRaw = localStorage.getItem('exodia-acceptance-last-id')
+    let nextSeq = 1
+
+    if (lastRaw) {
+      const parts = lastRaw.split('-')
+      if (parts.length === 3 && parts[1] === yymm) {
+        nextSeq = parseInt(parts[2], 10) + 1
+      }
+    }
+
+    const seq = String(nextSeq).padStart(3, '0')
+    return DOC_TYPE + '-' + yymm + '-' + seq
+  }
+
   const [form, setForm] = useState({
     clientName: '',
     projectName: '',
@@ -91,7 +116,9 @@ export default function PublicAcceptanceForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const submission = { ...form, submittedAt: new Date().toISOString() }
+    const trackingId = generateId()
+    localStorage.setItem('exodia-acceptance-last-id', trackingId)
+    const submission = { ...form, submittedAt: new Date().toISOString(), trackingId }
     localStorage.setItem('exodia-acceptance-form', JSON.stringify(submission))
 
     if (isSupabaseConfigured && supabase) {
@@ -145,6 +172,7 @@ export default function PublicAcceptanceForm() {
     }
 
     setSubmitted(true)
+    setGeneratedId(trackingId)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -189,8 +217,38 @@ export default function PublicAcceptanceForm() {
             </svg>
           </div>
           <h1 className="text-2xl mb-3" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Submitted Successfully</h1>
+          <p className="text-sm mb-2" style={{ color: '#6B7280', fontWeight: 300 }}>
+            Your Acceptance Criteria has been logged!
+          </p>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <span className="text-lg font-bold tracking-wide" style={{ color: '#FF5900' }}>{generatedId}</span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(generatedId).then(() => {
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                })
+              }}
+              className="p-1.5 rounded-lg transition hover:bg-gray-100"
+              style={{ color: '#6B7280' }}
+              title="Copy to clipboard"
+            >
+              {copied ? (
+                <svg className="w-5 h-5" style={{ color: '#10B981' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+              )}
+            </button>
+          </div>
+          {copied && <p className="text-xs -mt-4 mb-4" style={{ color: '#10B981', fontWeight: 500 }}>Copied to clipboard!</p>}
           <p className="text-sm mb-6" style={{ color: '#6B7280', fontWeight: 300 }}>
-            Thank you! Your Acceptance Criteria Form has been received. Our team will review it and get back to you shortly.
+            Your tracking ID is <strong style={{ color: '#1B1A1C' }}>{generatedId}</strong>.<br />
+            Our team will review it and get back to you shortly.
           </p>
           <p className="text-xs" style={{ color: '#9CA3AF', fontWeight: 300 }}>
             Exodia Game Dev &middot; Marketing Department
