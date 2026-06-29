@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 interface DeliverableRow {
   name: string
@@ -88,9 +89,61 @@ export default function PublicAcceptanceForm() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    localStorage.setItem('exodia-acceptance-form', JSON.stringify({ ...form, submittedAt: new Date().toISOString() }))
+    const submission = { ...form, submittedAt: new Date().toISOString() }
+    localStorage.setItem('exodia-acceptance-form', JSON.stringify(submission))
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('acceptance_forms').insert([{
+          client_name: form.clientName,
+          project_name: form.projectName,
+          contact: form.contact,
+          email: form.email,
+          project_type: form.projectType === 'Others (Specify)' ? `Others: ${form.projectTypeOther}` : form.projectType,
+          target_platform: form.targetPlatform.includes('Others (Specify)')
+            ? [...form.targetPlatform.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.targetPlatformOther}`]
+            : form.targetPlatform,
+          timezone: form.timezone,
+          start_date: form.startDate,
+          deadline: form.deadline,
+          budget: form.budget,
+          doc_link: form.docLink,
+          deliverables: form.deliverableRows,
+          reviewer: form.reviewer.includes('Others (Specify)')
+            ? [...form.reviewer.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.reviewerOther}`]
+            : form.reviewer,
+          review_rounds: form.reviewRounds,
+          review_time: form.reviewTime,
+          approval_basis: form.approvalBasis,
+          comms_tool: form.commsTool.includes('Others (Specify)')
+            ? [...form.commsTool.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.commsToolOther}`]
+            : form.commsTool,
+          weekly_meeting: form.weeklyMeeting,
+          meeting_time: form.meetingTime === 'Others (Specify)' ? `Others: ${form.meetingTimeOther}` : form.meetingTime,
+          daily_sync: form.dailySync,
+          sync_time: form.syncTime === 'Others (Specify)' ? `Others: ${form.syncTimeOther}` : form.syncTime,
+          training: form.training,
+          game_engine: form.gameEngine.includes('Others (Specify)')
+            ? [...form.gameEngine.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.gameEngineOther}`]
+            : form.gameEngine,
+          tech_requirements: form.techRequirements,
+          tools_software: form.toolsSoftware,
+          performance_constraints: form.performanceConstraints,
+          signature: form.signature,
+          signature_date: form.signatureDate,
+          created_at: new Date().toISOString(),
+        }])
+        if (error) {
+          console.error('Supabase insert error:', error)
+          // Fallback: still show success to the user
+        }
+      } catch (err) {
+        console.error('Failed to submit to Supabase:', err)
+      }
+    }
+
     setSubmitted(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
