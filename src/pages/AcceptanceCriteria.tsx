@@ -580,5 +580,6 @@ export default function AcceptanceCriteria() {
           </div>
         </div>
       )}
+    </div>
   )
 }
