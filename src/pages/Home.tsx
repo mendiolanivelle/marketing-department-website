@@ -491,8 +491,7 @@ export default function Home() {
       <section className="px-4 sm:px-6 pb-12 sm:pb-20">
         <div className="max-w-7xl mx-auto">
           <div className="rounded-2xl border-2 border-dashed p-8 text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <h2 className="text-lg sm:text-xl mb-2" style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Department Highlights</h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Coming soon</p>
+            <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Department Highlights</h2>
           </div>
         </div>
       </section>
