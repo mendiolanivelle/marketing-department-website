@@ -257,7 +257,7 @@ export default function AcceptanceCriteria() {
     // Realtime subscription for new submissions
     const channel = supabase
       .channel('acceptance_forms_changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'acceptance_forms' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => {
         fetchSubmissions()
       })
       .subscribe()
@@ -296,10 +296,6 @@ export default function AcceptanceCriteria() {
           <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total</span>
             <span className="ml-2 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{submissions.length}</span>
-          </div>
-          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Pending</span>
-            <span className="ml-2 text-sm font-bold" style={{ color: '#EA580C' }}>{submissions.filter(s => s.project_type === 'Pending').length}</span>
           </div>
           <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Base</span>
