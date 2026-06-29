@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Sidebar from './components/Sidebar'
 
 const PublicShowcase = lazy(() => import('./pages/PublicShowcase'))
+const PublicAcceptanceForm = lazy(() => import('./pages/PublicAcceptanceForm'))
 const Login = lazy(() => import('./pages/Login'))
 const Home = lazy(() => import('./pages/Home'))
 const About = lazy(() => import('./pages/About'))
@@ -47,6 +48,14 @@ function App() {
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
                   <PublicShowcase />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/acceptance-form"
+              element={
+                <Suspense fallback={<RouteFallback fullScreen />}>
+                  <PublicAcceptanceForm />
                 </Suspense>
               }
             />
