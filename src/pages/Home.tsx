@@ -251,8 +251,6 @@ export default function Home() {
   // Build fix: ensure JSX structure is balanced
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Lead Stats Summary */}
-      <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-4">
       {/* Hero Section */}
       <section className="pt-12 pb-12 px-4 sm:px-6 text-center sm:pt-20 sm:pb-20 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-3xl mx-auto">
@@ -489,7 +487,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Department Highlights section removed - preserved in git history */}
+      {/* Department Highlights placeholder - design preserved for future content */}
+      <section className="px-4 sm:px-6 pb-12 sm:pb-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="rounded-2xl border-2 border-dashed p-8 text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h2 className="text-lg sm:text-xl mb-2" style={{ color: 'var(--text-muted)', fontWeight: 700 }}>Department Highlights</h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Coming soon</p>
+          </div>
+        </div>
+      </section>
 
       {/* Announcement Popup */}
       {selectedAnnouncement && (
