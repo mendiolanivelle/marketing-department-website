@@ -1,0 +1,1 @@
+ALTER TABLE acceptance_forms ADD COLUMN IF NOT EXISTS tracking_id TEXT;
