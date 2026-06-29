@@ -738,7 +738,7 @@ export default function AcceptanceCriteria() {
                   <button
                     onClick={() => {
                       const attachmentLines = [
-                        sendForm.attachment ? 'PDF Form: ' + sendForm.attachment : '',
+                        sendForm.attachment ? 'Attached Meeting Link: ' + sendForm.attachment : '',
                         ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
                       ].filter(Boolean).join('\n')
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
