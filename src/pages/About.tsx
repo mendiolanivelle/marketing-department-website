@@ -318,6 +318,26 @@ export default function About() {
         </div>
       )}
 
-      </div>
+      {/* Working Hours */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
+        <div className="max-w-md mx-auto">
+          <div className="rounded-2xl p-6 sm:p-10 text-center" style={{ backgroundColor: 'var(--accent)' }}>
+            <h3 className="text-xl sm:text-2xl text-white mb-5 sm:mb-6" style={{ fontWeight: 700 }}>Working Hours</h3>
+            <div className="space-y-3">
+              {['Monday','Tuesday','Wednesday','Thursday','Friday'].map((day) => (
+                <div key={day} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
+                  <span className="text-white text-sm sm:text-base" style={{ fontWeight: 500 }}>{day}</span>
+                  <span className="text-white/80 text-sm sm:text-base" style={{ fontWeight: 300 }}>9:00 AM – 6:00 PM</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between py-2 pt-3 mt-3 border-t border-white/20">
+                <span className="text-white text-sm sm:text-base" style={{ fontWeight: 500 }}>Saturday – Sunday</span>
+                <span className="text-white/60 text-sm" style={{ fontWeight: 300 }}>Closed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   )
 }
