@@ -1,101 +1,64 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { logActivity } from '../lib/activityLogger'
 
 interface TeamMember {
   id: number
   name: string
   role: string
-  bio: string
-  initials: string
+  email: string
   photoUrl?: string
 }
 
-interface OpenRole {
-  id: number
-  title: string
-  type: string
-}
+const defaultMembers: TeamMember[] = [
+  { id: 1, name: 'Maxene Pableo', role: 'Marketing Dept Head', email: 'maxene@exodiagamedev.com' },
+  { id: 2, name: 'Sarah Chen', role: 'VP of Marketing', email: 'sarah@exodiagamedev.com' },
+  { id: 3, name: 'Marcus Johnson', role: 'Creative Director', email: 'marcus@exodiagamedev.com' },
+  { id: 4, name: 'Emily Rodriguez', role: 'Digital Marketing Manager', email: 'emily@exodiagamedev.com' },
+]
 
 function getInitials(name: string) {
   return name.split(' ').map(w => w.charAt(0)).join('').toUpperCase()
 }
 
 export default function About() {
-  const location = useLocation()
-
-  // Scroll to hash on mount/hash change
-  useEffect(() => {
-    if (location.hash) {
-      const id = location.hash.replace('#', '')
-      const el = document.getElementById(id)
-      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
-    }
-  }, [location])
-
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
-    const saved = localStorage.getItem('exodia-team')
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Sarah Chen', role: 'VP of Marketing', bio: 'Leads department strategy and oversees all marketing operations. 15 years of B2B marketing experience.', initials: 'SC' },
-      { id: 2, name: 'Marcus Johnson', role: 'Creative Director', bio: 'Manages the brand and creative team. Ensures visual consistency across all company materials.', initials: 'MJ' },
-      { id: 3, name: 'Emily Rodriguez', role: 'Digital Marketing Manager', bio: 'Owns paid media, SEO, and marketing automation. Drives our demand generation engine.', initials: 'ER' },
-      { id: 4, name: 'David Kim', role: 'Content Lead', bio: 'Oversees blog, whitepapers, case studies, and sales enablement content across all channels.', initials: 'DK' },
-    ]
+    const saved = localStorage.getItem('exodia-team-directory')
+    return saved ? JSON.parse(saved) : defaultMembers
   })
-
-  const [openRoles, setOpenRoles] = useState<OpenRole[]>(() => {
-    const saved = localStorage.getItem('exodia-roles')
-    return saved ? JSON.parse(saved) : [
-      { id: 1, title: 'Marketing Coordinator', type: 'Full-time - Hybrid' },
-      { id: 2, title: 'Senior Content Strategist', type: 'Full-time - Remote' },
-    ]
-  })
-
-  useEffect(() => { localStorage.setItem('exodia-team', JSON.stringify(teamMembers)) }, [teamMembers])
-  useEffect(() => { localStorage.setItem('exodia-roles', JSON.stringify(openRoles)) }, [openRoles])
-
+  const [editingEmail, setEditingEmail] = useState<{ id: number; email: string } | null>(null)
   const [showAddMember, setShowAddMember] = useState(false)
-  const [showAddRole, setShowAddRole] = useState(false)
-  const [newMember, setNewMember] = useState({ name: '', role: '', bio: '' })
+  const [newMember, setNewMember] = useState({ name: '', role: '', email: '' })
   const [newMemberPhoto, setNewMemberPhoto] = useState<string | null>(null)
-  const [newRole, setNewRole] = useState({ title: '', type: 'Full-time - Hybrid' })
-  const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
-  const [editingRole, setEditingRole] = useState<OpenRole | null>(null)
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
-  const [showUploadModal, setShowUploadModal] = useState(false)
-  const [uploadTarget, setUploadTarget] = useState<number | null>(null)
-  const [cropData, setCropData] = useState<string | null>(null)
-  const [cropImage, setCropImage] = useState<string | null>(null)
-  const [cropZoom, setCropZoom] = useState(1)
-  const [cropPos, setCropPos] = useState({ x: 0, y: 0 })
-  const [cropDrag, setCropDrag] = useState<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
   const memberFileRef = useRef<HTMLInputElement>(null)
-  const editFileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    localStorage.setItem('exodia-team-directory', JSON.stringify(teamMembers))
+  }, [teamMembers])
 
   const addMember = () => {
     if (!newMember.name.trim()) return
     const id = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 1
-    setTeamMembers([...teamMembers, { ...newMember, id, initials: getInitials(newMember.name), photoUrl: newMemberPhoto || undefined }])
-    setNewMember({ name: '', role: '', bio: '' })
+    setTeamMembers([...teamMembers, { ...newMember, id, photoUrl: newMemberPhoto || undefined }])
+    setNewMember({ name: '', role: '', email: '' })
     setNewMemberPhoto(null)
     setShowAddMember(false)
-    logActivity('About', `Added team member "${newMember.name.trim()}"`)
+    logActivity('Team', `Added member "${newMember.name.trim()}"`)
   }
 
   const deleteMember = (id: number) => {
     const member = teamMembers.find(m => m.id === id)
     setTeamMembers(teamMembers.filter(m => m.id !== id))
-    if (member) logActivity('About', `Removed team member "${member.name}"`)
+    if (member) logActivity('Team', `Removed "${member.name}"`)
   }
 
-  const saveMemberEdit = () => {
-    if (!editingMember) return
-    setTeamMembers(teamMembers.map(m => m.id === editingMember.id ? { ...editingMember, initials: getInitials(editingMember.name) } : m))
-    setEditingMember(null)
-    logActivity('About', `Edited team member "${editingMember.name}"`)
+  const saveEmail = () => {
+    if (!editingEmail) return
+    setTeamMembers(teamMembers.map(m => m.id === editingEmail.id ? { ...m, email: editingEmail.email } : m))
+    setEditingEmail(null)
   }
 
-  const handlePhotoUpload = (member: TeamMember) => {
+  const handlePhotoUpload = (id: number) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
@@ -104,10 +67,7 @@ export default function About() {
       if (file) {
         const r = new FileReader()
         r.onloadend = () => {
-          setCropImage(r.result as string)
-          setCropZoom(1)
-          setCropPos({ x: 0, y: 0 })
-          setUploadTarget(member.id)
+          setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, photoUrl: r.result as string } : m))
         }
         r.readAsDataURL(file)
       }
@@ -115,147 +75,95 @@ export default function About() {
     input.click()
   }
 
-  const applyCrop = () => {
-    if (!cropImage || uploadTarget === null) return
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = 200
-      canvas.height = 200
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-      ctx.fillStyle = '#FFFFFF'
-      ctx.fillRect(0, 0, 200, 200)
-      const fitScale = Math.min(200 / img.width, 200 / img.height)
-      const w = img.width * fitScale * cropZoom
-      const h = img.height * fitScale * cropZoom
-      const x = (200 - w) / 2 + cropPos.x
-      const y = (200 - h) / 2 + cropPos.y
-      ctx.drawImage(img, x, y, w, h)
-      setTeamMembers(prev => prev.map(m => m.id === uploadTarget ? { ...m, photoUrl: canvas.toDataURL() } : m))
-      setCropImage(null)
-      setUploadTarget(null)
-    }
-    img.src = cropImage
-  }
-
-  const handleAddPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) { const r = new FileReader(); r.onloadend = () => setNewMemberPhoto(r.result as string); r.readAsDataURL(file) }
-  }
-
-  const handleEditPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) { const r = new FileReader(); r.onloadend = () => { if (editingMember) setEditingMember({ ...editingMember, photoUrl: r.result as string }) }; r.readAsDataURL(file) }
-  }
-
-  const removeMemberPhoto = (member: TeamMember) => {
-    setTeamMembers(teamMembers.map(m => m.id === member.id ? { ...m, photoUrl: undefined } : m))
-  }
-
-  const addRole = () => {
-    if (!newRole.title.trim()) return
-    const id = openRoles.length > 0 ? Math.max(...openRoles.map(r => r.id)) + 1 : 1
-    setOpenRoles([...openRoles, { ...newRole, id }])
-    setNewRole({ title: '', type: 'Full-time - Hybrid' })
-    setShowAddRole(false)
-    logActivity('About', `Added open role "${newRole.title.trim()}"`)
-  }
-
-  const deleteRole = (id: number) => {
-    const role = openRoles.find(r => r.id === id)
-    setOpenRoles(openRoles.filter(r => r.id !== id))
-    if (role) logActivity('About', `Removed open role "${role.title}"`)
-  }
-
-  const saveRoleEdit = () => {
-    if (!editingRole) return
-    setOpenRoles(openRoles.map(r => r.id === editingRole.id ? editingRole : r))
-    setEditingRole(null)
-    logActivity('About', `Edited open role "${editingRole.title}"`)
+  const removePhoto = (id: number) => {
+    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, photoUrl: undefined } : m))
   }
 
   return (
     <div>
-      {/* Hero Section with Photo Background */}
+      {/* Company Info Header */}
       <section
-        className="relative h-[400px] flex items-center justify-center px-4 sm:px-6 text-center overflow-hidden"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(27,26,28,0.6), rgba(27,26,28,0.5)), url("https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&q=80")',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
+        className="relative py-16 sm:py-20 px-4 sm:px-6 text-center overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-primary)' }}
       >
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl tracking-tight whitespace-nowrap" style={{ color: '#FFFFFF', fontWeight: 700 }}>
-            Welcome to Marketing Department
+        <div className="max-w-4xl mx-auto">
+          <div className="w-20 h-20 mx-auto mb-6">
+            <svg width="100%" viewBox="0 0 680 680" role="img" xmlns="http://www.w3.org/2000/svg">
+              <title>Exodia logo</title>
+              <g transform="translate(340,340)" fill="#FF5900">
+                <polygon points="-175,-220 -5,-120 -5,-220 -175,-320" />
+                <polygon points="5,-120 175,-220 175,-320 5,-220" />
+                <polygon points="-165,-110 0,-20 165,-110 0,-200" />
+                <polygon points="-175,-90 -175,90 0,180 0,0" />
+                <polygon points="175,-90 175,90 0,180 0,0" />
+                <polygon points="-175,110 -5,210 -5,110 -175,10" />
+                <polygon points="5,110 175,10 175,110 5,210" />
+              </g>
+            </svg>
+          </div>
+          <h1 className="text-3xl sm:text-4xl mb-6 tracking-tight" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+            Team & Directory
           </h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-3xl mx-auto mb-6">
+            <div className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>Our Vision</h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+                Making Cebu the 2nd choice when an international client want to outsource game development in the Philippines
+              </p>
+            </div>
+            <div className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>Our Mission</h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+                To be the 1st Game Dev Company in Cebu who provides manpower outsourcing for AAA companies in the year 2028
+              </p>
+            </div>
+          </div>
+          <a
+            href="#"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm transition hover:-translate-y-0.5"
+            style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Exodia Brand Guidelines
+          </a>
         </div>
       </section>
 
-      {/* Who We Are + Photo */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16 items-center">
-          <div>
-            <h2 className="text-2xl sm:text-4xl mb-5 sm:mb-6" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Who We Are</h2>
-            <p className="mb-4 text-base sm:text-lg leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              The Marketing Department is the internal team responsible for building and protecting the company brand, driving demand generation, and supporting all go-to-market initiatives across the organization.
-            </p>
-            <p className="text-base sm:text-lg leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              We partner with Sales, Product, Customer Success, and Leadership to develop strategies that align with company objectives and deliver measurable results.
-            </p>
-          </div>
-          <div className="rounded-2xl overflow-hidden shadow-lg w-full" style={{ minHeight: '300px', maxHeight: '500px' }}>
-            <img
-              src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80"
-              alt="Marketing Team"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Department Structure */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Structure</h2>
-          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            Our department is organized into specialized teams that work together to deliver comprehensive marketing solutions
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* Exodia Values */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl text-center mb-10" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+            Exodia Values
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: '&#127912;', title: 'Brand & Creative', desc: 'Visual identity, design systems, brand guidelines, and creative asset production.' },
-              { icon: '&#128200;', title: 'Digital & Growth', desc: 'SEO, paid media, email marketing, marketing automation, and performance optimization.' },
-              { icon: '&#128221;', title: 'Content & Comms', desc: 'Blog, social media, internal communications, PR, and content strategy.' },
-              { icon: '&#128202;', title: 'Analytics & Ops', desc: 'Marketing analytics, reporting, budget management, and tool administration.' },
-            ].map((team, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:shadow-lg text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                {i === 0 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg> : i === 1 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> : i === 2 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg> : <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
-                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{team.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{team.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Our Values */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Values</h2>
-          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            The principles that guide how we work and make decisions every day
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              { icon: '&#128161;', title: 'Innovation', desc: 'We experiment with new channels, tools, and approaches to stay ahead of market trends.' },
-              { icon: '&#129309;', title: 'Collaboration', desc: 'We work cross-functionally and believe the best results come from diverse perspectives.' },
-              { icon: '&#127919;', title: 'Impact', desc: 'Every initiative we undertake is tied to measurable business outcomes and company goals.' },
-              { icon: '&#128172;', title: 'Transparency', desc: 'We share our plans, results, and learnings openly with the entire organization.' },
+              {
+                title: 'Client Happiness',
+                desc: 'To deliver our commitments systematically and skillfully, achieving quality output that are delivered on time.',
+                icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+              },
+              {
+                title: 'Employee Happiness',
+                desc: 'To continuously develop AAA quality skills and foster interpersonal development skills.',
+                icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+              },
+              {
+                title: 'Company Happiness',
+                desc: 'To create a lifelong livelihood for the employees of Exodia and always seek ways to help companies who want to craft games.',
+                icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+              },
             ].map((value, i) => (
-              <div key={i} className="p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:shadow-lg text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                {i === 0 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg> : i === 1 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg> : i === 2 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> : <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4 mx-auto" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
-                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{value.title}</h3>
+              <div
+                key={i}
+                className="p-6 sm:p-8 rounded-2xl border-2 text-center transition-all hover:-translate-y-1 hover:shadow-lg theme-transition"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+              >
+                <svg className="w-8 h-8 mx-auto mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d={value.icon} />
+                </svg>
+                <h3 className="text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{value.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{value.desc}</p>
               </div>
             ))}
@@ -263,81 +171,118 @@ export default function About() {
         </div>
       </section>
 
-      {/* Our Team & Open Roles */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+      {/* Marketing Team Grid */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-7xl mx-auto">
-          {/* Team Members */}
           <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 id="team" className="text-2xl sm:text-4xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Our Team</h2>
-              <p className="text-base sm:text-lg mt-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Meet the people behind the work</p>
-            </div>
-            <button onClick={() => setShowAddMember(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+            <h2 className="text-2xl sm:text-3xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+              Marketing Team
+            </h2>
+            <button
+              onClick={() => setShowAddMember(true)}
+              className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Add Member
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {teamMembers.map((member) => (
-              <div key={member.id} onClick={() => setSelectedMember(member)} className="group p-6 sm:p-8 rounded-2xl border-2 exodia-card text-center transition-all hover:shadow-lg relative cursor-pointer" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => setEditingMember(member)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--accent)' }} title="Edit">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button onClick={() => deleteMember(member.id)} className="p-1 rounded hover:bg-[var(--bg-hover)]" style={{ color: 'var(--accent)' }} title="Delete">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
-                </div>
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-5 overflow-hidden relative cursor-pointer group/avatar"
+              <div
+                key={member.id}
+                className="group rounded-2xl border-2 p-6 text-center transition-all duration-200 hover:shadow-lg theme-transition"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderColor: 'var(--border-primary)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#FF5900' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-primary)' }}
+              >
+                {/* Photo */}
+                <div className="relative w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden cursor-pointer group/avatar"
                   style={{ backgroundColor: 'var(--btn-primary-bg)' }}
+                  onClick={() => handlePhotoUpload(member.id)}
                 >
                   {member.photoUrl ? (
                     <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-lg sm:text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{member.initials}</span>
+                    <span className="w-full h-full flex items-center justify-center text-xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>
+                      {getInitials(member.name)}
+                    </span>
                   )}
                   <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); handlePhotoUpload(member) }} className="p-1 rounded-full hover:bg-white/20 transition" title={member.photoUrl ? 'Change photo' : 'Add photo'}>
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    </button>
-                    {member.photoUrl && (
-                      <button onClick={(e) => { e.stopPropagation(); removeMemberPhoto(member) }} className="p-1 rounded-full hover:bg-white/20 transition" title="Remove photo">
-                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    )}
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                   </div>
                 </div>
-                <h3 className="text-base sm:text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{member.name}</h3>
-                <span className="block text-xs sm:text-sm mb-2 sm:mb-3" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{member.role}</span>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{member.bio}</p>
+
+                {/* Name */}
+                <h3 className="text-base mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                  {member.name}
+                </h3>
+
+                {/* Role */}
+                <p className="text-sm mb-3" style={{ color: '#9CA3AF', fontWeight: 400 }}>
+                  {member.role}
+                </p>
+
+                {/* Contact - Editable Email */}
+                <div className="flex items-center justify-center gap-1.5 mb-4">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {editingEmail?.id === member.id ? (
+                    <input
+                      type="email"
+                      value={editingEmail.email}
+                      onChange={(e) => setEditingEmail({ ...editingEmail, email: e.target.value })}
+                      onBlur={saveEmail}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveEmail(); if (e.key === 'Escape') setEditingEmail(null) }}
+                      className="text-xs px-2 py-0.5 border rounded outline-none w-full max-w-[160px] text-center"
+                      style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)' }}
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className="text-xs cursor-pointer hover:underline truncate max-w-[160px]"
+                      style={{ color: 'var(--text-muted)', fontWeight: 300 }}
+                      onClick={() => setEditingEmail({ id: member.id, email: member.email })}
+                      title="Click to edit email"
+                    >
+                      {member.email}
+                    </span>
+                  )}
+                </div>
+
+                {/* Action Button */}
+                <div className="flex items-center justify-center gap-2">
+                  <Link
+                    to={member.email ? `/templates?to=${encodeURIComponent(member.email)}` : '/templates'}
+                    className="px-4 py-1.5 text-xs rounded-lg border transition hover:-translate-y-0.5"
+                    style={{ borderColor: 'var(--accent)', color: 'var(--accent)', fontWeight: 500 }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--accent)'; e.currentTarget.style.color = '#FFFFFF' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--accent)' }}
+                  >
+                    Message
+                  </Link>
+                  <button
+                    onClick={() => deleteMember(member.id)}
+                    className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100"
+                    style={{ color: 'var(--text-muted)' }}
+                    title="Remove member"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))}
-          </div>
-
-          {/* Open Roles */}
-          <div className="text-center">
-            <h3 className="text-2xl sm:text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Open Roles</h3>
-            <p className="text-sm sm:text-base mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              We're currently hiring — reach out to HR for more details.
-            </p>
-            <div className="inline-flex flex-col gap-3 max-w-xl w-full">
-              {openRoles.map((role) => (
-                <div key={role.id} className="group flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 rounded-xl border-2 exodia-card transition-all" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                  <div className="text-left">
-                    <h4 className="text-sm sm:text-base" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{role.title}</h4>
-                    <span className="text-xs sm:text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{role.type}</span>
-                  </div>
-                  <div className="flex gap-1 mt-2 sm:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => setEditingRole(role)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    </button>
-                    <button onClick={() => deleteRole(role.id)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Delete">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-</div>
-          </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -352,11 +297,11 @@ export default function About() {
                 onClick={() => memberFileRef.current?.click()}>
                 {newMemberPhoto ? <img src={newMemberPhoto} className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>+</span>}
               </div>
-              <input ref={memberFileRef} type="file" accept="image/*" onChange={handleAddPhoto} className="hidden" />
+              <input ref={memberFileRef} type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onloadend = () => setNewMemberPhoto(r.result as string); r.readAsDataURL(f) } }} className="hidden" />
             </div>
             <input type="text" placeholder="Full Name" value={newMember.name} onChange={e => setNewMember({ ...newMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
             <input type="text" placeholder="Role (e.g. Creative Director)" value={newMember.role} onChange={e => setNewMember({ ...newMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
-            <textarea placeholder="Bio" value={newMember.bio} onChange={e => setNewMember({ ...newMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
+            <input type="email" placeholder="Email" value={newMember.email} onChange={e => setNewMember({ ...newMember, email: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowAddMember(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={addMember} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
@@ -365,188 +310,7 @@ export default function About() {
         </div>
       )}
 
-      {/* Team Member Detail Popup */}
-      {selectedMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedMember(null)}>
-          <div className="relative rounded-2xl border p-6 sm:p-8 max-w-lg w-full text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedMember(null)} className="absolute top-4 right-4 p-1 rounded-lg transition" style={{ color: 'var(--accent)' }}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-5 overflow-hidden" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-              {selectedMember.photoUrl
-                ? <img src={selectedMember.photoUrl} alt={selectedMember.name} className="w-full h-full object-cover" />
-                : <span className="text-3xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{selectedMember.initials}</span>}
-            </div>
-            <h2 className="text-2xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedMember.name}</h2>
-            <p className="text-sm mb-4" style={{ color: 'var(--accent)', fontWeight: 500 }}>{selectedMember.role}</p>
-            <p className="text-base leading-relaxed mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedMember.bio}</p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => { setEditingMember(selectedMember); setSelectedMember(null) }}
-                className="px-5 py-2 text-sm text-white rounded-lg transition"
-                style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => { deleteMember(selectedMember.id); setSelectedMember(null) }}
-                className="px-5 py-2 text-sm rounded-lg transition"
-                style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Member Modal */}
-      {editingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingMember(null)}>
-          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Team Member</h3>
-            <div className="flex justify-center mb-4">
-              <div className="relative w-20 h-20 rounded-full overflow-hidden cursor-pointer" style={{ backgroundColor: 'var(--btn-primary-bg)' }}
-                onClick={() => editFileRef.current?.click()}>
-                {editingMember.photoUrl
-                  ? <img src={editingMember.photoUrl} className="w-full h-full object-cover" />
-                  : <span className="w-full h-full flex items-center justify-center text-2xl" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{editingMember.initials}</span>}
-              </div>
-              <input ref={editFileRef} type="file" accept="image/*" onChange={handleEditPhoto} className="hidden" />
-            </div>
-            <input type="text" placeholder="Full Name" value={editingMember.name} onChange={e => setEditingMember({ ...editingMember, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
-            <input type="text" placeholder="Role" value={editingMember.role} onChange={e => setEditingMember({ ...editingMember, role: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} />
-            <textarea placeholder="Bio" value={editingMember.bio} onChange={e => setEditingMember({ ...editingMember, bio: e.target.value })} rows={3} className="w-full px-3 py-2.5 border rounded-lg outline-none resize-none mb-4" style={{ borderColor: 'var(--border-primary)' }} />
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setEditingMember(null)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-              <button onClick={saveMemberEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Role Modal */}
-      {showAddRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddRole(false)}>
-          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Open Role</h3>
-            <input type="text" placeholder="Role Title" value={newRole.title} onChange={e => setNewRole({ ...newRole, title: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
-            <select value={newRole.type} onChange={e => setNewRole({ ...newRole, type: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }}>
-              <option>Full-time - Hybrid</option>
-              <option>Full-time - Remote</option>
-              <option>Full-time - Onsite</option>
-              <option>Part-time</option>
-              <option>Contract</option>
-            </select>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setShowAddRole(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-              <button onClick={addRole} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Role Modal */}
-      {editingRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setEditingRole(null)}>
-          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Open Role</h3>
-            <input type="text" placeholder="Role Title" value={editingRole.title} onChange={e => setEditingRole({ ...editingRole, title: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
-            <select value={editingRole.type} onChange={e => setEditingRole({ ...editingRole, type: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4" style={{ borderColor: 'var(--border-primary)' }}>
-              <option>Full-time - Hybrid</option>
-              <option>Full-time - Remote</option>
-              <option>Full-time - Onsite</option>
-              <option>Part-time</option>
-              <option>Contract</option>
-            </select>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setEditingRole(null)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-              <button onClick={saveRoleEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Crop Modal */}
-      {cropImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setCropImage(null); setUploadTarget(null) }}>
-          <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Adjust Photo</h3>
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-black cursor-move"
-              style={{ maxHeight: '300px' }}
-              onMouseDown={(e) => { const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setCropDrag({ startX: e.clientX - r.left, startY: e.clientY - r.top, posX: cropPos.x, posY: cropPos.y }) }}
-              onMouseMove={(e) => { if (!cropDrag) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); setCropPos({ x: cropDrag.posX + ((e.clientX - r.left) - cropDrag.startX) / (3 * cropZoom), y: cropDrag.posY + ((e.clientY - r.top) - cropDrag.startY) / (3 * cropZoom) }) }}
-              onMouseUp={() => setCropDrag(null)}
-              onMouseLeave={() => setCropDrag(null)}
-            >
-              <img src={cropImage} className="w-full h-full pointer-events-none select-none" style={{ objectFit: 'contain', transform: `scale(${cropZoom}) translate(${cropPos.x}px, ${cropPos.y}px)` }} />
-              <div className="absolute inset-0 border-2 border-white/60 rounded-xl pointer-events-none" />
-            </div>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Zoom:</span>
-              <input type="range" min="0.5" max="3" step="0.05" value={cropZoom} onChange={e => setCropZoom(parseFloat(e.target.value))} className="flex-1" />
-              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{Math.round(cropZoom * 100)}%</span>
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => { setCropImage(null); setUploadTarget(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-              <button onClick={applyCrop} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save Photo</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Department Services */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <h2 id="services" className="text-2xl sm:text-4xl text-center mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Services</h2>
-          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>What the Marketing team can do for you and your team</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { icon: '&#127919;', title: 'Brand Guidelines & Assets', desc: 'Access approved brand templates, logos, color palettes, typography, and usage guidelines.', features: ['Logo Files', 'Template Library', 'Style Guides', 'Presentation Templates'] },
-              { icon: '&#128187;', title: 'Campaign Support', desc: 'Our team helps plan, create, and execute marketing campaigns for your initiatives.', features: ['Campaign Planning', 'Asset Creation', 'Channel Strategy', 'Launch Support'] },
-              { icon: '&#128241;', title: 'Social Media', desc: 'We manage all company social channels. Submit content requests for announcements.', features: ['Content Requests', 'LinkedIn Posts', 'Employee Advocacy', 'Crisis Comms'] },
-              { icon: '&#9997;', title: 'Content & Copywriting', desc: 'Blog posts, whitepapers, case studies, and sales collateral for every stage of the funnel.', features: ['Blog Posts', 'Case Studies', 'Sales Collateral', 'Whitepapers'] },
-              { icon: '&#128200;', title: 'Analytics & Reporting', desc: 'Access marketing dashboards, request custom reports, and track KPIs.', features: ['Performance Dashboards', 'Custom Reports', 'KPI Tracking', 'Data Walkthroughs'] },
-              { icon: '&#127758;', title: 'Event & Webinar Support', desc: 'Promotion, logistics, and post-event follow-up for internal events and conferences.', features: ['Event Promotion', 'Webinar Setup', 'Conference Planning', 'Post-Event Reports'] },
-            ].map((service, i) => (
-              <div key={i} className="p-6 sm:p-9 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 hover:shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                {i === 0 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> : i === 1 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg> : i === 2 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg> : i === 3 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> : i === 4 ? <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> : <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-3 sm:mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>}
-                <h3 className="text-lg sm:text-xl mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{service.title}</h3>
-                <p className="text-sm leading-relaxed mb-4 sm:mb-5" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{service.desc}</p>
-                <ul className="flex flex-wrap gap-2">
-                  {service.features.map((feature, i) => (
-                    <li key={i} className="px-3 py-1 rounded-md text-xs font-medium" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{feature}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How to Request Our Help */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>How to Request Our Help</h2>
-          <p className="text-center text-base sm:text-lg mb-10 sm:mb-14 max-w-2xl mx-auto" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Our standard workflow for handling internal requests</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              { num: '01', title: 'Submit a Request', desc: 'Fill out the contact form with details about your project, timeline, and goals.' },
-              { num: '02', title: 'Intake Meeting', desc: "We'll schedule a brief call to align on scope, deliverables, and expectations." },
-              { num: '03', title: 'Execution', desc: "Our team gets to work. You'll receive regular updates and review checkpoints." },
-              { num: '04', title: 'Delivery & Review', desc: 'We deliver final assets and gather feedback to improve future collaborations.' },
-            ].map((step, i) => (
-              <div key={i} className="text-center p-6 sm:p-8">
-                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4" style={{ color: 'var(--text-muted)', fontWeight: 700 }}>{step.num}</div>
-                <h3 className="text-base sm:text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{step.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA + Working Hours - Reach Out beside Working Hours */}
+      {/* CTA + Working Hours */}
       <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
           <div>
@@ -569,7 +333,7 @@ export default function About() {
                 </div>
               ))}
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted!'); form.reset(); logActivity('About', `Contact form submitted by "${data.name}"`) }} className="space-y-2.5">
+            <form onSubmit={(e) => { e.preventDefault(); const form = e.target as HTMLFormElement; const data = Object.fromEntries(new FormData(form)); localStorage.setItem('exodia-contact-submission', JSON.stringify({ ...data, date: new Date().toISOString() })); alert('Request submitted!'); form.reset(); logActivity('Team', `Contact form submitted by "${data.name}"`) }} className="space-y-2.5">
               <input name="name" required placeholder="Your Name" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
               <input name="email" required placeholder="Your Email" className="w-full px-3.5 py-2 rounded-lg outline-none text-sm" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
               <textarea name="message" required rows={2} placeholder="Briefly describe your request..." className="w-full px-3.5 py-2 rounded-lg outline-none text-sm resize-none" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
