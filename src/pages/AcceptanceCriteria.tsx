@@ -38,6 +38,8 @@ export default function AcceptanceCriteria() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachment: '' })
 
   const fetchSubmissions = async () => {
     if (!isSupabaseConfigured || !supabase) {
@@ -433,10 +435,129 @@ export default function AcceptanceCriteria() {
               <div className="pt-4 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
                 <p className="text-xs" style={{ color: '#9CA3AF' }}>Exodia Game Dev &middot; Marketing Department &middot; Submitted {new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
+
+              {/* Prepare to Send */}
+              <div className="pt-4 text-center">
+                <button
+                  onClick={() => {
+                    setSendForm({
+                      to: selectedSubmission.email || '',
+                      subject: `Acceptance Criteria Form - ${selectedSubmission.project_name || 'Untitled'}`,
+                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                      attachment: '',
+                      additionalAttachment: '',
+                    })
+                    setShowSendModal(true)
+                  }}
+                  className="px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+                  style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
+                >
+                  Prepare to Send
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Send Modal */}
+      {showSendModal && selectedSubmission && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => setShowSendModal(false)} />
+          <div className="relative rounded-2xl border max-w-5xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+              <h2 className="text-base font-bold" style={{ color: '#1B1A1C' }}>Send to Operations</h2>
+              <button onClick={() => setShowSendModal(false)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 sm:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Form fields */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Address</label>
+                    <input type="email" value={sendForm.to} onChange={(e) => setSendForm({ ...sendForm, to: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="ops@exodiagamedev.com" />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Subject</label>
+                    <input type="text" value={sendForm.subject} onChange={(e) => setSendForm({ ...sendForm, subject: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Message / Body</label>
+                    <textarea value={sendForm.body} onChange={(e) => setSendForm({ ...sendForm, body: e.target.value })} rows={6} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Attachment Link</label>
+                    <input type="text" value={sendForm.attachment} onChange={(e) => setSendForm({ ...sendForm, attachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Paste a Google Drive or file link..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Additional Attachment Link</label>
+                    <input type="text" value={sendForm.additionalAttachment} onChange={(e) => setSendForm({ ...sendForm, additionalAttachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Optional additional link..." />
+                  </div>
+                  <button
+                    onClick={() => {
+                      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(sendForm.to)}&su=${encodeURIComponent(sendForm.subject)}&body=${encodeURIComponent(sendForm.body + (sendForm.attachment ? '\n\nAttachment: ' + sendForm.attachment : '') + (sendForm.additionalAttachment ? '\nAdditional: ' + sendForm.additionalAttachment : ''))}`
+                      window.open(gmailUrl, '_blank')
+                      setShowSendModal(false)
+                    }}
+                    className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+                    style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
+                  >
+                    Send to Ops
+                  </button>
+                </div>
+
+                {/* Right: PDF preview */}
+                <div className="border rounded-xl overflow-hidden" style={{ borderColor: '#E5E7EB' }}>
+                  <div className="px-4 py-3 border-b text-xs font-medium" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: '#374151' }}>
+                    Form Preview
+                  </div>
+                  <div className="p-4 space-y-3 text-xs max-h-[500px] overflow-y-auto" style={{ backgroundColor: '#FAFAFA' }}>
+                    <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: '#E5E7EB' }}>
+                      <svg width="16" height="16" viewBox="0 0 680 680">
+                        <g transform="translate(340,340)" fill="#FF5900">
+                          <polygon points="-175,-220 -5,-120 -5,-220 -175,-320" />
+                          <polygon points="5,-120 175,-220 175,-320 5,-220" />
+                          <polygon points="-165,-110 0,-20 165,-110 0,-200" />
+                          <polygon points="-175,-90 -175,90 0,180 0,0" />
+                          <polygon points="175,-90 175,90 0,180 0,0" />
+                          <polygon points="-175,110 -5,210 -5,110 -175,10" />
+                          <polygon points="5,110 175,10 175,110 5,210" />
+                        </g>
+                      </svg>
+                      <span className="font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_name || 'Untitled'}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><span style={{ color: '#6B7280' }}>Client:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.client_name || '—'}</span></div>
+                      <div><span style={{ color: '#6B7280' }}>Type:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.project_type || '—'}</span></div>
+                      <div><span style={{ color: '#6B7280' }}>Contact:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.contact || '—'}</span></div>
+                      <div><span style={{ color: '#6B7280' }}>Platform:</span> <span style={{ color: '#1B1A1C' }}>{(selectedSubmission.target_platform || []).join(', ') || '—'}</span></div>
+                      <div><span style={{ color: '#6B7280' }}>Budget:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.budget || '—'}</span></div>
+                      <div><span style={{ color: '#6B7280' }}>Deadline:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.deadline || '—'}</span></div>
+                    </div>
+                    {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 && (
+                      <div className="pt-2 border-t" style={{ borderColor: '#E5E7EB' }}>
+                        <p className="font-medium mb-1" style={{ color: '#1B1A1C' }}>Deliverables ({selectedSubmission.deliverables.length})</p>
+                        <ul className="space-y-1">
+                          {selectedSubmission.deliverables.slice(0, 3).map((d: any, i: number) => (
+                            <li key={i} style={{ color: '#4B5563' }}>&bull; {d.name || 'Unnamed'}{d.quantity ? ` (x${d.quantity})` : ''}</li>
+                          ))}
+                          {selectedSubmission.deliverables.length > 3 && <li style={{ color: '#9CA3AF' }}>+{selectedSubmission.deliverables.length - 3} more</li>}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
+                      <span style={{ color: '#9CA3AF' }}>Signed by {selectedSubmission.signature || '—'} &middot; {selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
   )
 }
