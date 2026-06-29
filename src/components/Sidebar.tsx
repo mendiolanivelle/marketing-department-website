@@ -103,7 +103,7 @@ export default function Sidebar() {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:sticky lg:top-0 lg:translate-x-0 lg:z-0
         ${isCollapsed ? 'w-16' : 'w-64'}
-      `} style={{ backgroundColor: '#3E4048', borderColor: 'rgba(255,255,255,0.08)' }}>
+      `} style={{ backgroundColor: '#1B1A1C', borderColor: 'rgba(255,255,255,0.08)' }}>
         <div className="flex flex-col h-full">
           {/* Logo + Profile section */}
           <div className="px-3 pt-5 pb-4 border-b theme-transition" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -229,7 +229,7 @@ export default function Sidebar() {
                 {showProfileDropdown && (
                   <div
                     className="absolute top-full left-4 right-4 mt-2 rounded-xl border shadow-lg theme-transition z-50 overflow-hidden"
-                    style={{ backgroundColor: '#3E4048', borderColor: 'rgba(255,255,255,0.12)', boxShadow: 'var(--shadow-lg)' }}
+                    style={{ backgroundColor: '#1B1A1C', borderColor: 'rgba(255,255,255,0.12)', boxShadow: 'var(--shadow-lg)' }}
                   >
                     <button
                       onClick={signOut}
