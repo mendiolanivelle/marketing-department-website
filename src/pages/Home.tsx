@@ -488,47 +488,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Department Highlights */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Highlights</h2>
-          <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Key metrics and focus areas for this quarter</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            <Link to="/leads" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
-            >
-              <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>12</div>
-              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Campaigns</div>
-            </Link>
+      {false && (
+      <>
+        {/* Department Highlights - preserved for later */}
+        <section className="py-12 sm:py-20 px-4 sm:px-6 theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl sm:text-4xl text-center mb-2 sm:mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Department Highlights</h2>
+            <p className="text-center text-base sm:text-lg mb-8 sm:mb-12" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Key metrics and focus areas for this quarter</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <Link to="/leads" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+              >
+                <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>12</div>
+                <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Campaigns</div>
+              </Link>
 
-            <Link to="/about" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
-            >
-              <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>v2.0</div>
-              <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Current Brand Guidelines</div>
-              <span className="text-xs font-medium" style={{ color: '#FF5900' }}>View Assets &rarr;</span>
-            </Link>
+              <Link to="/about" className="group relative p-6 sm:p-8 rounded-2xl border-2 exodia-card transition-all hover:-translate-y-1 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FF5900'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-primary)'}
+              >
+                <svg className="absolute top-4 right-4 w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>v2.0</div>
+                <div className="text-sm mb-2" style={{ color: '#3E4048', fontWeight: 300 }}>Current Brand Guidelines</div>
+                <span className="text-xs font-medium" style={{ color: '#FF5900' }}>View Assets &rarr;</span>
+              </Link>
 
-            <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>+23%</div>
-              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Q2 Lead Gen Growth</div>
-            </div>
+              <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>+23%</div>
+                <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Q2 Lead Gen Growth</div>
+              </div>
 
-            <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-              <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>3</div>
-              <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Cross-Team Projects</div>
+              <div className="relative p-6 sm:p-8 rounded-2xl border-2 exodia-card theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <div className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: '#FF5900' }}>3</div>
+                <div className="text-sm" style={{ color: '#3E4048', fontWeight: 300 }}>Active Cross-Team Projects</div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </>
+      )}
 
       {/* Announcement Popup */}
       {selectedAnnouncement && (
