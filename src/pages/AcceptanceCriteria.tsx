@@ -149,6 +149,7 @@ export default function AcceptanceCriteria() {
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Budget</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Submitted</th>
                   <th className="p-3 w-10"></th>
+                  <th className="p-3 w-32"></th>
                 </tr>
               </thead>
               <tbody>
@@ -190,6 +191,26 @@ export default function AcceptanceCriteria() {
                       <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSendForm({
+                            to: sub.email || '',
+                            subject: `Acceptance Criteria Form - ${sub.project_name || 'Untitled'}`,
+                            body: `Dear ${sub.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${sub.project_name || 'Untitled'}" submitted on ${new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                            attachment: '',
+                            additionalAttachment: '',
+                          })
+                          setSelectedSubmission(sub)
+                          setShowSendModal(true)
+                        }}
+                        className="px-3 py-1.5 text-xs text-white rounded-lg transition hover:-translate-y-0.5"
+                        style={{ backgroundColor: '#FF5900', fontWeight: 500 }}
+                      >
+                        Send
+                      </button>
                     </td>
                   </tr>
                 ))}
