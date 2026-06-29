@@ -2,14 +2,24 @@ import { useState, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-  { path: '/team', label: 'Team & Directory', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { path: '/timeline', label: 'Timeline', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
-  { path: '/leads', label: 'Lead Generation', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-  { path: '/templates', label: 'Messaging', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-  { path: '/calendar', label: 'Calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-  { path: '/files', label: 'File Tracker', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+const categories = [
+  {
+    name: 'General',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+      { path: '/team', label: 'Team & Directory', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      { path: '/calendar', label: 'Calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+      { path: '/files', label: 'File Tracker', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    ],
+  },
+  {
+    name: 'Client Acquisition',
+    items: [
+      { path: '/timeline', label: 'Timeline', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+      { path: '/leads', label: 'Lead Generation', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+      { path: '/templates', label: 'Messaging', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
@@ -233,57 +243,68 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-2.5 py-5 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
-              const active = isActive(item.path)
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`group flex items-center gap-3 rounded-xl transition-all duration-200 theme-transition relative ${
-                    isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
-                  }`}
-                  style={{
-                    color: active ? '#FF5900' : 'rgba(255,255,255,0.7)',
-                    backgroundColor: active ? 'rgba(255,89,0,0.15)' : 'transparent',
-                    fontWeight: active ? 500 : 300,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
-                      e.currentTarget.style.color = '#FFFFFF'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                      e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-                    }
-                  }}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  {active && !isCollapsed && (
-                    <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                      style={{ backgroundColor: '#FF5900' }}
-                    />
-                  )}
-                  <svg className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                  </svg>
-                  {!isCollapsed && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                  {active && isCollapsed && (
-                    <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                      style={{ backgroundColor: '#FF5900' }}
-                    />
-                  )}
-                </Link>
-              )
-            })}
+          <nav className="flex-1 px-2.5 py-5 overflow-y-auto">
+            {categories.map((category) => (
+              <div key={category.name} className="mb-4">
+                {!isCollapsed && (
+                  <p className="px-4 pb-1 text-[10px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                    {category.name}
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {category.items.map((item) => {
+                    const active = isActive(item.path)
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        className={`group flex items-center gap-3 rounded-xl transition-all duration-200 theme-transition relative ${
+                          isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
+                        }`}
+                        style={{
+                          color: active ? '#FF5900' : 'rgba(255,255,255,0.7)',
+                          backgroundColor: active ? 'rgba(255,89,0,0.15)' : 'transparent',
+                          fontWeight: active ? 500 : 300,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!active) {
+                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
+                            e.currentTarget.style.color = '#FFFFFF'
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!active) {
+                            e.currentTarget.style.backgroundColor = 'transparent'
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+                          }
+                        }}
+                        title={isCollapsed ? item.label : undefined}
+                      >
+                        {active && !isCollapsed && (
+                          <span
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
+                            style={{ backgroundColor: '#FF5900' }}
+                          />
+                        )}
+                        <svg className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                        </svg>
+                        {!isCollapsed && (
+                          <span className="truncate">{item.label}</span>
+                        )}
+                        {active && isCollapsed && (
+                          <span
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
+                            style={{ backgroundColor: '#FF5900' }}
+                          />
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           {/* Bottom accent bar */}
