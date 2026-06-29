@@ -93,6 +93,10 @@ export default function AcceptanceCriteria() {
     color(255, 255, 255)
     fnt('F2', 16)
     txt(17, y + 3.5, 'Exodia Game Dev - Acceptance Criteria Form')
+    y += 9
+    color(255, 255, 255)
+    fnt('F1', 7)
+    txt(17, y + 1.5, 'ID: ' + (sub.id || '').substring(0, 8))
     y += 18
 
     const check = () => { if (y > MAX_Y) nextPage() }
@@ -318,6 +322,7 @@ export default function AcceptanceCriteria() {
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>ID</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Client</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Contact</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Type</th>
@@ -338,6 +343,9 @@ export default function AcceptanceCriteria() {
                   >
                     <td className="p-3">
                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{sub.id.substring(0, 8)}</span>
                     </td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.client_name || '—'}</td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>
@@ -416,10 +424,11 @@ export default function AcceptanceCriteria() {
                     <polygon points="5,110 175,10 175,110 5,210" />
                   </g>
                 </svg>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
-                  <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
-                </div>
+<div>
+                    <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
+                    <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {selectedSubmission.id.substring(0, 8)}</p>
+                  </div>
               </div>
               <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
