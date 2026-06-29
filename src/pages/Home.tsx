@@ -248,6 +248,7 @@ export default function Home() {
     setEditingAnnouncement(null)
   }
 
+  // Build fix: ensure JSX structure is balanced
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Lead Stats Summary */}
