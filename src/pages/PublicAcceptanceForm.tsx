@@ -160,6 +160,7 @@ export default function PublicAcceptanceForm() {
           performance_constraints: form.performanceConstraints,
           signature: form.signature,
           signature_date: form.signatureDate,
+          tracking_id: trackingId,
           created_at: new Date().toISOString(),
         }])
         if (error) {

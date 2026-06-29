@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 interface Submission {
   id: number | string
+  tracking_id: string
   client_name: string
   project_name: string
   contact: string
@@ -96,7 +97,7 @@ export default function AcceptanceCriteria() {
     y += 9
     color(255, 255, 255)
     fnt('F1', 7)
-    txt(17, y + 1.5, 'ID: ' + String(sub.id ?? '').substring(0, 8))
+    txt(17, y + 1.5, 'ID: ' + (sub.tracking_id || String(sub.id ?? '').substring(0, 8)))
     y += 18
 
     const check = () => { if (y > MAX_Y) nextPage() }
@@ -322,7 +323,7 @@ export default function AcceptanceCriteria() {
               <thead>
                 <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
-                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>ID</th>
+                  <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Tracking ID</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Client</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Contact</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Type</th>
@@ -345,7 +346,7 @@ export default function AcceptanceCriteria() {
                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
                     </td>
                     <td className="p-3">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{String(sub.id ?? '').substring(0, 8)}</span>
+                      <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{sub.tracking_id || String(sub.id ?? '').substring(0, 8)}</span>
                     </td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{sub.client_name || '—'}</td>
                     <td className="p-3" style={{ color: 'var(--text-secondary)' }}>
@@ -427,7 +428,7 @@ export default function AcceptanceCriteria() {
 <div>
                     <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
                     <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
-                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {String(selectedSubmission.id ?? '').substring(0, 8)}</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {selectedSubmission.tracking_id || String(selectedSubmission.id ?? '').substring(0, 8)}</p>
                   </div>
               </div>
               <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
