@@ -197,183 +197,241 @@ export default function AcceptanceCriteria() {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* Detail Modal - PDF-style form view */}
       {selectedSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => setSelectedSubmission(null)} />
-          <div className="relative rounded-2xl border max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <div className="flex items-start justify-between mb-6">
-              <h2 className="text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedSubmission.project_name || 'Untitled Project'}</h2>
-              <button onClick={() => setSelectedSubmission(null)} className="p-1 rounded-lg transition" style={{ color: 'var(--accent)' }}>
+          <div className="relative rounded-2xl border max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+            {/* Print-style header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+              <div className="flex items-center gap-3">
+                <svg width="28" height="28" viewBox="0 0 680 680">
+                  <g transform="translate(340,340)" fill="#FF5900">
+                    <polygon points="-175,-220 -5,-120 -5,-220 -175,-320" />
+                    <polygon points="5,-120 175,-220 175,-320 5,-220" />
+                    <polygon points="-165,-110 0,-20 165,-110 0,-200" />
+                    <polygon points="-175,-90 -175,90 0,180 0,0" />
+                    <polygon points="175,-90 175,90 0,180 0,0" />
+                    <polygon points="-175,110 -5,210 -5,110 -175,10" />
+                    <polygon points="5,110 175,10 175,110 5,210" />
+                  </g>
+                </svg>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
+                  <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Client</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.client_name}</p>
+
+            <div className="p-6 sm:p-8 space-y-6">
+              {/* Section 1 */}
+              <div>
+                <div className="mb-4 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 1: Basic Project Information</h2>
                 </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Contact</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.contact} &middot; {selectedSubmission.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Project Type</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.project_type}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Platform</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.target_platform || []).join(', ') || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Budget</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.budget || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Submitted</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{new Date(selectedSubmission.created_at).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Timezone</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.timezone || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Timeline</p>
-                  <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.start_date || '?'} → {selectedSubmission.deadline || '?'}</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Client / Studio Name</span>
+                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.client_name || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Name</span>
+                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_name || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Point of Contact</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.contact || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Email</span>
+                    <p className="mt-0.5" style={{ color: '#2563EB' }}>{selectedSubmission.email || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Type</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_type || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Target Platform</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.target_platform || []).join(', ') || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Timezone</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.timezone || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Start Date</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.start_date || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Deadline</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.deadline || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Budget Range</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.budget || '—'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Document Link</span>
+                    <p className="mt-0.5" style={{ color: '#2563EB' }}>{selectedSubmission.doc_link || '—'}</p>
+                  </div>
                 </div>
               </div>
 
-              {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Deliverables ({selectedSubmission.deliverables.length})</p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs border-collapse">
-                      <thead>
-                        <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Name</th>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Description</th>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Criteria</th>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Ref Link</th>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Qty</th>
-                          <th className="p-2 border text-left" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>Service</th>
+              {/* Section 2 */}
+              <div>
+                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 2: What You Want Us to Create</h2>
+                </div>
+                {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 ? (
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr style={{ backgroundColor: '#F9FAFB' }}>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Deliverable</th>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Description</th>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Acceptance Criteria</th>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Reference</th>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Qty</th>
+                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Service Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSubmission.deliverables.map((d: any, i: number) => (
+                        <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#FAFAFA' }}>
+                          <td className="p-2.5 border font-medium" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }}>{d.name || '—'}</td>
+                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.description || '—'}</td>
+                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.criteria || '—'}</td>
+                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#2563EB' }}>{d.reference || '—'}</td>
+                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.quantity || '—'}</td>
+                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.serviceType || '—'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {selectedSubmission.deliverables.map((d: any, i: number) => (
-                          <tr key={i} style={{ borderTop: '1px solid var(--border-secondary)' }}>
-                            <td className="p-2" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{d.name || '—'}</td>
-                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.description || '—'}</td>
-                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.criteria || '—'}</td>
-                            <td className="p-2" style={{ color: 'var(--accent)' }}>{d.reference ? <a href={d.reference} target="_blank" rel="noopener noreferrer" className="hover:underline">Link</a> : '—'}</td>
-                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.quantity || '—'}</td>
-                            <td className="p-2" style={{ color: 'var(--text-secondary)' }}>{d.serviceType || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm italic" style={{ color: '#9CA3AF' }}>No deliverables specified.</p>
+                )}
+              </div>
+
+              {/* Section 3 */}
+              <div>
+                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 3: Review & Approval</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Reviewers</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.reviewer || []).join(', ') || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Review Rounds</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.review_rounds || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Review Time</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.review_time || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Basis for Approval</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.approval_basis || []).join(', ') || '—'}</p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Review & Approval */}
-              {(selectedSubmission.reviewer?.length > 0 || selectedSubmission.review_rounds) && (
-                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Review & Approval</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {selectedSubmission.reviewer?.length > 0 && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Reviewers</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.reviewer as string[]).join(', ')}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.review_rounds && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Review Rounds</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.review_rounds}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.review_time && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Review Time</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.review_time}</p>
-                      </div>
-                    )}
+              {/* Section 4 */}
+              <div>
+                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 4: Project Governance</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Communication Tool</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.comms_tool || []).join(', ') || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Weekly Meeting</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.weekly_meeting || []).join(', ') || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Meeting Time</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.meeting_time || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Daily Sync</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.daily_sync || []).join(', ') || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Sync Time</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.sync_time || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Training</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.training || []).join(', ') || '—'}</p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Project Governance */}
-              {(selectedSubmission.comms_tool?.length > 0 || selectedSubmission.weekly_meeting?.length > 0) && (
-                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Project Governance</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {selectedSubmission.comms_tool?.length > 0 && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Communication</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.comms_tool as string[]).join(', ')}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.weekly_meeting?.length > 0 && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Weekly Meeting</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.weekly_meeting as string[]).join(', ')}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.meeting_time && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Meeting Time</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.meeting_time}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.training?.length > 0 && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Training</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.training as string[]).join(', ')}</p>
-                      </div>
-                    )}
+              {/* Section 5 */}
+              <div>
+                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 5: Technical Details</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Game Engine</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.game_engine || []).join(', ') || '—'}</p>
+                  </div>
+                  <div className={selectedSubmission.tech_requirements ? '' : 'hidden'}>
+                    {selectedSubmission.tech_requirements && <><span className="text-xs" style={{ color: '#6B7280' }}>Technical Requirements</span><p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.tech_requirements}</p></>}
                   </div>
                 </div>
-              )}
-
-              {/* Technical Details */}
-              {(selectedSubmission.game_engine?.length > 0 || selectedSubmission.tech_requirements) && (
-                <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
-                  <p className="text-xs mb-2" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Technical Details</p>
-                  <div className="space-y-2 text-sm">
-                    {selectedSubmission.game_engine?.length > 0 && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Game Engine</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{(selectedSubmission.game_engine as string[]).join(', ')}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.tech_requirements && (
-                      <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tech Requirements</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.tech_requirements}</p>
-                      </div>
-                    )}
+                {(selectedSubmission.tools_software || selectedSubmission.performance_constraints) && (
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-3">
                     {selectedSubmission.tools_software && (
                       <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tools & Software</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.tools_software}</p>
+                        <span className="text-xs" style={{ color: '#6B7280' }}>Tools & Software</span>
+                        <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.tools_software}</p>
                       </div>
                     )}
                     {selectedSubmission.performance_constraints && (
                       <div>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Constraints</p>
-                        <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.performance_constraints}</p>
+                        <span className="text-xs" style={{ color: '#6B7280' }}>Performance Constraints</span>
+                        <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.performance_constraints}</p>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--border-secondary)' }}>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Signed by</p>
-                <p style={{ color: 'var(--text-primary)' }}>{selectedSubmission.signature || 'N/A'} {selectedSubmission.signature_date && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>on {selectedSubmission.signature_date}</span>}</p>
+              {/* Section 6 */}
+              <div>
+                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
+                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 6: Client Confirmation</h2>
+                </div>
+                <div className="p-4 rounded-lg border" style={{ backgroundColor: '#FFF7ED', borderColor: '#FFE4C4' }}>
+                  <p className="text-xs leading-relaxed" style={{ color: '#9A3412' }}>
+                    By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.
+                  </p>
+                </div>
+                <div className="mt-4 flex gap-6 text-sm">
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Signed by</span>
+                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.signature || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs" style={{ color: '#6B7280' }}>Date</span>
+                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="pt-4 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
+                <p className="text-xs" style={{ color: '#9CA3AF' }}>Exodia Game Dev &middot; Marketing Department &middot; Submitted {new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
           </div>
