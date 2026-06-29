@@ -33,13 +33,17 @@ export default function PublicAcceptanceForm() {
           .from('acceptance_forms')
           .select('tracking_id')
           .like('tracking_id', prefix + '%')
-          .order('tracking_id', { ascending: false })
-          .limit(1)
+          .order('tracking_id', { ascending: true })
         dbQueried = true
-        if (data && data.length > 0 && data[0].tracking_id) {
-          const parts = data[0].tracking_id.split('-')
-          if (parts.length === 3) {
-            nextSeq = parseInt(parts[2], 10) + 1
+        if (data && data.length > 0) {
+          const existing = data
+            .map((row: any) => { const parts = (row.tracking_id || '').split('-'); return parts.length === 3 ? parseInt(parts[2], 10) : 0 })
+            .filter((n: number) => n > 0)
+            .sort((a: number, b: number) => a - b)
+          nextSeq = 1
+          for (const seq of existing) {
+            if (seq === nextSeq) nextSeq++
+            else break
           }
         }
         if (nextSeq === 1) {
