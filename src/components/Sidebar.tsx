@@ -299,7 +299,7 @@ export default function Sidebar() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                         </svg>
                         {!isCollapsed && (
-                          <span className="truncate">{item.label}</span>
+                          <span className="text-xs truncate">{item.label}</span>
                         )}
                         {active && isCollapsed && (
                           <span
