@@ -34,7 +34,9 @@ export default function PublicAcceptanceForm() {
     }
 
     const seq = String(nextSeq).padStart(3, '0')
-    return DOC_TYPE + '-' + yymm + '-' + seq
+    const newId = DOC_TYPE + '-' + yymm + '-' + seq
+    localStorage.setItem('exodia-acceptance-last-id', newId)
+    return newId
   }
 
   const [form, setForm] = useState({
@@ -117,55 +119,56 @@ export default function PublicAcceptanceForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trackingId = generateId()
-    localStorage.setItem('exodia-acceptance-last-id', trackingId)
     const submission = { ...form, submittedAt: new Date().toISOString(), trackingId }
     localStorage.setItem('exodia-acceptance-form', JSON.stringify(submission))
 
     if (isSupabaseConfigured && supabase) {
+      const buildPayload = (withTracking: boolean) => ({
+        client_name: form.clientName,
+        project_name: form.projectName,
+        contact: form.contact,
+        email: form.email,
+        project_type: form.projectType === 'Others (Specify)' ? `Others: ${form.projectTypeOther}` : form.projectType,
+        target_platform: form.targetPlatform.includes('Others (Specify)')
+          ? [...form.targetPlatform.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.targetPlatformOther}`]
+          : form.targetPlatform,
+        timezone: form.timezone,
+        start_date: form.startDate,
+        deadline: form.deadline,
+        budget: form.budget,
+        doc_link: form.docLink,
+        deliverables: form.deliverableRows,
+        reviewer: form.reviewer.includes('Others (Specify)')
+          ? [...form.reviewer.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.reviewerOther}`]
+          : form.reviewer,
+        review_rounds: form.reviewRounds,
+        review_time: form.reviewTime,
+        approval_basis: form.approvalBasis,
+        comms_tool: form.commsTool.includes('Others (Specify)')
+          ? [...form.commsTool.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.commsToolOther}`]
+          : form.commsTool,
+        weekly_meeting: form.weeklyMeeting,
+        meeting_time: form.meetingTime === 'Others (Specify)' ? `Others: ${form.meetingTimeOther}` : form.meetingTime,
+        daily_sync: form.dailySync,
+        sync_time: form.syncTime === 'Others (Specify)' ? `Others: ${form.syncTimeOther}` : form.syncTime,
+        training: form.training,
+        game_engine: form.gameEngine.includes('Others (Specify)')
+          ? [...form.gameEngine.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.gameEngineOther}`]
+          : form.gameEngine,
+        tech_requirements: form.techRequirements,
+        tools_software: form.toolsSoftware,
+        performance_constraints: form.performanceConstraints,
+        signature: form.signature,
+        signature_date: form.signatureDate,
+        ...(withTracking ? { tracking_id: trackingId } : {}),
+        created_at: new Date().toISOString(),
+      })
       try {
-        const { error } = await supabase.from('acceptance_forms').insert([{
-          client_name: form.clientName,
-          project_name: form.projectName,
-          contact: form.contact,
-          email: form.email,
-          project_type: form.projectType === 'Others (Specify)' ? `Others: ${form.projectTypeOther}` : form.projectType,
-          target_platform: form.targetPlatform.includes('Others (Specify)')
-            ? [...form.targetPlatform.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.targetPlatformOther}`]
-            : form.targetPlatform,
-          timezone: form.timezone,
-          start_date: form.startDate,
-          deadline: form.deadline,
-          budget: form.budget,
-          doc_link: form.docLink,
-          deliverables: form.deliverableRows,
-          reviewer: form.reviewer.includes('Others (Specify)')
-            ? [...form.reviewer.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.reviewerOther}`]
-            : form.reviewer,
-          review_rounds: form.reviewRounds,
-          review_time: form.reviewTime,
-          approval_basis: form.approvalBasis,
-          comms_tool: form.commsTool.includes('Others (Specify)')
-            ? [...form.commsTool.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.commsToolOther}`]
-            : form.commsTool,
-          weekly_meeting: form.weeklyMeeting,
-          meeting_time: form.meetingTime === 'Others (Specify)' ? `Others: ${form.meetingTimeOther}` : form.meetingTime,
-          daily_sync: form.dailySync,
-          sync_time: form.syncTime === 'Others (Specify)' ? `Others: ${form.syncTimeOther}` : form.syncTime,
-          training: form.training,
-          game_engine: form.gameEngine.includes('Others (Specify)')
-            ? [...form.gameEngine.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.gameEngineOther}`]
-            : form.gameEngine,
-          tech_requirements: form.techRequirements,
-          tools_software: form.toolsSoftware,
-          performance_constraints: form.performanceConstraints,
-          signature: form.signature,
-          signature_date: form.signatureDate,
-          tracking_id: trackingId,
-          created_at: new Date().toISOString(),
-        }])
+        const { error } = await supabase.from('acceptance_forms').insert([buildPayload(true)])
         if (error) {
-          console.error('Supabase insert error:', error)
-          // Fallback: still show success to the user
+          console.error('Supabase insert error (with tracking_id):', error)
+          const { error: retryError } = await supabase.from('acceptance_forms').insert([buildPayload(false)])
+          if (retryError) console.error('Supabase insert error (fallback):', retryError)
         }
       } catch (err) {
         console.error('Failed to submit to Supabase:', err)
