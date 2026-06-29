@@ -503,8 +503,8 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim() || !supabase) return
-    const mailtoLink = `mailto:${selectedLead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(mailtoLink, '_blank')
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+    window.open(gmailUrl, '_blank')
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     const updated = { ...selectedLead, last_email_sent: today }
     setSelectedLead(updated)

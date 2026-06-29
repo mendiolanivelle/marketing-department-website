@@ -169,8 +169,8 @@ export default function Messaging() {
 
   const sendEmail = () => {
     if (!selectedLead || !emailSubject.trim()) return
-    const mailto = `mailto:${selectedLead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(mailto, '_blank')
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+    window.open(gmailUrl, '_blank')
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? { ...l, status: 'sent', lastContacted: today } : l)))
     setShowEmail(false)
