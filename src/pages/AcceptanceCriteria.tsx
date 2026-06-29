@@ -673,7 +673,7 @@ export default function AcceptanceCriteria() {
               </button>
             </div>
             <div className="p-6 sm:p-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {/* Left: Form fields */}
                 <div className="space-y-4">
                   <div>
@@ -751,51 +751,6 @@ export default function AcceptanceCriteria() {
                   >
                     Send to Ops
                   </button>
-                </div>
-
-                {/* Right: PDF preview */}
-                <div className="border rounded-xl overflow-hidden" style={{ borderColor: '#E5E7EB' }}>
-                  <div className="px-4 py-3 border-b text-xs font-medium" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: '#374151' }}>
-                    Form Preview
-                  </div>
-                  <div className="p-4 space-y-3 text-xs max-h-[500px] overflow-y-auto" style={{ backgroundColor: '#FAFAFA' }}>
-                    <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: '#E5E7EB' }}>
-                      <svg width="16" height="16" viewBox="0 0 680 680">
-                        <g transform="translate(340,340)" fill="#FF5900">
-                          <polygon points="-175,-220 -5,-120 -5,-220 -175,-320" />
-                          <polygon points="5,-120 175,-220 175,-320 5,-220" />
-                          <polygon points="-165,-110 0,-20 165,-110 0,-200" />
-                          <polygon points="-175,-90 -175,90 0,180 0,0" />
-                          <polygon points="175,-90 175,90 0,180 0,0" />
-                          <polygon points="-175,110 -5,210 -5,110 -175,10" />
-                          <polygon points="5,110 175,10 175,110 5,210" />
-                        </g>
-                      </svg>
-                      <span className="font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_name || 'Untitled'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><span style={{ color: '#6B7280' }}>Client:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.client_name || '—'}</span></div>
-                      <div><span style={{ color: '#6B7280' }}>Type:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.project_type || '—'}</span></div>
-                      <div><span style={{ color: '#6B7280' }}>Contact:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.contact || '—'}</span></div>
-                      <div><span style={{ color: '#6B7280' }}>Platform:</span> <span style={{ color: '#1B1A1C' }}>{(selectedSubmission.target_platform || []).join(', ') || '—'}</span></div>
-                      <div><span style={{ color: '#6B7280' }}>Budget:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.budget || '—'}</span></div>
-                      <div><span style={{ color: '#6B7280' }}>Deadline:</span> <span style={{ color: '#1B1A1C' }}>{selectedSubmission.deadline || '—'}</span></div>
-                    </div>
-                    {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 && (
-                      <div className="pt-2 border-t" style={{ borderColor: '#E5E7EB' }}>
-                        <p className="font-medium mb-1" style={{ color: '#1B1A1C' }}>Deliverables ({selectedSubmission.deliverables.length})</p>
-                        <ul className="space-y-1">
-                          {selectedSubmission.deliverables.slice(0, 3).map((d: any, i: number) => (
-                            <li key={i} style={{ color: '#4B5563' }}>&bull; {d.name || 'Unnamed'}{d.quantity ? ` (x${d.quantity})` : ''}</li>
-                          ))}
-                          {selectedSubmission.deliverables.length > 3 && <li style={{ color: '#9CA3AF' }}>+{selectedSubmission.deliverables.length - 3} more</li>}
-                        </ul>
-                      </div>
-                    )}
-                    <div className="pt-2 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
-                      <span style={{ color: '#9CA3AF' }}>Signed by {selectedSubmission.signature || '—'} &middot; {selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
