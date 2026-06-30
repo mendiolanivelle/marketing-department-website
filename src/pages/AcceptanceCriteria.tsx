@@ -828,6 +828,20 @@ export default function AcceptanceCriteria() {
                             status: 'Sent',
                           })
                           if (!error) saved = true
+                          if (!error && sendForm.to) {
+                            try {
+                              await supabase.functions.invoke('send-ticket-email', {
+                                body: {
+                                  to: sendForm.to,
+                                  trackingId: formatId(selectedSubmission),
+                                  projectName: selectedSubmission.project_name,
+                                  ticketLink: ticketLink,
+                                },
+                              })
+                            } catch (emailErr) {
+                              console.error('Failed to send email:', emailErr)
+                            }
+                          }
                         } catch (err) {
                           console.error('Failed to save ticket:', err)
                         }
