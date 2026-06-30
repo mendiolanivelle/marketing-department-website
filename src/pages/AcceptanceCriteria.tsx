@@ -770,7 +770,7 @@ export default function AcceptanceCriteria() {
                     </div>
                   </div>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const attachmentLines = [
                         sendForm.attachment ? 'Attached Meeting Link: ' + sendForm.attachment : '',
                         ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
@@ -778,6 +778,23 @@ export default function AcceptanceCriteria() {
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
                       const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(sendForm.to) + '&su=' + encodeURIComponent(sendForm.subject) + '&body=' + encodeURIComponent(fullBody)
                       window.open(gmailUrl, '_blank')
+                      if (isSupabaseConfigured && supabase && selectedSubmission) {
+                        try {
+                          await supabase.from('project_review_tickets').insert({
+                            tracking_id: formatId(selectedSubmission),
+                            project_name: selectedSubmission.project_name,
+                            client_name: selectedSubmission.client_name,
+                            email_to: sendForm.to,
+                            email_subject: sendForm.subject,
+                            email_body: fullBody,
+                            attachment_pdf: sendForm.attachment || null,
+                            additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
+                            status: 'Sent',
+                          })
+                        } catch (err) {
+                          console.error('Failed to save ticket:', err)
+                        }
+                      }
                       setShowSendModal(false)
                     }}
                     className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
