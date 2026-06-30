@@ -41,6 +41,7 @@ export default function AcceptanceCriteria() {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showSentModal, setShowSentModal] = useState(false)
+  const [sentTicketLink, setSentTicketLink] = useState('')
 
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
@@ -304,6 +305,13 @@ export default function AcceptanceCriteria() {
             <p className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
               The ticket has been submitted and is now available for review.
             </p>
+            <button
+              onClick={() => navigator.clipboard.writeText(sentTicketLink)}
+              className="mt-4 px-4 py-2 rounded-xl text-xs font-medium transition hover:opacity-80"
+              style={{ backgroundColor: '#FFF0E6', color: '#FF5900' }}
+            >
+              Copy ticket link
+            </button>
           </div>
         </div>
       )}
@@ -794,6 +802,7 @@ export default function AcceptanceCriteria() {
                         ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
                       ].filter(Boolean).join('\n')
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
+                      const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
                       let saved = false
                       if (isSupabaseConfigured && supabase && selectedSubmission) {
                         try {
@@ -806,6 +815,7 @@ export default function AcceptanceCriteria() {
                             email_body: fullBody,
                             attachment_pdf: sendForm.attachment || null,
                             additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
+                            ticket_link: ticketLink,
                             status: 'Sent',
                           })
                           if (!error) saved = true
@@ -814,6 +824,7 @@ export default function AcceptanceCriteria() {
                         }
                       }
                       setShowSendModal(false)
+                      setSentTicketLink(ticketLink)
                       setShowSentModal(true)
                       setTimeout(() => setShowSentModal(false), 4000)
                     }}
