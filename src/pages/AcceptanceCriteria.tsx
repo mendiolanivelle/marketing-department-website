@@ -812,22 +812,28 @@ export default function AcceptanceCriteria() {
                       ].filter(Boolean).join('\n')
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
                       const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
+                      const apiUrl = import.meta.env.VITE_SUPABASE_URL
+                      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
                       let saved = false
-                      if (selectedSubmission && supabase) {
+                      if (selectedSubmission && apiUrl && anonKey) {
                         try {
-                          const { error } = await supabase.from('project_review_tickets').insert({
-                            tracking_id: formatId(selectedSubmission),
-                            project_name: selectedSubmission.project_name,
-                            client_name: selectedSubmission.client_name,
-                            email_to: sendForm.to,
-                            email_subject: sendForm.subject,
-                            email_body: fullBody,
-                            attachment_pdf: sendForm.attachment || null,
-                            additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
-                            status: 'Sent',
+                          const resp = await fetch(apiUrl + '/rest/v1/project_review_tickets', {
+                            method: 'POST',
+                            headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                            body: JSON.stringify({
+                              tracking_id: formatId(selectedSubmission),
+                              project_name: selectedSubmission.project_name,
+                              client_name: selectedSubmission.client_name,
+                              email_to: sendForm.to,
+                              email_subject: sendForm.subject,
+                              email_body: fullBody,
+                              attachment_pdf: sendForm.attachment || null,
+                              additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
+                              status: 'Sent',
+                            }),
                           })
-                          if (!error) saved = true
-                          if (!error) {
+                          if (resp.ok) saved = true
+                          if (resp.ok) {
                             try {
                               await supabase.functions.invoke('send-ticket-email', {
                                 body: {
