@@ -829,6 +829,7 @@ export default function AcceptanceCriteria() {
                               email_body: fullBody,
                               attachment_pdf: sendForm.attachment || null,
                               additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
+                              ticket_link: 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission)),
                               status: 'Sent',
                             }),
                           })
