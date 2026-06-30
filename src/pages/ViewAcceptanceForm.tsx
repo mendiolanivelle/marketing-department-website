@@ -15,7 +15,7 @@ export default function ViewAcceptanceForm() {
         const { data, error: err } = await supabase
           .from('acceptance_forms')
           .select('*')
-          .eq('id', id)
+          .eq('tracking_id', id)
           .maybeSingle()
         if (err) throw err
         if (!data) { setError('Form not found'); return }
