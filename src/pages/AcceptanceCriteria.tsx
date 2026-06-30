@@ -721,7 +721,7 @@ export default function AcceptanceCriteria() {
                     setSendForm({
                       to: selectedSubmission.email || '',
                       subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
-                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/#/view-acceptance/${formatId(selectedSubmission)}\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: https://marketing.exodiagamedev.com/#/view-acceptance/${formatId(selectedSubmission)}\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
                       attachment: pdfUrl || '',
                       additionalAttachments: [],
                     })
