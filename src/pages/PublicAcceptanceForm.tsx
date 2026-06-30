@@ -242,19 +242,19 @@ export default function PublicAcceptanceForm() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #FAFAFA 0%, #FFF5F0 100%)' }}>
         <div className="max-w-lg w-full text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: '#FFF0E6' }}>
-            <svg className="w-8 h-8" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <div className="w-20 h-20 rounded-[20px] flex items-center justify-center mx-auto mb-6" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C42)', boxShadow: '0 8px 24px rgba(255,89,0,0.25)' }}>
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl mb-3" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Submitted Successfully</h1>
-          <p className="text-sm mb-2" style={{ color: '#6B7280', fontWeight: 300 }}>
-            Your Acceptance Criteria has been logged!
+          <h1 className="text-3xl mb-3" style={{ color: '#1B1A1C', fontWeight: 800, letterSpacing: '-0.02em' }}>You're All Set!</h1>
+          <p className="text-base mb-2" style={{ color: '#6B7280', fontWeight: 400 }}>
+            Your Acceptance Criteria has been received by the Marketing Department team.
           </p>
           <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="text-lg font-bold tracking-wide" style={{ color: '#FF5900' }}>{generatedId}</span>
+            <span className="text-xl font-bold tracking-wider" style={{ color: '#FF5900' }}>{generatedId}</span>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(generatedId).then(() => {
@@ -262,12 +262,12 @@ export default function PublicAcceptanceForm() {
                   setTimeout(() => setCopied(false), 2000)
                 })
               }}
-              className="p-1.5 rounded-lg transition hover:bg-gray-100"
-              style={{ color: '#6B7280' }}
+              className="p-2 rounded-xl transition border-2"
+              style={{ color: '#6B7280', borderColor: '#E5E7EB' }}
               title="Copy to clipboard"
             >
               {copied ? (
-                <svg className="w-5 h-5" style={{ color: '#10B981' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="w-5 h-5" style={{ color: '#10B981' }} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
@@ -278,37 +278,40 @@ export default function PublicAcceptanceForm() {
               )}
             </button>
           </div>
-          {copied && <p className="text-xs -mt-4 mb-4" style={{ color: '#10B981', fontWeight: 500 }}>Copied to clipboard!</p>}
-          <p className="text-sm mb-6" style={{ color: '#6B7280', fontWeight: 300 }}>
+          {copied && <p className="text-xs -mt-4 mb-4" style={{ color: '#10B981', fontWeight: 600 }}>Copied to clipboard!</p>}
+          <p className="text-sm mb-8 px-6" style={{ color: '#6B7280', fontWeight: 400, lineHeight: 1.7 }}>
             Your tracking ID is <strong style={{ color: '#1B1A1C' }}>{generatedId}</strong>.<br />
-            Our team will review it and get back to you shortly.
+            Our team will review your specifications and get back to you within 1-2 business days.
           </p>
-          <p className="text-xs" style={{ color: '#9CA3AF', fontWeight: 300 }}>
-            Exodia Game Development &middot; Marketing Department
-          </p>
-          <button
-            onClick={() => {
-              setSubmitted(false)
-              setGeneratedId('')
-              setCopied(false)
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
-            className="mt-6 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
-            style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
-          >
-            Submit Another
-          </button>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              onClick={() => {
+                setSubmitted(false)
+                setGeneratedId('')
+                setCopied(false)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className="px-8 py-3 rounded-xl text-white text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
+              style={{ backgroundColor: '#FF5900', boxShadow: '0 6px 20px rgba(255,89,0,0.3)' }}
+            >
+              Submit Another Form
+            </button>
+            <p className="text-xs mt-2" style={{ color: '#9CA3AF', fontWeight: 400 }}>
+              Exodia Game Development &middot; Marketing Department
+            </p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={{ backgroundColor: '#FAFAFA', minHeight: '100vh' }}>
+    <div style={{ background: 'linear-gradient(180deg, #FAFAFA 0%, #FFF5F0 100%)', minHeight: '100vh' }}>
       {/* Header */}
-      <div className="py-8 px-4 text-center border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+      <div className="py-12 px-4 text-center" style={{ background: 'linear-gradient(135deg, #1B1A1C 0%, #2D2B2E 100%)', borderBottom: '3px solid #FF5900' }}>
         <div className="max-w-4xl mx-auto">
-          <svg width="40" height="40" viewBox="0 0 1800.000000 1800.000000" className="mx-auto mb-3" preserveAspectRatio="xMidYMid meet">
+          <div className="w-14 h-14 rounded-[16px] flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C42)', boxShadow: '0 8px 24px rgba(255,89,0,0.3)' }}>
+            <svg width="28" height="28" viewBox="0 0 1800.000000 1800.000000" preserveAspectRatio="xMidYMid meet">
             <g transform="translate(0.000000,1800.000000) scale(0.100000,-0.100000)" fill="#FF5900" stroke="none">
               <path d="M5620 14369 c-30 -16 -68 -38 -85 -49 -16 -11 -52 -31 -80 -45 -27 -14 -63 -35 -80 -45 -36 -22 -144 -84 -165 -93 -8 -4 -28 -16 -45 -27 -16 -11 -39 -24 -50 -30 -11 -6 -42 -24 -70 -41 -27 -16 -63 -37 -80 -45 -16 -8 -37 -19 -45 -24 -25 -17 -214 -126 -230 -133 -8 -4 -28 -16 -45 -27 -16 -11 -43 -26 -60 -35 -16 -8 -52 -28 -80 -45 -27 -16 -59 -34 -70 -40 -11 -5 -27 -14 -35 -20 -8 -5 -51 -30 -95 -55 -44 -26 -87 -51 -95 -56 -8 -5 -24 -14 -35 -19 -36 -19 -248 -140 -295 -169 -8 -5 -22 -12 -30 -15 -8 -4 -28 -15 -45 -26 -16 -11 -37 -23 -45 -27 -8 -4 -58 -33 -111 -65 -53 -32 -100 -58 -103 -58 -4 0 -25 -12 -49 -27 -57 -37 -73 -47 -132 -77 -27 -15 -57 -31 -65 -36 -8 -5 -51 -30 -95 -55 -44 -26 -87 -51 -95 -56 -8 -5 -25 -13 -37 -18 -11 -6 -24 -15 -28 -20 -3 -6 -12 -11 -20 -11 -8 0 -33 -13 -57 -29 -24 -16 -61 -39 -83 -50 -22 -12 -47 -26 -55 -31 -29 -19 -165 -96 -180 -103 -41 -19 -95 -56 -92 -63 2 -9 61 -47 92 -60 8 -4 22 -13 30 -19 8 -7 47 -30 85 -50 39 -21 82 -46 96 -56 15 -10 37 -23 50 -29 26 -12 42 -21 106 -63 24 -15 45 -27 49 -27 6 0 132 -73 174 -100 8 -6 24 -14 35 -19 11 -5 37 -21 58 -35 21 -14 42 -26 47 -26 5 0 28 -13 52 -29 24 -16 61 -39 83 -50 22 -12 47 -26 55 -31 46 -28 268 -157 280 -163 8 -4 29 -16 45 -27 17 -11 40 -24 52 -29 11 -5 24 -15 28 -20 3 -6 12 -11 20 -11 8 0 31 -12 52 -26 21 -14 47 -30 58 -35 11 -5 34 -18 50 -29 17 -11 37 -23 45 -27 8 -3 33 -18 55 -32 22 -14 60 -36 85 -48 25 -13 59 -32 75 -43 17 -11 39 -24 50 -30 11 -6 34 -19 50 -30 17 -11 37 -23 45 -27 8 -3 33 -18 55 -32 39 -24 102 -59 158 -88 15 -8 27 -19 27 -24 0 -5 9 -9 21 -9 12 0 38 -13 59 -30 21 -16 40 -30 44 -30 5 0 158 -87 214 -122 15 -9 50 -29 77 -43 28 -14 64 -34 80 -45 17 -11 39 -24 50 -30 11 -6 35 -20 54 -31 40 -24 26 -29 206 76 66 39 136 79 155 90 19 10 53 29 75 42 22 12 49 27 60 33 11 6 29 16 40 23 11 7 70 41 130 75 132 76 138 79 193 115 24 15 49 27 57 27 8 0 17 5 20 11 4 5 17 15 28 20 12 5 36 18 52 28 17 11 62 36 100 56 39 21 77 44 86 51 8 8 20 14 26 14 6 0 16 7 23 15 7 8 19 15 27 15 8 0 29 11 46 24 18 14 43 29 57 35 14 6 34 17 45 23 93 59 127 79 175 103 30 14 62 32 70 39 8 7 22 16 30 20 8 3 38 20 65 37 28 16 64 37 80 45 17 8 39 20 50 27 41 26 101 62 120 73 11 6 43 23 70 38 28 15 73 41 100 57 28 17 64 37 80 45 17 8 44 23 60 34 17 11 39 24 50 30 11 6 34 19 50 30 17 11 53 31 80 45 28 14 64 35 80 45 17 11 37 23 45 27 8 4 44 24 79 46 35 21 74 43 85 48 12 5 35 18 51 29 17 11 40 24 52 29 11 5 24 15 28 20 3 6 13 11 21 11 9 0 30 11 47 24 18 14 43 29 57 35 45 20 100 56 100 66 0 10 -53 45 -96 64 -19 8 -136 77 -174 101 -8 6 -22 13 -30 17 -8 4 -82 46 -164 95 -81 48 -152 88 -156 88 -4 0 -13 7 -20 15 -7 8 -21 15 -31 15 -10 0 -22 6 -26 13 -4 7 -19 18 -33 24 -14 7 -47 26 -75 42 -27 17 -61 35 -74 41 -13 6 -38 21 -55 33 -35 25 -41 29 -138 81 -40 21 -80 45 -89 52 -8 8 -19 14 -23 14 -5 0 -28 14 -53 30 -24 17 -48 30 -52 30 -4 0 -27 14 -49 30 -23 17 -46 30 -51 30 -6 0 -29 13 -53 29 -24 16 -61 39 -83 50 -22 12 -47 26 -55 31 -31 19 -166 96 -180 103 -8 4 -28 16 -45 27 -16 11 -39 24 -50 29 -11 5 -37 21 -58 35 -21 14 -44 26 -52 26 -8 0 -17 5 -20 11 -4 5 -17 15 -28 20 -12 5 -35 18 -52 29 -16 11 -39 24 -50 30 -11 6 -33 19 -50 30 -16 11 -37 23 -45 27 -20 9 -235 134 -268 155 -15 10 -37 22 -49 27 -11 5 -24 15 -28 20 -3 6 -13 11 -22 11 -9 0 -24 6 -32 14 -9 7 -47 31 -86 51 -38 21 -71 42 -73 47 -2 4 -9 8 -15 8 -6 0 -18 6 -26 13 -42 35 -64 36 -121 6z"/>
               <path d="M12285 14387 c-10 -7 -37 -23 -60 -37 -42 -26 -51 -31 -130 -74 -27 -15 -63 -36 -80 -47 -16 -10 -37 -22 -45 -26 -8 -4 -44 -25 -80 -46 -36 -22 -90 -53 -120 -70 -30 -16 -86 -48 -123 -71 -71 -42 -171 -100 -197 -112 -8 -5 -47 -27 -86 -51 -39 -24 -76 -43 -82 -43 -5 0 -12 -7 -16 -15 -3 -8 -14 -15 -25 -15 -11 0 -23 -5 -26 -11 -4 -5 -17 -15 -28 -20 -12 -5 -35 -18 -52 -29 -16 -11 -37 -23 -45 -27 -8 -4 -47 -26 -86 -50 -39 -24 -75 -43 -79 -43 -4 0 -24 -13 -45 -30 -21 -16 -47 -30 -59 -30 -12 0 -21 -5 -21 -10 0 -6 -8 -13 -17 -17 -10 -3 -72 -38 -138 -77 -66 -40 -138 -80 -160 -91 -22 -11 -42 -23 -45 -26 -3 -3 -34 -22 -70 -43 -36 -20 -72 -41 -80 -46 -8 -5 -33 -19 -55 -31 -22 -11 -59 -34 -83 -50 -24 -16 -48 -29 -53 -29 -6 0 -25 -11 -42 -24 -18 -14 -43 -29 -57 -35 -14 -6 -43 -22 -65 -36 -22 -14 -56 -34 -75 -45 -19 -11 -51 -30 -70 -42 -19 -11 -53 -31 -75 -42 -35 -20 -68 -39 -140 -83 -11 -7 -42 -24 -70 -39 -72 -38 -78 -44 -63 -61 7 -8 21 -19 33 -24 11 -5 47 -25 80 -44 33 -19 69 -40 80 -45 11 -6 34 -19 50 -30 17 -11 39 -24 51 -29 11 -5 50 -27 85 -48 35 -22 71 -42 79 -46 8 -4 29 -16 45 -27 17 -11 37 -22 45 -26 8 -3 22 -10 30 -15 8 -5 24 -14 35 -19 11 -6 34 -19 50 -30 17 -11 39 -24 51 -29 11 -5 51 -28 88 -50 36 -23 69 -41 72 -41 3 0 26 -13 51 -30 24 -16 46 -30 48 -30 3 0 39 -20 81 -45 41 -25 82 -45 90 -45 8 0 17 -7 20 -15 4 -8 11 -15 16 -15 6 0 44 -20 85 -45 40 -25 77 -45 82 -45 4 0 26 -12 48 -27 53 -38 71 -48 123 -75 25 -12 81 -44 125 -71 102 -62 107 -64 125 -71 8 -4 29 -15 45 -26 17 -11 37 -22 45 -26 17 -6 22 -9 110 -62 36 -22 88 -52 115 -67 28 -15 57 -34 66 -41 8 -8 23 -14 31 -14 9 0 18 -7 22 -15 3 -8 14 -15 24 -15 10 0 23 -5 29 -11 14 -14 50 -35 86 -50 15 -6 27 -15 27 -20 0 -5 5 -9 11 -9 6 0 45 -20 86 -45 40 -25 76 -45 79 -45 2 0 23 -12 47 -27 23 -15 60 -37 82 -49 22 -11 56 -31 75 -42 19 -12 44 -26 56 -31 11 -5 50 -27 86 -49 35 -22 74 -43 86 -46 12 -4 22 -11 22 -16 0 -4 8 -10 18 -14 9 -3 24 -9 32 -14 50 -30 63 -33 73 -23 6 6 16 11 23 11 7 0 43 20 81 45 37 25 72 45 77 45 4 0 28 14 53 30 24 17 46 30 48 30 2 0 36 19 77 43 40 24 80 46 88 50 8 4 29 16 45 27 17 11 40 24 52 29 11 5 24 15 28 20 3 6 12 11 20 11 7 0 37 16 66 36 30 20 68 43 84 51 17 7 44 22 60 33 17 11 37 23 45 27 9 5 57 33 108 63 101 60 157 92 224 129 24 13 62 36 86 52 24 16 48 29 53 29 6 0 25 11 42 24 18 14 43 29 57 35 14 6 32 15 40 21 22 15 212 125 230 133 8 4 29 16 45 26 17 11 50 30 75 42 25 13 47 26 50 30 6 8 103 64 138 79 12 5 22 14 22 20 0 5 9 10 19 10 11 0 22 4 26 9 3 6 18 16 33 24 55 29 118 64 157 88 22 14 47 29 55 32 8 4 38 21 65 38 28 16 65 37 83 45 17 8 32 19 32 24 0 6 8 10 19 10 10 0 24 7 31 15 7 8 19 15 26 15 8 0 14 4 14 9 0 5 12 14 28 20 15 6 34 15 42 21 34 22 171 100 178 100 4 0 18 9 32 20 l25 19 -45 21 c-25 11 -58 30 -75 40 -16 11 -39 24 -50 30 -11 5 -27 14 -35 19 -35 22 -166 98 -180 104 -8 4 -28 16 -45 26 -16 11 -46 28 -65 38 -87 46 -156 87 -171 99 -8 8 -20 14 -26 14 -6 0 -16 7 -23 15 -7 8 -18 15 -26 15 -7 0 -32 12 -56 28 -24 15 -52 33 -63 40 -11 7 -32 17 -47 23 -16 6 -28 15 -28 20 0 5 -5 9 -10 9 -9 0 -71 34 -249 138 -31 18 -66 36 -78 42 -11 5 -24 14 -28 19 -3 6 -15 11 -25 11 -10 0 -23 6 -27 13 -4 7 -19 18 -33 24 -14 7 -47 26 -75 42 -27 17 -59 35 -70 40 -11 5 -36 20 -56 34 -21 14 -46 28 -58 32 -12 3 -21 11 -21 16 0 5 -8 9 -19 9 -10 0 -24 7 -31 15 -7 8 -17 15 -22 15 -5 0 -54 27 -109 60 -55 33 -102 60 -105 60 -4 0 -26 14 -51 30 -24 17 -48 30 -53 30 -5 0 -28 13 -52 29 -24 16 -61 39 -83 51 -22 11 -67 37 -100 56 -33 19 -69 39 -80 44 -11 6 -33 19 -50 30 -16 11 -40 24 -52 29 -11 5 -24 15 -28 20 -3 6 -12 11 -20 11 -8 0 -33 13 -57 29 -24 16 -61 39 -83 51 -22 12 -56 31 -75 42 -19 11 -53 31 -75 42 -22 12 -59 34 -82 49 -24 15 -45 27 -48 27 -3 0 -24 12 -48 27 -35 22 -149 84 -151 82 -1 0 -10 -6 -21 -12z"/>
@@ -319,45 +322,63 @@ export default function PublicAcceptanceForm() {
               <path d="M12485 7010 c-58 -33 -106 -60 -155 -86 -19 -11 -39 -25 -43 -31 -4 -7 -16 -13 -26 -13 -10 0 -24 -7 -31 -15 -7 -8 -16 -15 -21 -15 -5 0 -52 -26 -106 -58 -98 -57 -127 -74 -193 -109 -19 -10 -40 -24 -48 -30 -7 -7 -20 -13 -28 -13 -8 0 -17 -7 -20 -15 -4 -8 -14 -15 -24 -15 -11 0 -22 -5 -25 -11 -4 -5 -17 -14 -28 -20 -12 -5 -29 -13 -37 -18 -8 -5 -22 -12 -30 -16 -16 -6 -34 -17 -97 -58 -24 -15 -45 -27 -49 -27 -3 0 -26 -13 -51 -30 -24 -16 -50 -30 -58 -30 -8 0 -17 -5 -20 -11 -4 -5 -17 -15 -28 -20 -12 -5 -38 -19 -57 -30 -44 -27 -123 -72 -175 -100 -22 -12 -44 -28 -48 -35 -4 -8 -15 -14 -23 -14 -8 0 -33 -11 -55 -25 -22 -14 -50 -30 -62 -36 -24 -11 -41 -21 -104 -62 -24 -15 -45 -27 -47 -27 -3 0 -39 -20 -79 -45 -41 -25 -79 -45 -85 -45 -5 0 -15 -7 -22 -15 -7 -8 -21 -15 -31 -15 -11 0 -19 -5 -19 -10 0 -6 -10 -15 -22 -20 -13 -6 -30 -14 -38 -19 -8 -5 -22 -12 -30 -15 -8 -4 -28 -15 -45 -26 -16 -11 -39 -24 -50 -30 -11 -6 -42 -24 -70 -41 -27 -16 -63 -37 -80 -45 -16 -8 -43 -23 -60 -34 -32 -20 -141 -82 -165 -94 -8 -4 -24 -12 -35 -19 -11 -7 -56 -34 -100 -60 -44 -26 -88 -52 -97 -57 -10 -6 -26 -15 -35 -20 -10 -6 -27 -15 -38 -20 -11 -6 -33 -19 -50 -30 -16 -11 -52 -31 -80 -45 -27 -14 -63 -35 -80 -45 -16 -11 -36 -23 -42 -26 -21 -10 -15 -21 20 -38 35 -18 50 -27 115 -68 24 -16 50 -28 58 -28 7 0 14 -5 14 -10 0 -6 11 -15 23 -19 13 -5 54 -28 91 -50 36 -23 69 -41 71 -41 3 0 24 -12 48 -27 59 -38 78 -50 112 -67 31 -16 81 -45 183 -108 33 -20 70 -39 81 -43 12 -3 21 -11 21 -16 0 -5 4 -9 10 -9 5 0 55 -27 111 -60 55 -33 102 -60 104 -60 2 0 61 -34 130 -75 70 -41 131 -75 135 -75 4 0 13 -7 20 -15 7 -8 21 -15 32 -15 10 0 21 -7 24 -15 4 -8 11 -15 16 -15 6 0 47 -22 92 -49 139 -84 150 -90 172 -100 19 -8 135 -76 174 -101 8 -6 24 -15 35 -20 11 -6 34 -19 50 -30 17 -11 44 -26 60 -34 38 -19 98 -54 150 -87 22 -14 47 -29 55 -32 8 -4 29 -16 45 -27 17 -10 53 -31 80 -45 28 -14 59 -31 70 -38 79 -49 103 -64 120 -75 11 -6 29 -16 40 -21 11 -5 37 -21 58 -35 21 -14 40 -26 44 -26 3 0 50 -27 104 -60 l99 -59 102 60 c57 33 110 64 118 69 8 6 24 15 35 20 11 6 34 19 50 29 17 11 50 30 75 42 25 13 51 29 58 36 7 7 18 13 23 13 5 0 39 18 75 41 37 22 77 45 88 50 12 5 35 18 51 29 17 11 39 24 50 30 11 6 36 20 55 31 19 12 55 32 80 46 81 44 134 75 178 104 24 16 48 29 53 29 6 0 25 11 42 24 18 14 43 29 57 35 14 6 41 21 60 32 19 12 55 32 80 46 25 13 54 29 65 36 10 7 37 23 60 37 22 13 60 35 85 48 25 12 59 32 75 42 17 11 37 23 45 27 8 4 44 24 79 46 35 21 74 43 85 48 12 6 30 15 41 22 11 7 51 30 90 52 38 22 79 45 90 52 11 7 29 17 40 23 11 6 43 24 70 41 28 16 61 35 75 42 14 6 27 15 30 19 3 4 17 12 30 18 14 5 39 19 55 30 17 10 50 30 75 42 25 13 63 35 85 49 60 37 76 46 125 71 25 12 59 33 75 45 17 12 41 27 55 32 14 6 39 20 55 31 17 11 53 31 80 45 28 14 64 35 80 45 17 11 39 24 50 30 31 16 89 51 97 59 4 4 -9 15 -30 26 -40 21 -228 129 -252 145 -8 6 -26 15 -40 21 -14 6 -38 21 -55 33 -16 12 -37 26 -45 29 -22 10 -114 62 -204 115 -43 26 -101 60 -130 76 -28 15 -52 32 -54 37 -2 5 -12 9 -22 9 -10 0 -22 5 -25 11 -4 5 -17 14 -28 20 -23 9 -31 14 -105 62 -24 15 -46 27 -49 27 -3 0 -38 19 -77 43 -39 24 -78 46 -86 50 -8 4 -28 16 -45 27 -16 11 -39 24 -51 29 -19 8 -136 76 -174 101 -8 6 -25 14 -37 19 -11 6 -24 15 -28 20 -3 6 -14 11 -25 11 -10 0 -20 7 -24 15 -3 8 -12 15 -19 15 -8 0 -20 7 -27 15 -7 8 -19 15 -28 15 -8 0 -23 6 -31 14 -9 7 -47 30 -85 50 -38 21 -94 54 -125 74 -31 20 -76 47 -101 60 -25 13 -58 32 -75 42 -16 10 -54 31 -82 47 -29 15 -53 31 -53 35 0 4 -6 8 -14 8 -7 0 -19 7 -26 15 -7 8 -18 15 -26 15 -7 0 -33 14 -57 30 -25 17 -47 30 -50 30 -5 0 -244 138 -277 160 -8 6 -25 14 -37 19 -11 6 -24 15 -28 20 -3 6 -15 11 -26 11 -10 0 -19 4 -19 9 0 9 -96 61 -113 61 -7 -1 -34 -14 -62 -30z"/>
             </g>
           </svg>
-          <h1 className="text-2xl sm:text-3xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Production Specs &amp; Acceptance Criteria Form</h1>
-          <p className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
+          <h1 className="text-3xl sm:text-4xl mb-3" style={{ color: '#FFFFFF', fontWeight: 800, letterSpacing: '-0.02em' }}>Production Specs &amp;<br />Acceptance Criteria</h1>
+          <p className="text-base" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 400 }}>
             Exodia Game Development &middot; Marketing Department
           </p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FF5900' }}></span>
+            <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Help us understand your vision</span>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#FF5900' }}></span>
+          </div>
         </div>
       </div>
 
       {/* Intro */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="p-5 rounded-xl border" style={{ backgroundColor: '#FFF7ED', borderColor: '#FFE4C4' }}>
-          <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 300 }}>
-            This document defines the Client's expectations for production deliverables and acceptance standards. Information provided here will be translated by the Operations and QA teams into detailed technical specifications, quality checks, and validation procedures. Clients are not required to provide technical details.
-          </p>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="p-6 rounded-2xl border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#FFE4C4', boxShadow: '0 4px 16px rgba(255,137,66,0.08)' }}>
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #FFF0E6, #FFE4D0)' }}>
+              <svg className="w-5 h-5" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1" style={{ color: '#9A3412' }}>How this works</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 400, lineHeight: 1.7 }}>
+                This document helps us understand your expectations for production deliverables and quality standards. The information you provide here will guide our Operations and QA teams in creating detailed specifications and validation procedures. <strong>No technical expertise required</strong> — just share what you know.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 pb-12 space-y-8">
         {/* Section 1 */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 1: Basic Project Information</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>1</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Basic Project Information</h2>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client / Studio Name</label>
-                <input type="text" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
+                <input type="text" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Name</label>
-                <input type="text" value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter project name" />
+                <input type="text" value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="Enter project name" />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Point of Contact</label>
-                <input type="text" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your name" />
+                <input type="text" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="Your name" />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email Address</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="your@email.com" />
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="your@email.com" />
               </div>
             </div>
             <div>
@@ -387,34 +408,37 @@ export default function PublicAcceptanceForm() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
-                <input type="text" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. EST (UTC-5)" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
-                <input type="text" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Aug 01, 2026" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
-                <input type="text" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Oct 15, 2026" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
-                <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
+<div>
+              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
+              <input type="text" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="e.g. EST (UTC-5)" />
+            </div>
+            <div>
+              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
+              <input type="text" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="e.g. Aug 01, 2026" />
+            </div>
+<div>
+              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
+              <input type="text" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="e.g. Oct 15, 2026" />
+            </div>
+            <div>
+              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
+              <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
               </div>
             </div>
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Link to Project Document</label>
-              <input type="text" value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Google Drive, Notion, etc." />
+              <input type="text" value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="Google Drive, Notion, etc." />
             </div>
           </div>
         </div>
 
         {/* Section 2: Deliverables */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 2: What You Want Us to Create</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>2</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>What You Want Us to Create</h2>
+            </div>
           </div>
           <div className="p-5">
             <p className="text-sm mb-4" style={{ color: '#6B7280', fontWeight: 300 }}>
@@ -470,11 +494,14 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 3: Review & Approval */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 3: How Will You Review &amp; Approve the Work?</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>3</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>How Will You Review &amp; Approve the Work?</h2>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-4">
             <div>
               <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
               <div className="flex flex-wrap gap-4">
@@ -504,11 +531,14 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 4: Project Governance */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 4: Project Governance</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>4</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Project Governance</h2>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-4">
             <div>
               <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Communication Tool</label>
               <div className="flex flex-wrap gap-4">
@@ -574,11 +604,14 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 5: Technical Details */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 5: Technical Details</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>5</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Technical Details</h2>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-4">
             <div>
               <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Game Engine</label>
               <div className="flex flex-wrap gap-4">
@@ -608,24 +641,32 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 6: Client Confirmation */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 6: Client Confirmation</h2>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="px-6 py-4 border-b-2" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFFFFF' }}>6</span>
+              <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Client Confirmation</h2>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FFE4C4' }}>
-              <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 300 }}>
-                By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation. Any changes after approval may require a formal revision and may impact cost, timeline, or delivery scope.
-              </p>
+          <div className="p-6 space-y-4">
+            <div className="p-5 rounded-xl border-2" style={{ backgroundColor: '#FFF7ED', borderColor: '#FFE4C4' }}>
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 mt-0.5 shrink-0" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 400, lineHeight: 1.7 }}>
+                  By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation. Any changes after approval may require a formal revision and may impact cost, timeline, or delivery scope.
+                </p>
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name &amp; Signature</label>
-                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
+                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="Type your full name" required />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
-                <input type="text" value={form.signatureDate} onChange={(e) => setForm({ ...form, signatureDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Jul 01, 2026" required />
+                <input type="text" value={form.signatureDate} onChange={(e) => setForm({ ...form, signatureDate: e.target.value })} className="w-full px-3.5 py-3 border-2 rounded-xl outline-none text-sm transition" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }} placeholder="e.g. Jul 01, 2026" required />
               </div>
             </div>
           </div>
@@ -635,17 +676,18 @@ export default function PublicAcceptanceForm() {
         <div className="text-center">
           <button
             type="submit"
-            className="px-10 py-3.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
-            style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
+            className="px-12 py-4 rounded-2xl text-white text-base font-semibold transition-all hover:-translate-y-1 active:translate-y-0"
+            style={{ backgroundColor: '#FF5900', boxShadow: '0 8px 28px rgba(255,89,0,0.35)' }}
           >
-            Submit Form
+            Submit Your Specifications
           </button>
+          <p className="text-xs mt-3" style={{ color: '#9CA3AF', fontWeight: 400 }}>We'll review and get back to you within 1-2 business days</p>
         </div>
       </form>
 
       {/* Footer */}
-      <div className="py-6 px-4 text-center border-t" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
-        <p className="text-xs" style={{ color: '#9CA3AF', fontWeight: 300 }}>
+      <div className="py-8 px-4 text-center border-t-2" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+        <p className="text-xs" style={{ color: '#9CA3AF', fontWeight: 400 }}>
           Exodia Game Development &middot; Marketing Department &middot; {new Date().getFullYear()}
         </p>
       </div>
