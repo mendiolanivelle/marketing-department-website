@@ -836,9 +836,20 @@ export default function AcceptanceCriteria() {
                           if (resp.ok) saved = true
                           if (resp.ok) {
                             const opsLink = 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission))
-                            const emailSubject = formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled')
-                            const emailBody = formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled') + ' Ready for review.\n\nView: ' + opsLink
-                            window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(sendForm.to) + '&su=' + encodeURIComponent(emailSubject) + '&body=' + encodeURIComponent(emailBody), '_blank')
+                            try {
+                              await fetch(apiUrl + '/functions/v1/send-ticket-email', {
+                                method: 'POST',
+                                headers: { 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  to: sendForm.to,
+                                  trackingId: formatId(selectedSubmission),
+                                  projectName: selectedSubmission.project_name,
+                                  ticketLink: opsLink,
+                                }),
+                              })
+                            } catch (emailErr) {
+                              console.error('Failed to send email:', emailErr)
+                            }
                           }
                         } catch (err) {
                           console.error('Failed to save ticket:', err)
