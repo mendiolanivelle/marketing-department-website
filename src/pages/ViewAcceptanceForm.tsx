@@ -13,6 +13,8 @@ export default function ViewAcceptanceForm() {
     if (!isSupabaseConfigured || !supabase) { setLoading(false); setError('Database not configured'); return }
     ;(async () => {
       try {
+        await supabase!.auth.signInAnonymously()
+
         const { data, error: err } = await supabase!
           .from('acceptance_forms')
           .select('*')
