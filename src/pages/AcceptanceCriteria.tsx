@@ -813,7 +813,7 @@ export default function AcceptanceCriteria() {
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
                       const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
                       let saved = false
-                      if (isSupabaseConfigured && supabase && selectedSubmission) {
+                      if (selectedSubmission && supabase) {
                         try {
                           const { error } = await supabase.from('project_review_tickets').insert({
                             tracking_id: formatId(selectedSubmission),
@@ -824,7 +824,6 @@ export default function AcceptanceCriteria() {
                             email_body: fullBody,
                             attachment_pdf: sendForm.attachment || null,
                             additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
-                            ticket_link: ticketLink,
                             status: 'Sent',
                           })
                           if (!error) saved = true
