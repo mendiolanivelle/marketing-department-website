@@ -36,6 +36,7 @@ interface Submission {
 }
 
 export default function AcceptanceCriteria() {
+  const OPS_EMAIL = 'neil@exodiagamedev.com'
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
@@ -819,7 +820,7 @@ export default function AcceptanceCriteria() {
                             tracking_id: formatId(selectedSubmission),
                             project_name: selectedSubmission.project_name,
                             client_name: selectedSubmission.client_name,
-                            email_to: sendForm.to,
+                            email_to: OPS_EMAIL,
                             email_subject: sendForm.subject,
                             email_body: fullBody,
                             attachment_pdf: sendForm.attachment || null,
@@ -828,11 +829,11 @@ export default function AcceptanceCriteria() {
                             status: 'Sent',
                           })
                           if (!error) saved = true
-                          if (!error && sendForm.to) {
+                          if (!error && OPS_EMAIL) {
                             try {
                               await supabase.functions.invoke('send-ticket-email', {
                                 body: {
-                                  to: sendForm.to,
+                                  to: OPS_EMAIL,
                                   trackingId: formatId(selectedSubmission),
                                   projectName: selectedSubmission.project_name,
                                   ticketLink: ticketLink,
