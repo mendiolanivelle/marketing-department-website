@@ -1,16 +1,26 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createTransport } from 'npm:nodemailer@6.9.16'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     const { to, trackingId, projectName, ticketLink } = await req.json()
     if (!to || !trackingId || !ticketLink) {
-      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
 
     const pass = Deno.env.get('SMTP_PASS')
     if (!pass) {
-      return new Response(JSON.stringify({ error: 'SMTP_PASS not set' }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'SMTP_PASS not set' }), { status: 500, headers: corsHeaders })
     }
 
     const subject = trackingId + ' - ' + (projectName || 'Untitled')
@@ -32,9 +42,9 @@ serve(async (req) => {
       html: htmlBody,
     })
 
-    return new Response(JSON.stringify({ success: true }), { status: 200 })
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders })
   } catch (err) {
     console.error(err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })
   }
 })
