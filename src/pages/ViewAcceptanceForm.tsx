@@ -57,10 +57,6 @@ export default function ViewAcceptanceForm() {
             : error}
         </p>
         <p className="text-xs mb-6 font-mono" style={{ color: '#9CA3AF', fontWeight: 400 }}>ID: {id}</p>
-        <p className="text-xs mb-6 font-mono" style={{ color: '#9CA3AF', fontWeight: 400 }}>ID: {id}</p>
-        <Link to="/" className="px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}>
-          Go to Home
-        </Link>
       </div>
     )
   }

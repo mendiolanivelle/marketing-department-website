@@ -34,9 +34,7 @@
     .error-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1B1A1C; }
     .error-desc { font-size: 14px; color: #6B7280; margin-bottom: 8px; max-width: 400px; }
     .error-id { font-size: 12px; font-family: monospace; color: #9CA3AF; margin-bottom: 24px; }
-    .btn { display: inline-block; padding: 10px 24px; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 500; text-decoration: none; background: #FF5900; box-shadow: 0 4px 12px rgba(255,89,0,0.3); transition: transform 0.15s; }
-    .btn:hover { transform: translateY(-2px); }
-  </style>
+    </style>
 </head>
 <body>
   <div id="root">
@@ -68,7 +66,6 @@
             </div>
             <h1 class="error-title">Invalid Link</h1>
             <p class="error-desc">This link is missing required information. Please check the link or contact the Marketing Department.</p>
-            <a href="/" class="btn">Go to Home</a>
           </div>`;
         return;
       }
@@ -94,7 +91,6 @@
               <h1 class="error-title">Form Not Found</h1>
               <p class="error-desc">The acceptance criteria form you're looking for doesn't exist or may have been removed.</p>
               <p class="error-id">ID: ${id}</p>
-              <a href="/" class="btn">Go to Home</a>
             </div>`;
           return;
         }
@@ -200,7 +196,6 @@
             </div>
             <h1 class="error-title">Something went wrong</h1>
             <p class="error-desc">${err.message || 'Failed to load form data.'}</p>
-            <a href="/" class="btn">Go to Home</a>
           </div>`;
       }
     })();
