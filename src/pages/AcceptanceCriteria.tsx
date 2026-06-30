@@ -872,7 +872,7 @@ export default function AcceptanceCriteria() {
                           })
                           if (resp.ok) saved = true
                           if (resp.ok) {
-                            const opsLink = 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission))
+                            const viewLink = window.location.origin + '/#/view-acceptance/' + encodeURIComponent(formatId(selectedSubmission))
                             try {
                               const emailResp = await fetch(apiUrl + '/functions/v1/send-ticket-email', {
                                 method: 'POST',
@@ -881,7 +881,7 @@ export default function AcceptanceCriteria() {
                                   to: sendForm.to,
                                   trackingId: formatId(selectedSubmission),
                                   projectName: selectedSubmission.project_name,
-                                  ticketLink: opsLink,
+                                  ticketLink: viewLink,
                                 }),
                               })
                               if (!emailResp.ok) {
