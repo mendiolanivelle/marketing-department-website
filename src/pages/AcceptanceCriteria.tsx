@@ -40,6 +40,7 @@ export default function AcceptanceCriteria() {
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
+  const [sentSuccess, setSentSuccess] = useState('')
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
   const formatId = (sub: Submission): string => {
@@ -289,6 +290,12 @@ export default function AcceptanceCriteria() {
           Open Public Form
         </a>
       </div>
+
+      {sentSuccess && (
+        <div className="mb-4 px-4 py-3 rounded-xl border text-sm" style={{ backgroundColor: '#F0FFF4', borderColor: '#B8F5C5', color: '#22543D' }}>
+          {sentSuccess}
+        </div>
+      )}
 
       {/* Stats row */}
       {!loading && submissions.length > 0 && (
@@ -776,11 +783,10 @@ export default function AcceptanceCriteria() {
                         ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
                       ].filter(Boolean).join('\n')
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
-                      const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(sendForm.to) + '&su=' + encodeURIComponent(sendForm.subject) + '&body=' + encodeURIComponent(fullBody)
-                      window.open(gmailUrl, '_blank')
+                      let saved = false
                       if (isSupabaseConfigured && supabase && selectedSubmission) {
                         try {
-                          await supabase.from('project_review_tickets').insert({
+                          const { error } = await supabase.from('project_review_tickets').insert({
                             tracking_id: formatId(selectedSubmission),
                             project_name: selectedSubmission.project_name,
                             client_name: selectedSubmission.client_name,
@@ -791,11 +797,14 @@ export default function AcceptanceCriteria() {
                             additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
                             status: 'Sent',
                           })
+                          if (!error) saved = true
                         } catch (err) {
                           console.error('Failed to save ticket:', err)
                         }
                       }
                       setShowSendModal(false)
+                      setSentSuccess(saved ? 'Sent to Ops successfully!' : 'Saved locally (Supabase unavailable)')
+                      setTimeout(() => setSentSuccess(''), 3000)
                     }}
                     className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
                     style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
