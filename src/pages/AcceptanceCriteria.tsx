@@ -835,7 +835,7 @@ export default function AcceptanceCriteria() {
                       setShowSendModal(false)
                       setSentTicketLink(ticketLink)
                       setShowSentModal(true)
-                      setTimeout(() => setShowSentModal(false), 4000)
+                      setTimeout(() => setShowSentModal(false), 6000)
                     }}
                     className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
                     style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
