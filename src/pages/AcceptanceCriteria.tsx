@@ -42,6 +42,7 @@ export default function AcceptanceCriteria() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [showSentModal, setShowSentModal] = useState(false)
   const [sentTicketLink, setSentTicketLink] = useState('')
+  const [sentCount, setSentCount] = useState(0)
 
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
@@ -71,6 +72,16 @@ export default function AcceptanceCriteria() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchSentCount = async () => {
+    if (!isSupabaseConfigured || !supabase) return
+    try {
+      const { count } = await supabase
+        .from('project_review_tickets')
+        .select('id', { count: 'exact', head: true })
+      if (count !== null) setSentCount(count)
+    } catch {}
   }
 
   const generatePDF = (sub: Submission): Blob => {
@@ -255,6 +266,7 @@ export default function AcceptanceCriteria() {
 
   useEffect(() => {
     fetchSubmissions()
+    fetchSentCount()
     if (!isSupabaseConfigured || !supabase) return
 
     // Realtime subscription for new submissions
@@ -262,6 +274,7 @@ export default function AcceptanceCriteria() {
       .channel('acceptance_forms_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => {
         fetchSubmissions()
+        fetchSentCount()
       })
       .subscribe()
 
@@ -331,6 +344,10 @@ export default function AcceptanceCriteria() {
           <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total</span>
             <span className="ml-2 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{submissions.length}</span>
+          </div>
+          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to Ops</span>
+            <span className="ml-2 text-sm font-bold" style={{ color: '#FF5900' }}>{sentCount}</span>
           </div>
           <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Base</span>
@@ -860,6 +877,7 @@ export default function AcceptanceCriteria() {
                       }
                       setShowSendModal(false)
                       setSentTicketLink(ticketLink)
+                      fetchSentCount()
                       setShowSentModal(true)
                       setTimeout(() => setShowSentModal(false), 6000)
                     }}
