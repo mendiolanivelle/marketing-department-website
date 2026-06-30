@@ -292,21 +292,40 @@ export default function AcceptanceCriteria() {
             View all client-submitted acceptance criteria forms. New submissions appear in real time.
           </p>
         </div>
-        <a
-          href="/#/acceptance-form"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm text-white rounded-lg transition flex-shrink-0 hover:-translate-y-0.5"
-          style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          Open Public Form
-        </a>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => {
+              if (window.confirm('Delete all submissions? This cannot be undone.')) {
+                if (!isSupabaseConfigured || !supabase) return
+                supabase.from('acceptance_forms').delete().neq('id', 0).then(() => {
+                  fetchSubmissions()
+                  fetchSentCount()
+                })
+              }
+            }}
+            className="p-2.5 rounded-lg transition hover:opacity-70"
+            style={{ color: '#EF4444' }}
+            title="Delete all submissions"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+          <a
+            href="/#/acceptance-form"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-white rounded-lg transition flex-shrink-0 hover:-translate-y-0.5"
+            style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Open Public Form
+          </a>
+        </div>
       </div>
-
-      {showSentModal && (
+        {showSentModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowSentModal(false)}>
           <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
             <button
