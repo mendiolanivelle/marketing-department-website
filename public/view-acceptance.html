@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acceptance Criteria — Exodia Game Development</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(180deg, #FAFAFA 0%, #FFF5F0 100%); min-height: 100vh; color: #1B1A1C; }
+    .header { background: linear-gradient(135deg, #1B1A1C 0%, #2D2B2E 100%); border-bottom: 3px solid #FF5900; padding: 40px 20px; text-align: center; }
+    .header h1 { color: #fff; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .header .id-badge { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; background: rgba(255,89,0,0.15); font-size: 12px; font-family: monospace; color: #FF8C42; font-weight: 600; }
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+    .card { background: #fff; border: 2px solid #E5E7EB; border-radius: 16px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .card-header { background: #1B1A1C; padding: 16px 24px; border-bottom: 2px solid #1B1A1C; }
+    .card-header h2 { color: #fff; font-size: 14px; font-weight: 500; }
+    .card-body { padding: 20px 24px; }
+    .row { display: flex; border-bottom: 1px solid #F3F4F6; padding: 10px 0; }
+    .row:last-child { border-bottom: none; }
+    .row-label { width: 200px; flex-shrink: 0; font-size: 13px; color: #6B7280; }
+    .row-value { font-size: 13px; color: #1B1A1C; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    th { background: #F9FAFB; padding: 8px; text-align: left; font-weight: 500; color: #6B7280; }
+    td { padding: 8px; border-top: 1px solid #F3F4F6; color: #1B1A1C; }
+    .footer { padding: 24px 16px; text-align: center; border-top: 2px solid #E5E7EB; background: #fff; }
+    .footer p { font-size: 12px; color: #9CA3AF; }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 12px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #E5E7EB; border-top-color: #FF5900; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-page { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; padding: 20px; text-align: center; }
+    .error-icon { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; background: linear-gradient(135deg, #FFF0E6, #FFE4D0); }
+    .error-icon svg { width: 32px; height: 32px; color: #FF5900; }
+    .error-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #1B1A1C; }
+    .error-desc { font-size: 14px; color: #6B7280; margin-bottom: 8px; max-width: 400px; }
+    .error-id { font-size: 12px; font-family: monospace; color: #9CA3AF; margin-bottom: 24px; }
+    .btn { display: inline-block; padding: 10px 24px; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 500; text-decoration: none; background: #FF5900; box-shadow: 0 4px 12px rgba(255,89,0,0.3); transition: transform 0.15s; }
+    .btn:hover { transform: translateY(-2px); }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span style="font-size: 13px; color: #9CA3AF;">Loading acceptance criteria...</span>
+    </div>
+  </div>
+
+  <script>
+    (async () => {
+      const SUPABASE_URL = 'https://extkotvjigtswrrnxikw.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o';
+
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id') || window.location.hash.replace('#', '') || '';
+
+      if (!id) {
+        document.getElementById('root').innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h1 class="error-title">Invalid Link</h1>
+            <p class="error-desc">This link is missing required information. Please check the link or contact the Marketing Department.</p>
+            <a href="/" class="btn">Go to Home</a>
+          </div>`;
+        return;
+      }
+
+      try {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/acceptance_forms?select=*&id=eq.' + encodeURIComponent(id), {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch: ' + res.status);
+
+        const data = await res.json();
+        if (!data || data.length === 0) {
+          document.getElementById('root').innerHTML = `
+            <div class="error-page">
+              <div class="error-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h1 class="error-title">Form Not Found</h1>
+              <p class="error-desc">The acceptance criteria form you're looking for doesn't exist or may have been removed.</p>
+              <p class="error-id">ID: ${id}</p>
+              <a href="/" class="btn">Go to Home</a>
+            </div>`;
+          return;
+        }
+
+        const sub = data[0];
+
+        function Row(label, value) {
+          if (!value) value = '\u2014';
+          return '<div class="row"><span class="row-label">' + label + '</span><span class="row-value">' + value + '</span></div>';
+        }
+
+        function MultiRow(label, items) {
+          const vals = (items || []).filter(Boolean).join(', ') || '\u2014';
+          return Row(label, vals);
+        }
+
+        const deliverables = (sub.deliverables && sub.deliverables.length > 0)
+          ? '<div class="table-wrap"><table><thead><tr><th>Deliverable</th><th>Description</th><th>Criteria</th><th>Qty</th></tr></thead><tbody>' +
+            sub.deliverables.map(function(d) {
+              return '<tr><td>' + (d.name || '\u2014') + '</td><td>' + (d.description || '\u2014') + '</td><td>' + (d.criteria || '\u2014') + '</td><td>' + (d.quantity || '\u2014') + '</td></tr>';
+            }).join('') +
+            '</tbody></table></div>'
+          : '<p style="font-size:13px;color:#9CA3AF;">No deliverables specified.</p>';
+
+        document.getElementById('root').innerHTML = `
+          <div class="header">
+            <h1>${sub.project_name || 'Acceptance Criteria'}</h1>
+            <div class="id-badge">${sub.tracking_id || id}</div>
+          </div>
+          <div class="container">
+            <div class="card">
+              <div class="card-header"><h2>Basic Project Information</h2></div>
+              <div class="card-body">
+                ${Row('Client / Studio Name', sub.client_name)}
+                ${Row('Project Name', sub.project_name)}
+                ${Row('Point of Contact', sub.contact)}
+                ${Row('Email', sub.email)}
+                ${Row('Project Type', sub.project_type)}
+                ${MultiRow('Target Platform', sub.target_platform)}
+                ${Row('Timezone', sub.timezone)}
+                ${Row('Expected Start Date', sub.start_date)}
+                ${Row('Expected Deadline', sub.deadline)}
+                ${Row('Budget Range', sub.budget)}
+                ${Row('Project Document Link', sub.doc_link)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h2>What You Want Us to Create</h2></div>
+              <div class="card-body">${deliverables}</div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h2>Review &amp; Approval</h2></div>
+              <div class="card-body">
+                ${MultiRow('Reviewers', sub.reviewer)}
+                ${Row('Review Rounds', sub.review_rounds)}
+                ${Row('Expected Review Time', sub.review_time)}
+                ${MultiRow('Basis for Approval', sub.approval_basis)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h2>Project Governance</h2></div>
+              <div class="card-body">
+                ${MultiRow('Communication Tool', sub.comms_tool)}
+                ${MultiRow('Weekly Meeting', sub.weekly_meeting)}
+                ${Row('Meeting Time', sub.meeting_time)}
+                ${MultiRow('Daily Sync', sub.daily_sync)}
+                ${Row('Sync Time', sub.sync_time)}
+                ${MultiRow('Training', sub.training)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h2>Technical Details</h2></div>
+              <div class="card-body">
+                ${MultiRow('Game Engine', sub.game_engine)}
+                ${Row('Technical Requirements', sub.tech_requirements)}
+                ${Row('Tools &amp; Software', sub.tools_software)}
+                ${Row('Performance Constraints', sub.performance_constraints)}
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h2>Client Confirmation</h2></div>
+              <div class="card-body">
+                ${Row('Signed by', sub.signature)}
+                ${Row('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}
+              </div>
+            </div>
+          </div>
+          <div class="footer">
+            <p>Exodia Game Development &middot; Marketing Department</p>
+          </div>`;
+      } catch (err) {
+        document.getElementById('root').innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h1 class="error-title">Something went wrong</h1>
+            <p class="error-desc">${err.message || 'Failed to load form data.'}</p>
+            <a href="/" class="btn">Go to Home</a>
+          </div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

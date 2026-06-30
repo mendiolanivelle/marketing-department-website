@@ -10,10 +10,8 @@
 	@assets path /assets/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 
-	@notAssets {
-		not path /assets/*
-	}
-	header @notAssets Cache-Control "no-cache, no-store, must-revalidate"
+	@blockAssets not path /assets/* /view-acceptance.html
+	header @blockAssets Cache-Control "no-cache, no-store, must-revalidate"
 
 	header Access-Control-Allow-Origin "*"
 	header Access-Control-Allow-Methods "GET, POST, OPTIONS"
