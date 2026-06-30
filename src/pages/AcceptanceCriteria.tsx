@@ -837,7 +837,7 @@ export default function AcceptanceCriteria() {
                           if (resp.ok) {
                             const opsLink = 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission))
                             try {
-                              await fetch(apiUrl + '/functions/v1/send-ticket-email', {
+                              const emailResp = await fetch(apiUrl + '/functions/v1/send-ticket-email', {
                                 method: 'POST',
                                 headers: { 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -847,6 +847,9 @@ export default function AcceptanceCriteria() {
                                   ticketLink: opsLink,
                                 }),
                               })
+                              if (!emailResp.ok) {
+                                console.error('Email function returned:', emailResp.status, await emailResp.text())
+                              }
                             } catch (emailErr) {
                               console.error('Failed to send email:', emailErr)
                             }
