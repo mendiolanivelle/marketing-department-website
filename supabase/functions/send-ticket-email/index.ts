@@ -15,11 +15,11 @@ serve(async (req) => {
     }
 
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !FROM_EMAIL) {
-      return new Response(JSON.stringify({ error: 'SMTP not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL in Edge Function secrets.' }), { status: 500 })
+      return new Response(JSON.stringify({ error: 'SMTP not configured' }), { status: 500 })
     }
 
     const subject = trackingId + ' - ' + (projectName || 'Untitled')
-    const body = trackingId + ' - ' + (projectName || 'Untitled') + ' Ready for review.'
+    const bodyText = trackingId + ' - ' + (projectName || 'Untitled') + ' Ready for review.'
 
     const html = `<!DOCTYPE html>
 <html>
@@ -71,7 +71,7 @@ serve(async (req) => {
       from: FROM_EMAIL,
       to: to,
       subject: subject,
-      content: body,
+      content: bodyText,
       html: html,
     })
 
