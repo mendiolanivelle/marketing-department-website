@@ -458,6 +458,8 @@ export default function AcceptanceCriteria() {
                       </button>
                     </td>
                     <td className="p-3">
+                      <button
+                        onClick={(e) => {
                           e.stopPropagation()
                           const link = window.location.origin + '/#/view-acceptance/' + formatId(sub)
                           navigator.clipboard.writeText(link)
