@@ -336,6 +336,7 @@ export default function AcceptanceCriteria() {
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Budget</th>
                   <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Submitted</th>
                   <th className="p-3 w-10"></th>
+                  <th className="p-3 w-16"></th>
                 </tr>
               </thead>
               <tbody>
@@ -380,6 +381,22 @@ export default function AcceptanceCriteria() {
                       <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const link = window.location.origin + '/#/view-acceptance/' + formatId(sub)
+                          navigator.clipboard.writeText(link)
+                        }}
+                        className="p-1.5 rounded-lg transition hover:opacity-70"
+                        style={{ color: '#9CA3AF' }}
+                        title="Copy shareable link"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      </button>
                     </td>
                     </tr>
                 ))}
@@ -635,7 +652,7 @@ export default function AcceptanceCriteria() {
                     setSendForm({
                       to: selectedSubmission.email || '',
                       subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
-                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/#/view-acceptance/${formatId(selectedSubmission)}\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
                       attachment: pdfUrl || '',
                       additionalAttachments: [],
                     })

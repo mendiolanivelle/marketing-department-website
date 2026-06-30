@@ -18,6 +18,7 @@ const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
 const Campaigns = lazy(() => import('./pages/Campaigns'))
 const AcceptanceCriteria = lazy(() => import('./pages/AcceptanceCriteria'))
 const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
+const ViewAcceptanceForm = lazy(() => import('./pages/ViewAcceptanceForm'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
@@ -56,6 +57,14 @@ function App() {
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
                   <PublicAcceptanceForm />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/view-acceptance/:id"
+              element={
+                <Suspense fallback={<RouteFallback fullScreen />}>
+                  <ViewAcceptanceForm />
                 </Suspense>
               }
             />
