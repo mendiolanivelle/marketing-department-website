@@ -40,7 +40,8 @@ export default function AcceptanceCriteria() {
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
-  const [sentSuccess, setSentSuccess] = useState('')
+  const [showSentModal, setShowSentModal] = useState(false)
+
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
 
   const formatId = (sub: Submission): string => {
@@ -291,9 +292,19 @@ export default function AcceptanceCriteria() {
         </a>
       </div>
 
-      {sentSuccess && (
-        <div className="mb-4 px-4 py-3 rounded-xl border text-sm" style={{ backgroundColor: '#F0FFF4', borderColor: '#B8F5C5', color: '#22543D' }}>
-          {sentSuccess}
+      {showSentModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowSentModal(false)}>
+          <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FFF0E6' }}>
+              <svg className="w-8 h-8" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Sent to Ops!</h3>
+            <p className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
+              The ticket has been submitted and is now available for review.
+            </p>
+          </div>
         </div>
       )}
 
@@ -803,8 +814,10 @@ export default function AcceptanceCriteria() {
                         }
                       }
                       setShowSendModal(false)
-                      setSentSuccess(saved ? 'Sent to Ops successfully!' : 'Saved locally (Supabase unavailable)')
-                      setTimeout(() => setSentSuccess(''), 3000)
+                      if (saved) {
+                        setShowSentModal(true)
+                        setTimeout(() => setShowSentModal(false), 4000)
+                      }
                     }}
                     className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
                     style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
