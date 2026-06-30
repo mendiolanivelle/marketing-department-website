@@ -9,10 +9,11 @@ export default function ViewAcceptanceForm() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !id) return
+    if (!id) { setLoading(false); setError('Invalid submission ID'); return }
+    if (!isSupabaseConfigured || !supabase) { setLoading(false); setError('Database not configured'); return }
     ;(async () => {
       try {
-        const { data, error: err } = await supabase
+        const { data, error: err } = await supabase!
           .from('acceptance_forms')
           .select('*')
           .eq('id', id)
@@ -48,9 +49,13 @@ export default function ViewAcceptanceForm() {
           </svg>
         </div>
         <h1 className="text-xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Not Found</h1>
-        <p className="text-sm mb-6 px-6 text-center" style={{ color: '#6B7280', fontWeight: 400 }}>
-          The acceptance criteria form you're looking for doesn't exist or may have been removed. Please check the link or contact the Marketing Department.
+        <p className="text-sm mb-2 px-6 text-center" style={{ color: '#6B7280', fontWeight: 400 }}>
+          {error === 'Form not found'
+            ? 'The acceptance criteria form you\'re looking for doesn\'t exist or may have been removed. Please check the link or contact the Marketing Department.'
+            : error}
         </p>
+        <p className="text-xs mb-6 font-mono" style={{ color: '#9CA3AF', fontWeight: 400 }}>ID: {id}</p>
+        <p className="text-xs mb-6 font-mono" style={{ color: '#9CA3AF', fontWeight: 400 }}>ID: {id}</p>
         <Link to="/" className="px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}>
           Go to Home
         </Link>
