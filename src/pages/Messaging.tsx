@@ -232,7 +232,75 @@ export default function Messaging() {
     const lead = leads.find(l => l.id === id)
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     setLeads(sortLeads(leads.map(l => l.id === id ? { ...l, status, lastContacted: today } : l)))
-    if (lead) logActivity('Lead', `Updated "${lead.name}" status to ${status}`)
+    if (lead) {
+      logActivity('Lead', `Updated "${lead.name}" status to ${status}`)
+      // Auto-create calendar meeting + timeline lead when meeting-booked
+      if (status === 'meeting-booked') {
+        const now = new Date().toISOString()
+        const meetingDate = new Date().toISOString().split('T')[0]
+        // Calendar item
+        const calendarItem = {
+          id: crypto.randomUUID(),
+          title: `Meeting - ${lead.name}`,
+          type: 'meeting',
+          date: meetingDate,
+          start_time: null,
+          end_time: null,
+          description: `Meeting booked with ${lead.name} from ${lead.company}`,
+          location: null,
+          color: '#FF5900',
+          assignees: [],
+          notes: '',
+          created_at: now,
+          updated_at: now,
+        }
+        const savedCalendar = localStorage.getItem('exodia-calendar-items')
+        const calendarItems = savedCalendar ? JSON.parse(savedCalendar) : []
+        calendarItems.push(calendarItem)
+        localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
+        window.dispatchEvent(new CustomEvent('calendar-updated'))
+
+        // Timeline/Onboarding lead
+        const savedTimelineLeads = localStorage.getItem('exodia-timeline-leads')
+        const timelineLeads: any[] = savedTimelineLeads ? JSON.parse(savedTimelineLeads) : []
+        const tableId = 'onboarding-default'
+        timelineLeads.push({
+          id: crypto.randomUUID(),
+          table_id: tableId,
+          company: lead.company,
+          contact: lead.name,
+          email: lead.email,
+          value: '',
+          date: meetingDate,
+          column_key: 'col-1',
+          notes: 'Auto-created from Meeting Booked',
+          attachments: [],
+          email_history: [],
+          created_at: now,
+          updated_at: now,
+        })
+        localStorage.setItem('exodia-timeline-leads', JSON.stringify(timelineLeads))
+
+        // Also try Supabase
+        if (isSupabaseConfigured && supabase) {
+          supabase.from('calendar_items').insert([calendarItem]).then(() => {}).catch(() => {})
+          supabase.from('timeline_leads').insert([{
+            table_id: tableId,
+            company: lead.company,
+            contact: lead.name,
+            email: lead.email,
+            value: '',
+            date: meetingDate,
+            column_key: 'col-1',
+            notes: 'Auto-created from Meeting Booked',
+            attachments: [],
+            email_history: [],
+            created_at: now,
+            updated_at: now,
+          }]).then(() => {}).catch(() => {})
+        }
+      }
+    }
   }
 
   const saveLeadEdit = () => {

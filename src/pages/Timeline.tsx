@@ -83,47 +83,85 @@ export default function Timeline() {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) { setLoading(false); return }
-    try {
-      const { data: tableData, error: tableError } = await supabase
-        .from('timeline_tables')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (tableError) throw tableError
+    // Merge Supabase data + localStorage leads
+    let localTables: TimelineTable[] = []
+    let localLeads: TimelineLead[] = []
 
-      const { data: leadData, error: leadError } = await supabase
-        .from('timeline_leads')
-        .select('*')
-      if (leadError) throw leadError
+    // Read from localStorage fallback
+    const savedTables = localStorage.getItem('exodia-timeline-tables')
+    if (savedTables) {
+      try { localTables = JSON.parse(savedTables) } catch {}
+    }
+    const savedLeads = localStorage.getItem('exodia-timeline-leads')
+    if (savedLeads) {
+      try { localLeads = JSON.parse(savedLeads) } catch {}
+    }
 
-      const parsedTables = (tableData || []).map((t: any) => ({
-        ...t,
-        columns: typeof t.columns === 'string' ? JSON.parse(t.columns) : t.columns,
-      }))
-      const parsedLeads = (leadData || []).map((l: any) => ({
-        ...l,
-        attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
-        email_history: typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || []),
-        last_email_sent: l.last_email_sent || '',
-      }))
+    // Ensure a default onboarding table exists
+    if (localTables.length === 0) {
+      localTables = [{
+        id: 'onboarding-default',
+        title: 'Client Onboarding',
+        columns: defaultColumns(),
+        created_at: new Date().toISOString(),
+      }]
+      localStorage.setItem('exodia-timeline-tables', JSON.stringify(localTables))
+    }
 
-      setTables(parsedTables)
-      setLeads(parsedLeads)
-    } catch (err) {
-      console.error('Error fetching timeline data:', err)
-    } finally { setLoading(false) }
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: tableData, error: tableError } = await supabase
+          .from('timeline_tables')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (!tableError && tableData) {
+          localTables = tableData.map((t: any) => ({
+            ...t,
+            columns: typeof t.columns === 'string' ? JSON.parse(t.columns) : t.columns,
+          }))
+        }
+
+        const { data: leadData, error: leadError } = await supabase
+          .from('timeline_leads')
+          .select('*')
+        if (!leadError && leadData) {
+          localLeads = leadData.map((l: any) => ({
+            ...l,
+            attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
+            email_history: typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || []),
+            last_email_sent: l.last_email_sent || '',
+          }))
+        }
+      } catch (err) {
+        console.error('Error fetching timeline data:', err)
+      }
+    }
+
+    setTables(localTables)
+    setLeads(localLeads)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
     fetchData()
-    if (!isSupabaseConfigured || !supabase) return
+    const interval = setInterval(fetchData, 3000)
+    if (!isSupabaseConfigured || !supabase) return () => clearInterval(interval)
     const channel = supabase
       .channel('timeline_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_tables' }, () => { fetchData() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_leads' }, () => { fetchData() })
       .subscribe()
-    return () => { try { supabase.removeChannel(channel) } catch {} }
+    return () => { try { supabase.removeChannel(channel) } catch {}; clearInterval(interval) }
   }, [fetchData])
+
+  // Persist to localStorage for cross-page sync
+  useEffect(() => {
+    localStorage.setItem('exodia-timeline-tables', JSON.stringify(tables))
+  }, [tables])
+
+  useEffect(() => {
+    localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
+  }, [leads])
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.effectAllowed = 'move'
