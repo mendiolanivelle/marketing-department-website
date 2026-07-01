@@ -51,7 +51,6 @@
     (async () => {
       const SUPABASE_URL = 'https://extkotvjigtswrrnxikw.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o';
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id') || '';
@@ -71,16 +70,44 @@
       }
 
       try {
-        await supabase.auth.signInAnonymously();
+        let sub = null;
 
-        const { data, error } = await supabase
-          .from('acceptance_forms')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
+        // Method 1: Try Supabase JS client with anonymous sign-in
+        try {
+          const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false }
+          });
+          const { data: anonData } = await supabase.auth.signInAnonymously();
+          if (anonData) {
+            const { data: formData, error: queryError } = await supabase
+              .from('acceptance_forms')
+              .select('*')
+              .eq('id', id)
+              .maybeSingle();
+            if (!queryError && formData) {
+              sub = formData;
+            }
+          }
+        } catch (e) {
+          // Anonymous sign-in not available, fall through
+        }
 
-        if (error) throw error;
-        if (!data) {
+        // Method 2: Try edge function (bypasses RLS with service_role)
+        if (!sub) {
+          try {
+            const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
+            if (res.ok) {
+              sub = await res.json();
+            } else if (res.status !== 404) {
+              const errData = await res.json();
+              console.warn('Edge function error:', errData);
+            }
+          } catch (e) {
+            console.warn('Edge function unavailable:', e);
+          }
+        }
+
+        if (!sub) {
           document.getElementById('root').innerHTML = `
             <div class="error-page">
               <div class="error-icon">
@@ -94,8 +121,6 @@
             </div>`;
           return;
         }
-
-        const sub = data;
 
         function Row(label, value) {
           if (!value) value = '\u2014';

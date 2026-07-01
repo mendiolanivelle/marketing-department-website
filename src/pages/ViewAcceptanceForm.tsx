@@ -13,14 +13,30 @@ export default function ViewAcceptanceForm() {
     if (!isSupabaseConfigured || !supabase) { setLoading(false); setError('Database not configured'); return }
     ;(async () => {
       try {
-        await supabase!.auth.signInAnonymously()
+        const apiUrl = import.meta.env.VITE_SUPABASE_URL
+        let data = null
 
-        const { data, error: err } = await supabase!
-          .from('acceptance_forms')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle()
-        if (err) throw err
+        // Method 1: Try edge function (bypasses RLS)
+        try {
+          const res = await fetch(apiUrl + '/functions/v1/get-public-form?id=' + encodeURIComponent(id))
+          if (res.ok) {
+            data = await res.json()
+          }
+        } catch (_) {}
+
+        // Method 2: Try Supabase client with anonymous sign-in
+        if (!data) {
+          try {
+            await supabase!.auth.signInAnonymously()
+            const { data: d, error: e } = await supabase!
+              .from('acceptance_forms')
+              .select('*')
+              .eq('id', id)
+              .maybeSingle()
+            if (!e && d) data = d
+          } catch (_) {}
+        }
+
         if (!data) { setError('Form not found'); return }
         setSub(data)
       } catch (err: any) {
