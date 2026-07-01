@@ -15,15 +15,6 @@ interface OutreachLead {
   lastContacted: string
   notes: string
   photoUrl?: string
-  folderId?: string
-}
-
-interface OutreachFolder {
-  id: string
-  title: string
-  sourceFileId: string
-  sourceFileName: string
-  createdAt: string
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -134,21 +125,7 @@ export default function Messaging() {
     localStorage.setItem('exodia-outreach-leads', JSON.stringify(leads))
   }, [leads])
 
-  // === Folder State (synced from Lead Generation) ===
-  const [folders, setFolders] = useState<OutreachFolder[]>(() => {
-    const saved = localStorage.getItem('exodia-outreach-folders')
-    return saved ? JSON.parse(saved) : []
-  })
-
-  useEffect(() => {
-    localStorage.setItem('exodia-outreach-folders', JSON.stringify(folders))
-  }, [folders])
-
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
-
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
-
-  // Sync Lead Generation files → folders + leads
+  // Sync leads from Lead Generation files
   useEffect(() => {
     const syncLeadFiles = () => {
       const savedFiles = localStorage.getItem('exodia-lead-files')
@@ -156,28 +133,27 @@ export default function Messaging() {
       let leadFiles: any[]
       try { leadFiles = JSON.parse(savedFiles) } catch { return }
 
-      // Read latest state from localStorage to avoid stale closures
       const currentLeadsRaw = localStorage.getItem('exodia-outreach-leads')
       const currentLeads: OutreachLead[] = currentLeadsRaw ? JSON.parse(currentLeadsRaw) : []
-      const currentFoldersRaw = localStorage.getItem('exodia-outreach-folders')
-      const currentFolders: OutreachFolder[] = currentFoldersRaw ? JSON.parse(currentFoldersRaw) : []
 
-      const syncedFileIds = new Set(currentFolders.map(f => f.sourceFileId))
+      const syncedFileIds: string[] = []
+      try {
+        const saved = localStorage.getItem('exodia-synced-lead-files')
+        if (saved) syncedFileIds.push(...JSON.parse(saved))
+      } catch {}
+
       let newLeads: OutreachLead[] = []
-      let newFolders: OutreachFolder[] = []
+      const newlySynced: string[] = []
       let maxId = currentLeads.length > 0 ? Math.max(...currentLeads.map(l => l.id)) : 0
 
       for (const file of leadFiles) {
-        if (syncedFileIds.has(file.id)) continue
+        if (syncedFileIds.includes(file.id)) continue
 
         const cols = (file.columns as string[]) || []
         const nameCol = cols.find(c => /name|contact/i.test(c)) || ''
         const emailCol = cols.find(c => /email/i.test(c)) || ''
         const companyCol = cols.find(c => /company|organization|studio/i.test(c)) || ''
         const roleCol = cols.find(c => /role|position|title/i.test(c)) || ''
-
-        const folderId = crypto.randomUUID()
-        const folderTitle = `MKTG - LEAD ${file.id.slice(0, 8).toUpperCase()}`
 
         const savedRows = localStorage.getItem(`exodia-lead-rows-${file.id}`)
         if (savedRows) {
@@ -200,32 +176,24 @@ export default function Messaging() {
                   status: 'pending',
                   lastContacted: '',
                   notes: '',
-                  folderId,
                 })
               }
             }
           } catch {}
         }
 
-        newFolders.push({
-          id: folderId,
-          title: folderTitle,
-          sourceFileId: file.id,
-          sourceFileName: file.name,
-          createdAt: new Date().toISOString(),
-        })
+        newlySynced.push(file.id)
       }
 
-      if (newFolders.length > 0) {
-        setFolders(prev => [...newFolders, ...prev])
-      }
       if (newLeads.length > 0) {
         setLeads(prev => [...newLeads, ...prev])
+      }
+      if (newlySynced.length > 0) {
+        localStorage.setItem('exodia-synced-lead-files', JSON.stringify([...syncedFileIds, ...newlySynced]))
       }
     }
 
     syncLeadFiles()
-
     const interval = setInterval(syncLeadFiles, 3000)
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -632,94 +600,7 @@ export default function Messaging() {
           e.target.value = ''
         }} />
         <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-          {/* Folder view header */}
-          {selectedFolderId ? (
-            (() => {
-              const folder = folders.find(f => f.id === selectedFolderId)
-              if (!folder) { setSelectedFolderId(null); return null }
-              const folderLeads = filtered.filter(l => l.folderId === selectedFolderId)
-              return (
-                <>
-                  <button
-                    onClick={() => setSelectedFolderId(null)}
-                    className="flex items-center gap-2 text-xs mb-4 transition hover:opacity-70"
-                    style={{ color: 'var(--accent)', fontWeight: 500 }}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to All Leads
-                  </button>
-                  <div className="flex items-center gap-3 p-4 rounded-xl mb-4 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}>
-                    <svg className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{folder.title}</p>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{folderLeads.length} leads · {folder.sourceFileName}</p>
-                    </div>
-                  </div>
-                  {folderLeads.map(renderLeadCard)}
-                </>
-              )
-            })()
-          ) : (
-            (() => {
-              // Group leads by folder
-              const grouped: { folder?: OutreachFolder; leads: typeof filtered }[] = []
-              const uncategorized: typeof filtered = []
-              const folderMap = new Map(folders.map(f => [f.id, f]))
-
-              for (const lead of filtered) {
-                if (lead.folderId && folderMap.has(lead.folderId)) {
-                  let group = grouped.find(g => g.folder?.id === lead.folderId)
-                  if (!group) {
-                    group = { folder: folderMap.get(lead.folderId)!, leads: [] }
-                    grouped.push(group)
-                  }
-                  group.leads.push(lead)
-                } else {
-                  uncategorized.push(lead)
-                }
-              }
-
-              return [...grouped, ...(uncategorized.length > 0 ? [{ folder: undefined, leads: uncategorized }] : [])].map((group) => {
-                const isFolder = !!group.folder
-                const folderId = group.folder?.id || ''
-
-                return (
-                  <div key={folderId || 'uncategorized'}>
-                    {isFolder ? (
-                      <div
-                        onClick={() => setSelectedFolderId(folderId)}
-                        className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition hover:-translate-y-0.5 theme-transition"
-                        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}
-                      >
-                        <svg className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                          <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{group.folder!.title}</p>
-                          <p className="text-xs truncate" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{group.leads.length} leads · {group.folder!.sourceFileName}</p>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded-md font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>{group.leads.length}</span>
-                        <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    ) : uncategorized.length > 0 && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-secondary)' }} />
-                        <span className="text-xs px-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Quick Leads</span>
-                        <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-secondary)' }} />
-                      </div>
-                    )}
-                    {!isFolder && group.leads.map(renderLeadCard)}
-                  </div>
-                )
-              })
-            })()
-          )}
+          {filtered.map(renderLeadCard)}
           {filtered.length === 0 && (
             <div className="text-center py-12">
               <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No leads found. Add one to get started.</p>
