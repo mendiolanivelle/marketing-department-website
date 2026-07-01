@@ -49,10 +49,10 @@ export default function MarketingRequests() {
             Need marketing support? Have a question about brand guidelines? Reach us through the channels below.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C33)' }}>
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #EA4335, #FB8861)' }}>
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                 </svg>
               </div>
               <div>
@@ -60,10 +60,10 @@ export default function MarketingRequests() {
                 <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>maxene_pableo@exodiagamedev.com</p>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C33)' }}>
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #4A154B, #7B2D8E)' }}>
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 15.5C6 17.43 4.93 19 3.5 19S1 17.43 1 15.5 2.07 12 3.5 12 6 13.57 6 15.5M6 8.5C6 10.43 4.93 12 3.5 12S1 10.43 1 8.5 2.07 5 3.5 5 6 6.57 6 8.5M9 12c0 1.93 1.07 3.5 2.5 3.5S14 13.93 14 12s-1.07-3.5-2.5-3.5S9 10.07 9 12m6-3.5c0 1.93 1.07 3.5 2.5 3.5S20 10.43 20 8.5 18.93 5 17.5 5 15 6.57 15 8.5m2.5 6c-1.43 0-2.5 1.57-2.5 3.5s1.07 3.5 2.5 3.5 2.5-1.57 2.5-3.5-1.07-3.5-2.5-3.5z" />
                 </svg>
               </div>
               <div>
@@ -71,11 +71,10 @@ export default function MarketingRequests() {
                 <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>#marketing-requests</p>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C33)' }}>
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #0078D4, #00BCF2)' }}>
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
                 </svg>
               </div>
               <div>
