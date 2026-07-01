@@ -116,13 +116,6 @@ export default function LeadGeneration() {
   const [cellFormats, setCellFormats] = useState<Record<string, CellFormat>>({})
   const [selectedRange, setSelectedRange] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number } | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
-  const [leadStats, setLeadStats] = useState({
-    totalLeads: 0,
-    emailsSent: 0,
-    replied: 0,
-    noReply: 0,
-    meetingsLeft: 0,
-  })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [duplicateModal, setDuplicateModal] = useState<{
     type: 'upload' | 'cell-edit' | 'in-file'
@@ -243,108 +236,6 @@ export default function LeadGeneration() {
 
   // Persist files to localStorage on every change
   useEffect(() => { localStorage.setItem('exodia-lead-files', JSON.stringify(files)) }, [files])
-
-  const computeStats = (files: LeadFile[], allRows: { file_id: string; data: Record<string, string> }[]) => {
-    const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
-    const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
-    if (nonDuplicateFileIds.length === 0) return { totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
-
-    const fileRows = allRows.filter(r => nonDuplicateFileIds.includes(r.file_id))
-    let totalLeads = 0, emailsSent = 0, replied = 0, noReply = 0, meetingsLeft = 0
-
-    fileRows.forEach((row) => {
-      const data = row.data as Record<string, string>
-      const file = nonDuplicateFiles.find(f => f.id === row.file_id)
-      if (!file) return
-      const columns = file.columns as string[]
-      const companyCol = columns.find(col => col.toLowerCase().includes('company'))
-      const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
-      const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
-
-      if (companyCol && data[companyCol]?.trim()) totalLeads++
-      if (emailStatusCol && data[emailStatusCol]) {
-        const val = data[emailStatusCol].trim().toLowerCase()
-        if (val === 'email sent' || val === 'sent') emailsSent++
-      }
-      if (leadStatusCol && data[leadStatusCol]) {
-        const status = data[leadStatusCol].toLowerCase()
-        if (status.includes('replied')) replied++
-        if (status.includes('no reply')) noReply++
-        if (status.includes('meeting booked')) meetingsLeft++
-      }
-    })
-    return { totalLeads, emailsSent, replied, noReply, meetingsLeft }
-  }
-
-  const fetchLeadStats = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      // localStorage mode — compute stats from localStorage
-      const savedFiles = localStorage.getItem('exodia-lead-files')
-      if (!savedFiles) return
-      const files: LeadFile[] = JSON.parse(savedFiles)
-      let allRows: { file_id: string; data: Record<string, string> }[] = []
-      for (const f of files) {
-        const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
-        if (savedRows) {
-          try { allRows.push(...JSON.parse(savedRows).map((r: any) => ({ file_id: r.file_id, data: r.data }))) } catch {}
-        }
-      }
-      setLeadStats(computeStats(files, allRows))
-      return
-    }
-
-    try {
-      const { data: files, error: filesError } = await supabase
-        .from('lead_files')
-        .select('id, name, columns')
-
-      if (filesError) throw filesError
-      if (!files || files.length === 0) return
-
-      const nonDuplicateFileIds = files.filter(f => f.name !== 'Duplicate Leads').map(f => f.id)
-
-      if (nonDuplicateFileIds.length === 0) {
-        setLeadStats({ totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 })
-        return
-      }
-
-      const { data: allRows, error: rowsError } = await supabase
-        .from('lead_rows')
-        .select('file_id, data')
-        .in('file_id', nonDuplicateFileIds)
-
-      if (rowsError) throw rowsError
-      if (!allRows) return
-
-      setLeadStats(computeStats(files, allRows))
-    } catch (err) {
-      console.error('Error fetching lead stats:', err)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchLeadStats()
-    if (!isSupabaseConfigured || !supabase) {
-      // Poll localStorage every 3s for stat changes (syncs across tabs)
-      const interval = setInterval(fetchLeadStats, 3000)
-      return () => clearInterval(interval)
-    }
-
-    const filesChannel = supabase
-      .channel('lead_files_leads')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_files' }, () => { fetchLeadStats() })
-      .subscribe()
-
-    const rowsChannel = supabase
-      .channel('lead_rows_leads')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_rows' }, () => { fetchLeadStats() })
-      .subscribe()
-
-    return () => {
-      try { supabase.removeChannel(filesChannel) } catch {}
-      try { supabase.removeChannel(rowsChannel) } catch {}
-    }
-  }, [fetchLeadStats])
 
   // Persist rows to localStorage on every change
   useEffect(() => {
@@ -593,7 +484,6 @@ export default function LeadGeneration() {
 
       setFiles(prev => [newFile, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
-      fetchLeadStats()
       logActivity('LeadGen', `Uploaded "${newFile.name}" (${parsedRows.length} rows)`)
     } catch (err) {
       console.error('Error uploading CSV:', err)
@@ -635,7 +525,6 @@ export default function LeadGeneration() {
       setFiles(prev => [newFile, ...prev])
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
-      fetchLeadStats()
       logActivity('LeadGen', `Created spreadsheet "${name}"`)
     } catch (err) {
       console.error('Error creating spreadsheet:', err)
@@ -1314,29 +1203,6 @@ if (supabase) {
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Lead Generation</h1>
           <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Upload CSV files or create spreadsheets to manage your leads</p>
-        </div>
-
-        {/* Lead Pipeline Dashboard */}
-        <div
-          className="block rounded-2xl border-2 exodia-card p-4 sm:p-8 mb-6 sm:mb-8 hover:shadow-md transition-all theme-transition"
-          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-        >
-          <h2 className="text-lg sm:text-xl mb-4 sm:mb-6 text-left" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Pipeline</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
-            {[
-              { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
-              { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
-              { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
-              { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
-              { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
-            ].map((stat, i) => (
-              <div key={i} className="p-3 sm:p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                <div className="text-xs sm:text-sm mb-1" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>
-                <div className="text-2xl sm:text-3xl" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{stat.sub}</div>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
