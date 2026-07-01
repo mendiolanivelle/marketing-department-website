@@ -1,5 +1,58 @@
 import { useState } from 'react'
 
+const MONTH_MAP: Record<string, string> = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+  Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
+}
+
+function parseCampaignDate(due: string): string {
+  const parts = due.split(' ')
+  if (parts.length === 2 && MONTH_MAP[parts[0]]) {
+    const year = new Date().getFullYear()
+    return `${year}-${MONTH_MAP[parts[0]]}-${String(parseInt(parts[1])).padStart(2, '0')}`
+  }
+  return new Date().toISOString().slice(0, 10)
+}
+
+function addToCalendar(campaign: Campaign) {
+  const key = 'exodia-calendar-items'
+  const saved = localStorage.getItem(key)
+  const items = saved ? JSON.parse(saved) : []
+  const newItem = {
+    id: crypto.randomUUID(),
+    title: campaign.name,
+    type: 'task',
+    date: parseCampaignDate(campaign.due),
+    start_time: null,
+    end_time: null,
+    description: `Campaign for ${campaign.dept}`,
+    location: null,
+    color: '#1a73e8',
+    assignees: [],
+    notes: `Status: ${campaign.status}`,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+  items.push(newItem)
+  localStorage.setItem(key, JSON.stringify(items))
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('New Campaign Created', { body: `${campaign.name} — Due: ${campaign.due}` })
+  }
+}
+
+function removeFromCalendar(campaignName: string) {
+  const key = 'exodia-calendar-items'
+  const saved = localStorage.getItem(key)
+  if (!saved) return
+  const items = JSON.parse(saved).filter((i: any) => i.title !== campaignName)
+  localStorage.setItem(key, JSON.stringify(items))
+}
+
+function updateInCalendar(oldName: string, campaign: Campaign) {
+  removeFromCalendar(oldName)
+  addToCalendar(campaign)
+}
+
 interface Campaign {
   id: number
   name: string
@@ -21,14 +74,20 @@ export default function Campaigns() {
   })
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
+  const [editOldName, setEditOldName] = useState('')
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: '' })
 
   const addCampaign = () => {
     if (!form.name.trim()) return
     const id = campaigns.length > 0 ? Math.max(...campaigns.map(c => c.id)) + 1 : 1
-    const updated = [...campaigns, { ...form, id }]
+    const campaign = { ...form, id }
+    const updated = [...campaigns, campaign]
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    addToCalendar(campaign)
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
     setShowAdd(false)
     setForm({ name: '', dept: '', status: 'Pending', due: '' })
   }
@@ -36,6 +95,7 @@ export default function Campaigns() {
   const editCampaign = (camp: Campaign) => {
     setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: camp.due })
     setEditId(camp.id)
+    setEditOldName(camp.name)
   }
 
   const saveEdit = () => {
@@ -43,14 +103,18 @@ export default function Campaigns() {
     const updated = campaigns.map(c => c.id === editId ? { ...c, ...form } : c)
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    updateInCalendar(editOldName, { ...form, id: editId } as Campaign)
     setEditId(null)
+    setEditOldName('')
     setForm({ name: '', dept: '', status: 'Pending', due: '' })
   }
 
   const deleteCampaign = (id: number) => {
+    const camp = campaigns.find(c => c.id === id)
     const updated = campaigns.filter(c => c.id !== id)
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    if (camp) removeFromCalendar(camp.name)
   }
 
   const statusCounts = {
