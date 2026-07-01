@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 interface Submission {
@@ -39,6 +39,14 @@ export default function AcceptanceCriteria() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
+  const [filterType, setFilterType] = useState<string | null>(null)
+
+  const filteredSubmissions = useMemo(() => {
+    if (!filterType || filterType === 'Total') return submissions
+    return submissions.filter(s =>
+      filterType === 'Staff Aug' ? s.project_type === 'Staff Augmentation' : s.project_type === filterType
+    )
+  }, [submissions, filterType])
   const [showSendModal, setShowSendModal] = useState(false)
   const [showSentModal, setShowSentModal] = useState(false)
   const [sentTicketLink, setSentTicketLink] = useState('')
@@ -340,22 +348,18 @@ export default function AcceptanceCriteria() {
       {/* Stats row */}
       {!loading && submissions.length > 0 && (
         <div className="flex gap-3 sm:gap-4 mb-4 flex-wrap">
-          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Total</span>
-            <span className="ml-2 text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{submissions.length}</span>
-          </div>
-          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Sent to Ops</span>
-            <span className="ml-2 text-sm font-bold" style={{ color: '#FF5900' }}>{sentCount}</span>
-          </div>
-          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Project Base</span>
-            <span className="ml-2 text-sm font-bold" style={{ color: 'var(--accent)' }}>{submissions.filter(s => s.project_type === 'Project Base').length}</span>
-          </div>
-          <div className="px-4 py-2 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Staff Aug</span>
-            <span className="ml-2 text-sm font-bold" style={{ color: '#2563EB' }}>{submissions.filter(s => s.project_type === 'Staff Augmentation').length}</span>
-          </div>
+          <button onClick={() => setFilterType(null)} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === null ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === null ? '#FFFFFF' : 'var(--text-primary)' }}>
+            <span className="text-xs" style={{ opacity: 0.7 }}>Total</span>
+            <span className="ml-2 text-sm font-bold">{submissions.length}</span>
+          </button>
+          <button onClick={() => setFilterType('Project Base')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Project Base' ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Project Base' ? '#FFFFFF' : 'var(--text-primary)' }}>
+            <span className="text-xs" style={{ opacity: 0.7 }}>Project Base</span>
+            <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Project Base').length}</span>
+          </button>
+          <button onClick={() => setFilterType('Staff Aug')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Staff Aug' ? '#2563EB' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Staff Aug' ? '#FFFFFF' : 'var(--text-primary)' }}>
+            <span className="text-xs" style={{ opacity: 0.7 }}>Staff Aug</span>
+            <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Staff Augmentation').length}</span>
+          </button>
         </div>
       )}
 
@@ -363,12 +367,12 @@ export default function AcceptanceCriteria() {
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
         </div>
-      ) : submissions.length === 0 ? (
+      ) : filteredSubmissions.length === 0 ? (
         <div className="text-center py-20">
           <svg className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No submissions yet. Share the public form link to start receiving entries.</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{filterType ? `No ${filterType} submissions found.` : 'No submissions yet. Share the public form link to start receiving entries.'}</p>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Public link: /acceptance-form</p>
         </div>
       ) : (
@@ -391,7 +395,7 @@ export default function AcceptanceCriteria() {
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((sub) => (
+                {filteredSubmissions.map((sub) => (
                   <tr
                     key={sub.id}
                     onClick={() => setSelectedSubmission(sub)}
