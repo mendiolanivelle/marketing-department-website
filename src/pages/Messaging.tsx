@@ -238,6 +238,23 @@ export default function Messaging() {
       if (status === 'meeting-booked') {
         const now = new Date().toISOString()
         const meetingDate = new Date().toISOString().split('T')[0]
+
+        // Find the Introductory Call column in the onboarding table
+        let targetColumnKey = 'col-1'
+        try {
+          const savedTables = localStorage.getItem('exodia-timeline-tables')
+          if (savedTables) {
+            const tables = JSON.parse(savedTables)
+            const onboardingTable = tables.find((t: any) => t.id === 'onboarding-default') || tables[0]
+            if (onboardingTable?.columns) {
+              const introCol = onboardingTable.columns.find((c: any) =>
+                /introductory|intro call|discovery/i.test(c.label)
+              )
+              if (introCol) targetColumnKey = introCol.key
+            }
+          }
+        } catch {}
+
         // Calendar item
         const calendarItem = {
           id: crypto.randomUUID(),
@@ -272,7 +289,7 @@ export default function Messaging() {
           email: lead.email,
           value: '',
           date: meetingDate,
-          column_key: 'col-1',
+          column_key: targetColumnKey,
           notes: 'Auto-created from Meeting Booked',
           attachments: [],
           email_history: [],
@@ -291,7 +308,7 @@ export default function Messaging() {
             email: lead.email,
             value: '',
             date: meetingDate,
-            column_key: 'col-1',
+            column_key: targetColumnKey,
             notes: 'Auto-created from Meeting Booked',
             attachments: [],
             email_history: [],
