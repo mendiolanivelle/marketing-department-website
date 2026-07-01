@@ -841,7 +841,6 @@ setEmailBody('')
                     { key: 'notes', label: 'Notes', count: selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()).length : 0 },
                     { key: 'checklist', label: 'Checklist', count: selectedLead.checklist ? selectedLead.checklist.length : 0 },
                     { key: 'attachments', label: 'Attachments & Links', count: selectedLead.attachments.length },
-                    { key: 'email', label: 'Send Email' },
                   ]
                   return (
                     <>
@@ -953,20 +952,6 @@ setEmailBody('')
                           <button onClick={() => setShowAddPopup('attachment')} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Link</button>
                         </div>
                       )}
-
-                      {/* Send Email Tab */}
-                      {activeRightTab === 'email' && (
-                        <div>
-                          <button
-                            onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition"
-                            style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                            Compose Email to {selectedLead.contact}
-                          </button>
-                        </div>
-                      )}
                     </>
                   )
                 })()}
@@ -986,9 +971,19 @@ setEmailBody('')
                       <div className="flex gap-2 justify-end">
                         <button onClick={() => { setShowAddPopup(null); setAddPopupValue('') }} className="px-3 py-1.5 text-xs rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                         <button onClick={() => { showAddPopup === 'note' ? addNote() : showAddPopup === 'checklist' ? addChecklistItem() : addAttachment() }} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
-                      </div>
-                    </div>
-                  </div>
+</div>
+                </div>
+
+                {/* Send Email */}
+                <button
+                  onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition mt-4"
+                  style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  Compose Email to {selectedLead.contact}
+                </button>
+              </div>
                 )}
               </div>
             </div>
