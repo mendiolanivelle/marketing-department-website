@@ -1065,7 +1065,8 @@ setEmailBody('')
 
 {/* Timeline Tables */}
       <div className="space-y-6">
-        {filteredTables.map((table) => (
+        {filteredTables.map((table) => {
+            return (
           <div key={table.id} className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
             <div className="p-4 sm:p-6">
@@ -1285,7 +1286,7 @@ setEmailBody('')
               })}
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       {filteredTables.length === 0 && (
