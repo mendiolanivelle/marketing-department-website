@@ -212,6 +212,20 @@ export default function Messaging() {
   const memberFileRef = useRef<HTMLInputElement>(null)
   const [photoTarget, setPhotoTarget] = useState<number | 'edit' | null>(null)
 
+  // Meeting booking modal
+  const [showMeetingModal, setShowMeetingModal] = useState(false)
+  const [meetingBookLead, setMeetingBookLead] = useState<OutreachLead | null>(null)
+  const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0])
+  const [meetingTime, setMeetingTime] = useState('')
+
+  // Notifications
+  const [notifications, setNotifications] = useState<{ id: string; message: string; type: string }[]>([])
+  const addNotification = (message: string, type = 'success') => {
+    const id = crypto.randomUUID()
+    setNotifications(prev => [...prev, { id, message, type }])
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 4000)
+  }
+
   // === Reach Out Functions ===
   const addLead = () => {
     if (!newLead.name.trim() || !newLead.email.trim()) return
@@ -234,90 +248,100 @@ export default function Messaging() {
     setLeads(sortLeads(leads.map(l => l.id === id ? { ...l, status, lastContacted: today } : l)))
     if (lead) {
       logActivity('Lead', `Updated "${lead.name}" status to ${status}`)
-      // Auto-create calendar meeting + timeline lead when meeting-booked
       if (status === 'meeting-booked') {
-        const now = new Date().toISOString()
-        const meetingDate = new Date().toISOString().split('T')[0]
-
-        // Find the Introductory Call column in the onboarding table
-        let targetColumnKey = 'col-1'
-        try {
-          const savedTables = localStorage.getItem('exodia-timeline-tables')
-          if (savedTables) {
-            const tables = JSON.parse(savedTables)
-            const onboardingTable = tables.find((t: any) => t.id === 'onboarding-default') || tables[0]
-            if (onboardingTable?.columns) {
-              const introCol = onboardingTable.columns.find((c: any) =>
-                /introductory|intro call|discovery/i.test(c.label)
-              )
-              if (introCol) targetColumnKey = introCol.key
-            }
-          }
-        } catch {}
-
-        // Calendar item
-        const calendarItem = {
-          id: crypto.randomUUID(),
-          title: `Meeting - ${lead.name}`,
-          type: 'meeting',
-          date: meetingDate,
-          start_time: null,
-          end_time: null,
-          description: `Meeting booked with ${lead.name} from ${lead.company}`,
-          location: null,
-          color: '#FF5900',
-          assignees: [],
-          notes: '',
-          created_at: now,
-          updated_at: now,
-        }
-        const savedCalendar = localStorage.getItem('exodia-calendar-items')
-        const calendarItems = savedCalendar ? JSON.parse(savedCalendar) : []
-        calendarItems.push(calendarItem)
-        localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
-        window.dispatchEvent(new CustomEvent('calendar-updated'))
-
-        // Timeline/Onboarding lead
-        const savedTimelineLeads = localStorage.getItem('exodia-timeline-leads')
-        const timelineLeads: any[] = savedTimelineLeads ? JSON.parse(savedTimelineLeads) : []
-        const tableId = 'onboarding-default'
-        timelineLeads.push({
-          id: crypto.randomUUID(),
-          table_id: tableId,
-          company: lead.company,
-          contact: lead.name,
-          email: lead.email,
-          value: '',
-          date: meetingDate,
-          column_key: targetColumnKey,
-          notes: 'Auto-created from Meeting Booked',
-          attachments: [],
-          email_history: [],
-          created_at: now,
-          updated_at: now,
-        })
-        localStorage.setItem('exodia-timeline-leads', JSON.stringify(timelineLeads))
-
-        // Also try Supabase
-        if (isSupabaseConfigured && supabase) {
-          supabase.from('calendar_items').insert([calendarItem]).then(() => {}).catch(() => {})
-          supabase.from('timeline_leads').insert([{
-            table_id: tableId,
-            company: lead.company,
-            contact: lead.name,
-            email: lead.email,
-            value: '',
-            date: meetingDate,
-            column_key: targetColumnKey,
-            notes: 'Auto-created from Meeting Booked',
-            attachments: [],
-            email_history: [],
-            created_at: now,
-            updated_at: now,
-          }]).then(() => {}).catch(() => {})
-        }
+        setMeetingBookLead(lead)
+        setMeetingDate(new Date().toISOString().split('T')[0])
+        setMeetingTime('')
+        setShowMeetingModal(true)
       }
     }
+  }
+
+  const confirmMeetingBooking = () => {
+    if (!meetingBookLead || !meetingDate) return
+    const lead = meetingBookLead
+    const now = new Date().toISOString()
+
+    // Find the Introductory Call column
+    let targetColumnKey = 'col-1'
+    try {
+      const savedTables = localStorage.getItem('exodia-timeline-tables')
+      if (savedTables) {
+        const tables = JSON.parse(savedTables)
+        const onboardingTable = tables.find((t: any) => t.id === 'onboarding-default') || tables[0]
+        if (onboardingTable?.columns) {
+          const introCol = onboardingTable.columns.find((c: any) =>
+            /introductory|intro call|discovery/i.test(c.label)
+          )
+          if (introCol) targetColumnKey = introCol.key
+        }
+      }
+    } catch {}
+
+    // Calendar item
+    const calendarItem = {
+      id: crypto.randomUUID(),
+      title: `Meeting - ${lead.name}`,
+      type: 'meeting',
+      date: meetingDate,
+      start_time: meetingTime || null,
+      end_time: null,
+      description: `Meeting booked with ${lead.name} from ${lead.company}`,
+      location: null,
+      color: '#FF5900',
+      assignees: [],
+      notes: '',
+      created_at: now,
+      updated_at: now,
+    }
+    const savedCalendar = localStorage.getItem('exodia-calendar-items')
+    const calendarItems = savedCalendar ? JSON.parse(savedCalendar) : []
+    calendarItems.push(calendarItem)
+    localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
+    window.dispatchEvent(new CustomEvent('calendar-updated'))
+
+    // Timeline/Onboarding lead
+    const savedTimelineLeads = localStorage.getItem('exodia-timeline-leads')
+    const timelineLeads: any[] = savedTimelineLeads ? JSON.parse(savedTimelineLeads) : []
+    timelineLeads.push({
+      id: crypto.randomUUID(),
+      table_id: 'onboarding-default',
+      company: lead.company,
+      contact: lead.name,
+      email: lead.email,
+      value: '',
+      date: meetingDate,
+      column_key: targetColumnKey,
+      notes: 'Auto-created from Meeting Booked',
+      attachments: [],
+      email_history: [],
+      created_at: now,
+      updated_at: now,
+    })
+    localStorage.setItem('exodia-timeline-leads', JSON.stringify(timelineLeads))
+
+    // Also try Supabase
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('calendar_items').insert([calendarItem]).then(() => {}).catch(() => {})
+      supabase.from('timeline_leads').insert([{
+        table_id: 'onboarding-default',
+        company: lead.company,
+        contact: lead.name,
+        email: lead.email,
+        value: '',
+        date: meetingDate,
+        column_key: targetColumnKey,
+        notes: 'Auto-created from Meeting Booked',
+        attachments: [],
+        email_history: [],
+        created_at: now,
+        updated_at: now,
+      }]).then(() => {}).catch(() => {})
+    }
+
+    setShowMeetingModal(false)
+    setMeetingBookLead(null)
+    addNotification(`Meeting booked with ${lead.name} on ${meetingDate}${meetingTime ? ' at ' + meetingTime : ''}`)
   }
 
   const saveLeadEdit = () => {
@@ -988,6 +1012,71 @@ export default function Messaging() {
           </>
         )}
       </div>
+
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-[60] flex flex-col gap-2 max-w-sm">
+          {notifications.map(n => (
+            <div
+              key={n.id}
+              className="px-4 py-3 rounded-xl shadow-lg text-sm animate-slide-in"
+              style={{ backgroundColor: n.type === 'success' ? '#0B8043' : '#DC2626', color: '#FFF' }}
+            >
+              <div className="flex items-center gap-2">
+                {n.type === 'success' ? (
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+                {n.message}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Meeting Booking Modal */}
+      {showMeetingModal && meetingBookLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowMeetingModal(false)}>
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Book Meeting</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Set the date and time for the meeting with <strong>{meetingBookLead.name}</strong>.</p>
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Meeting Date</label>
+            <input
+              type="date"
+              value={meetingDate}
+              onChange={(e) => setMeetingDate(e.target.value)}
+              className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+            />
+            <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Meeting Time (optional)</label>
+            <input
+              type="time"
+              value={meetingTime}
+              onChange={(e) => setMeetingTime(e.target.value)}
+              className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => {
+                // Revert status to previous on cancel
+                if (meetingBookLead) {
+                  const prevIdx = statusCycle.indexOf('meeting-booked') - 1
+                  if (prevIdx >= 0) {
+                    setLeads(prev => prev.map(l => l.id === meetingBookLead.id ? { ...l, status: statusCycle[prevIdx], lastContacted: '' } : l))
+                  }
+                }
+                setShowMeetingModal(false); setMeetingBookLead(null)
+              }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={confirmMeetingBooking} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Confirm Booking</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
