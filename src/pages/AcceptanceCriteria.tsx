@@ -744,7 +744,7 @@ export default function AcceptanceCriteria() {
                   onClick={async () => {
                       setSendForm({
                         to: selectedSubmission.email || '',
-                        subject: 'Forwarded Acceptance Criteria: ' + (selectedSubmission.project_name || 'Untitled') + ' (Ref: ' + formatId(selectedSubmission) + ')',
+                        subject: 'Forwarded Acceptance Criteria | ' + (selectedSubmission.project_name || 'Untitled') + ' (Ref: ' + formatId(selectedSubmission) + ')',
                         body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
                         additionalAttachments: [],
                       })
