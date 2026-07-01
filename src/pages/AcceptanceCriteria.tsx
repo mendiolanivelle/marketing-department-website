@@ -53,6 +53,12 @@ export default function AcceptanceCriteria() {
   const [sentCount, setSentCount] = useState(0)
 
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', additionalAttachments: [] as string[] })
+  const [savedEmails, setSavedEmails] = useState<string[]>(() => {
+    try { const s = localStorage.getItem('exodia-ops-emails'); return s ? JSON.parse(s) : [] } catch { return [] }
+  })
+  const [showEmailManager, setShowEmailManager] = useState(false)
+  const [emailManagerValue, setEmailManagerValue] = useState('')
+  const [emailManagerEditIdx, setEmailManagerEditIdx] = useState<number | null>(null)
 
   const formatId = (sub: Submission): string => {
     if (sub.tracking_id) return sub.tracking_id
@@ -290,6 +296,10 @@ export default function AcceptanceCriteria() {
       try { supabase.removeChannel(channel) } catch {}
     }
   }, [])
+
+  useEffect(() => {
+    localStorage.setItem('exodia-ops-emails', JSON.stringify(savedEmails))
+  }, [savedEmails])
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -743,7 +753,7 @@ export default function AcceptanceCriteria() {
                 <button
                   onClick={async () => {
                       setSendForm({
-                        to: selectedSubmission.email || '',
+                        to: '',
                         subject: 'Forwarded Acceptance Criteria | ' + (selectedSubmission.project_name || 'Untitled') + ' (Ref: ' + formatId(selectedSubmission) + ')',
                         body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
                         additionalAttachments: [],
@@ -779,8 +789,141 @@ export default function AcceptanceCriteria() {
                 {/* Left: Form fields */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Address</label>
-                    <input type="email" value={sendForm.to} onChange={(e) => setSendForm({ ...sendForm, to: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="ops@exodiagamedev.com" />
+                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Send to Email</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="email"
+                          value={sendForm.to}
+                          onChange={(e) => setSendForm({ ...sendForm, to: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm"
+                          style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                          placeholder="ops@exodiagamedev.com"
+                          list="ops-email-list"
+                        />
+                        {savedEmails.length > 0 && (
+                          <datalist id="ops-email-list">
+                            {savedEmails.map((email, i) => (
+                              <option key={i} value={email} />
+                            ))}
+                          </datalist>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => { setEmailManagerValue(''); setEmailManagerEditIdx(null); setShowEmailManager(true) }}
+                          className="px-3 py-2.5 border rounded-lg text-sm transition hover:bg-gray-50 flex items-center gap-1.5"
+                          style={{ borderColor: '#D1D5DB', color: '#374151' }}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                          Emails
+                          <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FFF0E6', color: '#FF5900', fontWeight: 600 }}>{savedEmails.length}</span>
+                        </button>
+                        {showEmailManager && (
+                          <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }} onClick={(e) => e.stopPropagation()}>
+                            <div className="p-3 border-b" style={{ borderColor: '#E5E7EB' }}>
+                              <p className="text-xs font-semibold" style={{ color: '#374151' }}>Manage Emails</p>
+                            </div>
+                            <div className="max-h-48 overflow-y-auto">
+                              {savedEmails.length === 0 ? (
+                                <p className="text-xs p-3 text-center" style={{ color: '#9CA3AF' }}>No saved emails yet.</p>
+                              ) : (
+                                savedEmails.map((email, i) => (
+                                  <div key={i} className="flex items-center gap-2 px-3 py-2 border-b group" style={{ borderColor: '#F3F4F6' }}>
+                                    <span className="flex-1 text-xs truncate" style={{ color: '#1B1A1C' }}>{email}</span>
+                                    <button
+                                      onClick={() => { setSendForm({ ...sendForm, to: email }); setShowEmailManager(false) }}
+                                      className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
+                                      style={{ color: '#FF5900' }}
+                                      title="Use this email"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => { setEmailManagerValue(email); setEmailManagerEditIdx(i); setShowEmailManager(true) }}
+                                      className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
+                                      style={{ color: '#6B7280' }}
+                                      title="Edit"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => setSavedEmails(prev => prev.filter((_, j) => j !== i))}
+                                      className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
+                                      style={{ color: '#EF4444' }}
+                                      title="Remove"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                            <div className="p-3 border-t" style={{ borderColor: '#E5E7EB' }}>
+                              {emailManagerEditIdx !== null ? (
+                                <div className="flex gap-2">
+                                  <input
+                                    type="email"
+                                    value={emailManagerValue}
+                                    onChange={(e) => setEmailManagerValue(e.target.value)}
+                                    className="flex-1 px-2.5 py-1.5 border rounded-lg text-xs outline-none"
+                                    style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                                    placeholder="Edit email"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const v = emailManagerValue.trim()
+                                      if (v && emailManagerEditIdx !== null) {
+                                        setSavedEmails(prev => prev.map((e, j) => j === emailManagerEditIdx ? v : e))
+                                        setEmailManagerEditIdx(null)
+                                        setEmailManagerValue('')
+                                      }
+                                    }}
+                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white"
+                                    style={{ backgroundColor: '#FF5900', fontWeight: 500 }}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2">
+                                  <input
+                                    type="email"
+                                    value={emailManagerValue}
+                                    onChange={(e) => setEmailManagerValue(e.target.value)}
+                                    className="flex-1 px-2.5 py-1.5 border rounded-lg text-xs outline-none"
+                                    style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                                    placeholder="Add new email"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      const v = emailManagerValue.trim()
+                                      if (v) {
+                                        setSavedEmails(prev => [...prev, v])
+                                        setEmailManagerValue('')
+                                      }
+                                    }}
+                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white"
+                                    style={{ backgroundColor: '#FF5900', fontWeight: 500 }}
+                                  >
+                                    Add
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Subject</label>
