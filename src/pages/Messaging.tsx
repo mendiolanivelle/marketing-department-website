@@ -15,6 +15,15 @@ interface OutreachLead {
   lastContacted: string
   notes: string
   photoUrl?: string
+  folderId?: string
+}
+
+interface OutreachFolder {
+  id: string
+  title: string
+  sourceFileId: string
+  sourceFileName: string
+  createdAt: string
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -124,6 +133,114 @@ export default function Messaging() {
   useEffect(() => {
     localStorage.setItem('exodia-outreach-leads', JSON.stringify(leads))
   }, [leads])
+
+  // === Folder State (synced from Lead Generation) ===
+  const [folders, setFolders] = useState<OutreachFolder[]>(() => {
+    const saved = localStorage.getItem('exodia-outreach-folders')
+    return saved ? JSON.parse(saved) : []
+  })
+
+  useEffect(() => {
+    localStorage.setItem('exodia-outreach-folders', JSON.stringify(folders))
+  }, [folders])
+
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+
+  // Sync Lead Generation files → folders + leads
+  useEffect(() => {
+    const syncLeadFiles = () => {
+      const savedFiles = localStorage.getItem('exodia-lead-files')
+      if (!savedFiles) return
+      let leadFiles: any[]
+      try { leadFiles = JSON.parse(savedFiles) } catch { return }
+
+      // Read latest state from localStorage to avoid stale closures
+      const currentLeadsRaw = localStorage.getItem('exodia-outreach-leads')
+      const currentLeads: OutreachLead[] = currentLeadsRaw ? JSON.parse(currentLeadsRaw) : []
+      const currentFoldersRaw = localStorage.getItem('exodia-outreach-folders')
+      const currentFolders: OutreachFolder[] = currentFoldersRaw ? JSON.parse(currentFoldersRaw) : []
+
+      const syncedFileIds = new Set(currentFolders.map(f => f.sourceFileId))
+      let newLeads: OutreachLead[] = []
+      let newFolders: OutreachFolder[] = []
+      let maxId = currentLeads.length > 0 ? Math.max(...currentLeads.map(l => l.id)) : 0
+
+      for (const file of leadFiles) {
+        if (syncedFileIds.has(file.id)) continue
+
+        const cols = (file.columns as string[]) || []
+        const nameCol = cols.find(c => /name|contact/i.test(c)) || ''
+        const emailCol = cols.find(c => /email/i.test(c)) || ''
+        const companyCol = cols.find(c => /company|organization|studio/i.test(c)) || ''
+        const roleCol = cols.find(c => /role|position|title/i.test(c)) || ''
+
+        const folderId = crypto.randomUUID()
+        const folderTitle = `MKTG - LEAD ${file.id.slice(0, 8).toUpperCase()}`
+
+        const savedRows = localStorage.getItem(`exodia-lead-rows-${file.id}`)
+        if (savedRows) {
+          try {
+            const rows = JSON.parse(savedRows)
+            for (const row of rows) {
+              const data = row.data as Record<string, string> || {}
+              const rowName = nameCol ? (data[nameCol] || '').trim() : ''
+              const rowEmail = emailCol ? (data[emailCol] || '').trim() : ''
+              const rowCompany = companyCol ? (data[companyCol] || '').trim() : ''
+              const rowRole = roleCol ? (data[roleCol] || '').trim() : ''
+              if (rowName || rowEmail) {
+                maxId++
+                newLeads.push({
+                  id: maxId,
+                  name: rowName || rowEmail.split('@')[0] || 'Unknown',
+                  email: rowEmail || '',
+                  company: rowCompany || file.name,
+                  role: rowRole || '',
+                  status: 'pending',
+                  lastContacted: '',
+                  notes: '',
+                  folderId,
+                })
+              }
+            }
+          } catch {}
+        }
+
+        newFolders.push({
+          id: folderId,
+          title: folderTitle,
+          sourceFileId: file.id,
+          sourceFileName: file.name,
+          createdAt: new Date().toISOString(),
+        })
+      }
+
+      if (newFolders.length > 0) {
+        setFolders(prev => [...newFolders, ...prev])
+      }
+      if (newLeads.length > 0) {
+        setLeads(prev => [...newLeads, ...prev])
+        setExpandedFolders(prev => {
+          const next = new Set(prev)
+          newFolders.forEach(f => next.add(f.id))
+          return next
+        })
+      }
+    }
+
+    syncLeadFiles()
+
+    const interval = setInterval(syncLeadFiles, 3000)
+    return () => clearInterval(interval)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(folderId)) next.delete(folderId)
+      else next.add(folderId)
+      return next
+    })
+  }
 
   const [showAdd, setShowAdd] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
@@ -450,83 +567,143 @@ export default function Messaging() {
           reader.readAsDataURL(file)
           e.target.value = ''
         }} />
-        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-          {filtered.map((lead) => {
-            const status = statusConfig[lead.status]
-            return (
-              <div
-                key={lead.id}
-                className="group rounded-xl border-2 exodia-card p-4 sm:p-5 transition-all hover:shadow-md cursor-pointer"
-                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `4px solid ${status.color}` }}
-                onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
-                        {lead.photoUrl ? (
-                          <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}{lead.company.charAt(0)}</span>
-                        )}
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        </div>
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.name}</h3>
-                        <p className="text-xs sm:text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.company}{lead.role ? ` · ${lead.role}` : ''} · {lead.email}</p>
-                      </div>
-                    </div>
-                    {lead.notes && (
-                      <p className="text-xs mt-2 line-clamp-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.notes}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${status.color}20`, color: status.color, fontWeight: 500 }}>
-                      {status.label}
-                    </span>
-                    {lead.lastContacted && (
-                      <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.lastContacted}</span>
-                    )}
-                  </div>
-                </div>
+        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+          {(() => {
+            // Group leads by folder
+            const grouped: { folder?: OutreachFolder; leads: typeof filtered }[] = []
+            const uncategorized: typeof filtered = []
+            const folderMap = new Map(folders.map(f => [f.id, f]))
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--border-primary)' }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
-                    className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
-                    style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    Email
-                  </button>
-                  <div className="w-px h-5" style={{ backgroundColor: 'var(--border-secondary)' }} />
-                  <select
-                    value={lead.status}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
-                    className="px-2 py-1.5 text-xs rounded-lg border outline-none cursor-pointer"
-                    style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-                  >
-                    <option value="pending">{statusConfig.pending.label}</option>
-                    <option value="sent">{statusConfig.sent.label}</option>
-                    <option value="follow-up">{statusConfig['follow-up'].label}</option>
-                    <option value="no-reply">{statusConfig['no-reply'].label}</option>
-                    <option value="replied">{statusConfig.replied.label}</option>
-                    <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
-                  </select>
-                  <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Delete">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+            for (const lead of filtered) {
+              if (lead.folderId && folderMap.has(lead.folderId)) {
+                let group = grouped.find(g => g.folder?.id === lead.folderId)
+                if (!group) {
+                  group = { folder: folderMap.get(lead.folderId)!, leads: [] }
+                  grouped.push(group)
+                }
+                group.leads.push(lead)
+              } else {
+                uncategorized.push(lead)
+              }
+            }
+
+            return [...grouped, ...(uncategorized.length > 0 ? [{ folder: undefined, leads: uncategorized }] : [])].map((group) => {
+              const isFolder = !!group.folder
+              const folderId = group.folder?.id || ''
+              const isExpanded = !isFolder || expandedFolders.has(folderId)
+              const groupLeads = isFolder && !isExpanded ? [] : group.leads
+
+              return (
+                <div key={folderId || 'uncategorized'}>
+                  {isFolder ? (
+                    <div
+                      onClick={() => toggleFolder(folderId)}
+                      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition hover:-translate-y-0.5 theme-transition"
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}
+                    >
+                      <svg className="w-5 h-5 flex-shrink-0 transition-transform" style={{ color: 'var(--accent)', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <svg className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{group.folder!.title}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{group.leads.length} leads · {group.folder!.sourceFileName}</p>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-md font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>{group.leads.length}</span>
+                    </div>
+                  ) : uncategorized.length > 0 && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-secondary)' }} />
+                      <span className="text-xs px-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Quick Leads</span>
+                      <div className="flex-1 h-px" style={{ backgroundColor: 'var(--border-secondary)' }} />
+                    </div>
+                  )}
+                  {isExpanded && (
+                    <div className="space-y-2 mt-2 ml-1">
+                      {groupLeads.map((lead) => {
+                        const status = statusConfig[lead.status]
+                        return (
+                          <div
+                            key={lead.id}
+                            className="group rounded-xl border-2 exodia-card p-4 sm:p-5 transition-all hover:shadow-md cursor-pointer"
+                            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `4px solid ${status.color}` }}
+                            onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3 mb-1">
+                                  <div className="relative w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 cursor-pointer group/avatar" style={{ backgroundColor: 'var(--btn-primary-bg)' }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
+                                    {lead.photoUrl ? (
+                                      <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}{lead.company.charAt(0)}</span>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    </div>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h3 className="text-sm sm:text-base truncate" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.name}</h3>
+                                    <p className="text-xs sm:text-sm truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.company}{lead.role ? ` · ${lead.role}` : ''} · {lead.email}</p>
+                                  </div>
+                                </div>
+                                {lead.notes && (
+                                  <p className="text-xs mt-2 line-clamp-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.notes}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${status.color}20`, color: status.color, fontWeight: 500 }}>
+                                  {status.label}
+                                </span>
+                                {lead.lastContacted && (
+                                  <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.lastContacted}</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--border-primary)' }}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                                className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
+                                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                Email
+                              </button>
+                              <div className="w-px h-5" style={{ backgroundColor: 'var(--border-secondary)' }} />
+                              <select
+                                value={lead.status}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
+                                className="px-2 py-1.5 text-xs rounded-lg border outline-none cursor-pointer"
+                                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+                              >
+                                <option value="pending">{statusConfig.pending.label}</option>
+                                <option value="sent">{statusConfig.sent.label}</option>
+                                <option value="follow-up">{statusConfig['follow-up'].label}</option>
+                                <option value="no-reply">{statusConfig['no-reply'].label}</option>
+                                <option value="replied">{statusConfig.replied.label}</option>
+                                <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
+                              </select>
+                              <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Delete">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
           {filtered.length === 0 && (
             <div className="text-center py-12">
               <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No leads found. Add one to get started.</p>
