@@ -82,6 +82,10 @@ export default function PublicShowcase() {
   const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const imagesReadyRef = useRef(false)
+
+  // Keep ref in sync with state
+  useEffect(() => { imagesReadyRef.current = imagesReady }, [imagesReady])
 
   // Preload actual images using browser Image API
   useEffect(() => {
@@ -125,18 +129,25 @@ export default function PublicShowcase() {
     autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
   }, [phase, current, preloadAdjacent])
 
-  // Start sequence ΓÇö wait for images to actually load before slideshow
+  // Start sequence — hold slideshow until first 3 images are downloaded
   useEffect(() => {
     preloadAll()
-    const t1 = setTimeout(() => setPhase('opening'), 2000)
-    const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
-    const t3 = setTimeout(() => {
-      setPhase('slideshow')
-    }, 5000)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    let cancelled = false
+    const t1 = setTimeout(() => { if (!cancelled) setPhase('opening') }, 2000)
+    const t2 = setTimeout(() => { if (!cancelled) setPhase('zoom-in') }, 3400)
+    const trySlideshow = () => {
+      if (cancelled) return
+      if (imagesReadyRef.current) {
+        setPhase('slideshow')
+      } else {
+        setTimeout(trySlideshow, 300)
+      }
+    }
+    const t3 = setTimeout(trySlideshow, 5000)
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [restartCount, preloadAll])
 
-  // Auto-advance during slideshow ΓÇö stays on last slide, does not auto-close
+  // Auto-advance during slideshow — stays on last slide, does not auto-close
   useEffect(() => {
     if (phase !== 'slideshow' || autoPaused) return
     const timer = setInterval(() => {
@@ -157,14 +168,14 @@ export default function PublicShowcase() {
     return () => clearTimeout(timer)
   }, [phase, current])
 
-  // Flash animation ΓåÆ closing folder
+  // Flash animation -> closing folder
   useEffect(() => {
     if (phase !== 'flash') return
     const t1 = setTimeout(() => setPhase('closing'), 1200)
     return () => clearTimeout(t1)
   }, [phase])
 
-  // Closing folder ΓåÆ ended button
+  // Closing folder -> ended button
   useEffect(() => {
     if (phase !== 'closing') return
     const t1 = setTimeout(() => setPhase('ended'), 2000)
@@ -316,6 +327,14 @@ export default function PublicShowcase() {
         )}
 
         {/* ====== ZOOM-IN TRANSITION ====== */}
+        {phase === 'zoom-in' && !imagesReady && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
+            <div className="text-center">
+              <div className="w-12 h-12 border-2 border-white/20 border-t-[#FF5900] rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 300 }}>Loading portfolio...</p>
+            </div>
+          </div>
+        )}
         {phase === 'zoom-in' && (
           <div
             className="fixed inset-0 z-50"
@@ -358,10 +377,9 @@ export default function PublicShowcase() {
           </div>
         )}
 
-        {/* ====== CLOSING ΓÇö zoom back to folder ====== */}
+        {/* ====== CLOSING — zoom back to folder ====== */}
         {phase === 'closing' && (
           <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
-            {/* Behind-folder glow */}
             <div
               className="absolute"
               style={{
@@ -386,7 +404,6 @@ export default function PublicShowcase() {
               <div className="absolute bottom-0 left-0 right-0 rounded-br-2xl rounded-bl-2xl" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
               <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', animation: 'flapClose 1s ease-in-out forwards' }} />
               <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
-              {/* Orange glow burst when closing ΓÇö fades as flap closes */}
               <div
                 className="absolute"
                 style={{
@@ -428,7 +445,6 @@ export default function PublicShowcase() {
         {/* ====== ENDED ====== */}
         {phase === 'ended' && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10" style={{ backgroundColor: '#1B1A1C' }}>
-            {/* Ambient glow behind button */}
             <div className="absolute" style={{ width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
             <button
               onClick={restartShowcase}
@@ -437,7 +453,6 @@ export default function PublicShowcase() {
                 animation: 'btnAppear 2s ease-out',
               }}
             >
-              {/* Glass-morphism background */}
               <div
                 className="absolute inset-0 rounded-2xl transition-all duration-500"
                 style={{
@@ -448,7 +463,6 @@ export default function PublicShowcase() {
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(255,89,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
                 }}
               />
-              {/* Hover glow overlay */}
               <div
                 className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500"
                 style={{
@@ -456,7 +470,6 @@ export default function PublicShowcase() {
                   boxShadow: '0 0 80px rgba(255,89,0,0.3)',
                 }}
               />
-              {/* Content */}
               <div className="relative flex items-center gap-3 px-10 py-5">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
                   <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -478,7 +491,7 @@ export default function PublicShowcase() {
           className="fixed bottom-0 right-0 z-50 w-8 h-8 flex items-center justify-center cursor-crosshair"
           title=""
         >
-          <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">Γùê</span>
+          <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">&#x25C6;</span>
         </div>
       </div>
     </>
