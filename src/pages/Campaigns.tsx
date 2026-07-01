@@ -4,14 +4,26 @@ const MONTH_MAP: Record<string, string> = {
   Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
   Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12',
 }
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function displayDate(iso: string): string {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${MONTH_NAMES[parseInt(m)-1] || ''} ${parseInt(d)}`
+}
+
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 function parseCampaignDate(due: string): string {
+  if (due.includes('-')) return due
   const parts = due.split(' ')
   if (parts.length === 2 && MONTH_MAP[parts[0]]) {
     const year = new Date().getFullYear()
     return `${year}-${MONTH_MAP[parts[0]]}-${String(parseInt(parts[1])).padStart(2, '0')}`
   }
-  return new Date().toISOString().slice(0, 10)
+  return todayISO()
 }
 
 function addToCalendar(campaign: Campaign) {
@@ -64,17 +76,17 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('exodia-campaigns')
     return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'HR Recruitment Drive', dept: 'HR', status: 'Ongoing', due: 'Jul 15' },
-      { id: 2, name: 'Q3 Product Launch', dept: 'Product', status: 'Pending', due: 'Aug 01' },
-      { id: 3, name: 'Brand Awareness Campaign', dept: 'Marketing', status: 'Pending', due: 'Jul 30' },
-      { id: 4, name: 'Holiday Promo Q4', dept: 'Sales', status: 'Done', due: 'Jun 28' },
-      { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: 'Jul 20' },
+      { id: 1, name: 'HR Recruitment Drive', dept: 'HR', status: 'Ongoing', due: displayDate('2026-07-15') },
+      { id: 2, name: 'Q3 Product Launch', dept: 'Product', status: 'Pending', due: displayDate('2026-08-01') },
+      { id: 3, name: 'Brand Awareness Campaign', dept: 'Marketing', status: 'Pending', due: displayDate('2026-07-30') },
+      { id: 4, name: 'Holiday Promo Q4', dept: 'Sales', status: 'Done', due: displayDate('2026-06-28') },
+      { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: displayDate('2026-07-20') },
     ]
   })
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editOldName, setEditOldName] = useState('')
-  const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: '' })
+  const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO() })
   const [note, setNote] = useState('')
 
   const showNote = (msg: string) => {
@@ -92,11 +104,11 @@ export default function Campaigns() {
     addToCalendar(campaign)
     showNote(`Campaign "${campaign.name}" created — added to Calendar`)
     setShowAdd(false)
-    setForm({ name: '', dept: '', status: 'Pending', due: '' })
+    setForm({ name: '', dept: '', status: 'Pending', due: todayISO() })
   }
 
   const editCampaign = (camp: Campaign) => {
-    setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: camp.due })
+    setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: parseCampaignDate(camp.due) })
     setEditId(camp.id)
     setEditOldName(camp.name)
   }
@@ -110,7 +122,7 @@ export default function Campaigns() {
     showNote(`Campaign "${form.name}" updated — Calendar synced`)
     setEditId(null)
     setEditOldName('')
-    setForm({ name: '', dept: '', status: 'Pending', due: '' })
+    setForm({ name: '', dept: '', status: 'Pending', due: todayISO() })
   }
 
   const deleteCampaign = (id: number) => {
@@ -225,7 +237,7 @@ export default function Campaigns() {
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sc.text }}></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {camp.due}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
                       <button onClick={() => editCampaign(camp)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: '#9CA3AF' }}>
@@ -261,7 +273,7 @@ export default function Campaigns() {
                 <option value="Ongoing">Ongoing</option>
                 <option value="Done">Done</option>
               </select>
-              <input type="text" placeholder="Due Date (e.g. Aug 01)" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
             </div>
             <div className="flex gap-3 justify-end mt-4">
               <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
@@ -274,7 +286,7 @@ export default function Campaigns() {
       {/* Edit Campaign Modal */}
       {editId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: '' }) }} />
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} />
           <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Campaign</h3>
             <div className="space-y-3">
@@ -285,10 +297,10 @@ export default function Campaigns() {
                 <option value="Ongoing">Ongoing</option>
                 <option value="Done">Done</option>
               </select>
-              <input type="text" placeholder="Due Date (e.g. Aug 01)" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
             </div>
             <div className="flex gap-3 justify-end mt-4">
-              <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: '' }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={saveEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
             </div>
           </div>
