@@ -11,7 +11,7 @@ interface OutreachLead {
   email: string
   company: string
   role: string
-  status: 'pending' | 'sent' | 'replied' | 'follow-up'
+  status: 'pending' | 'sent' | 'replied' | 'follow-up' | 'no-reply' | 'meeting-booked'
   lastContacted: string
   notes: string
   photoUrl?: string
@@ -29,6 +29,8 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   'sent': { label: 'Sent', color: '#0B8043' },
   'follow-up': { label: 'Follow Up', color: '#4A90D9' },
   'replied': { label: 'Replied', color: '#FF5900' },
+  'no-reply': { label: 'No Reply', color: '#DC2626' },
+  'meeting-booked': { label: 'Meeting Booked', color: '#2563EB' },
 }
 
 const sortLeads = (leads: OutreachLead[]) => [...leads]
@@ -185,7 +187,7 @@ export default function Messaging() {
     setLeads(leads.map(l => l.id === id ? { ...l, notes: l.notes ? `${l.notes}\n${note.trim()}` : note.trim() } : l))
   }
 
-  const statusCycle: OutreachLead['status'][] = ['pending', 'sent', 'follow-up', 'replied']
+  const statusCycle: OutreachLead['status'][] = ['pending', 'sent', 'follow-up', 'no-reply', 'replied', 'meeting-booked']
 
   const moveToNextStatus = (lead: OutreachLead) => {
     const idx = statusCycle.indexOf(lead.status)
@@ -412,7 +414,7 @@ export default function Messaging() {
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['all', 'pending', 'sent', 'follow-up', 'replied'].map((s) => (
+          {['all', 'pending', 'sent', 'follow-up', 'no-reply', 'replied', 'meeting-booked'].map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
@@ -508,8 +510,10 @@ export default function Messaging() {
                   >
                     <option value="pending">{statusConfig.pending.label}</option>
                     <option value="sent">{statusConfig.sent.label}</option>
-                    <option value="replied">{statusConfig.replied.label}</option>
                     <option value="follow-up">{statusConfig['follow-up'].label}</option>
+                    <option value="no-reply">{statusConfig['no-reply'].label}</option>
+                    <option value="replied">{statusConfig.replied.label}</option>
+                    <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
                   </select>
                   <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

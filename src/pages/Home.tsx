@@ -89,82 +89,88 @@ export default function Home() {
   }, [campaigns])
 
   const fetchLeadStats = useCallback(async () => {
-    const computeStats = (files: { id: string; name: string; columns: string[] }[], allRows: { file_id: string; data: Record<string, string> }[]) => {
-      const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
-      const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
-      if (nonDuplicateFileIds.length === 0) return { totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
-
-      const fileRows = allRows.filter(r => nonDuplicateFileIds.includes(r.file_id))
-      let totalLeads = 0, emailsSent = 0, replied = 0, noReply = 0, meetingsLeft = 0
-
-      fileRows.forEach((row) => {
-        const data = row.data as Record<string, string>
-        const file = nonDuplicateFiles.find(f => f.id === row.file_id)
-        if (!file) return
-        const columns = file.columns as string[]
-        const companyCol = columns.find(col => col.toLowerCase().includes('company'))
-        const emailStatusCol = columns.find(col => col.toLowerCase().includes('email status'))
-        const leadStatusCol = columns.find(col => col.toLowerCase().includes('lead status'))
-
-        if (companyCol && data[companyCol]?.trim()) totalLeads++
-        if (emailStatusCol && data[emailStatusCol]) {
-          const val = data[emailStatusCol].trim().toLowerCase()
-          if (val === 'email sent' || val === 'sent') emailsSent++
+    // Helper: count total leads from Lead Generation data
+    const countTotalLeads = () => {
+      if (!isSupabaseConfigured || !supabase) {
+        const savedFiles = localStorage.getItem('exodia-lead-files')
+        if (!savedFiles) return 0
+        const files = JSON.parse(savedFiles)
+        let total = 0
+        for (const f of files) {
+          if (f.name === 'Duplicate Leads') continue
+          const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
+          if (savedRows) {
+            try {
+              const rows = JSON.parse(savedRows)
+              for (const r of rows) {
+                const data = r.data as Record<string, string>
+                const companyCol = (f.columns as string[]).find((col: string) => col.toLowerCase().includes('company'))
+                if (companyCol && data[companyCol]?.trim()) total++
+              }
+            } catch {}
+          }
         }
-        if (leadStatusCol && data[leadStatusCol]) {
-          const status = data[leadStatusCol].toLowerCase()
-          if (status.includes('replied')) replied++
-          if (status.includes('no reply')) noReply++
-          if (status.includes('meeting booked')) meetingsLeft++
-        }
-      })
-
-      return { totalLeads, emailsSent, replied, noReply, meetingsLeft }
-    }
-
-    if (!isSupabaseConfigured || !supabase) {
-      const savedFiles = localStorage.getItem('exodia-lead-files')
-      if (!savedFiles) return
-      const files = JSON.parse(savedFiles)
-      let allRows: { file_id: string; data: Record<string, string> }[] = []
-      for (const f of files) {
-        const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
-        if (savedRows) {
-          try { allRows.push(...JSON.parse(savedRows).map((r: any) => ({ file_id: r.file_id, data: r.data }))) } catch {}
-        }
+        return total
       }
-      setLeadStats(computeStats(files, allRows))
-      return
+      return 0 // Supabase case handled below
     }
 
-    try {
-      const { data: files, error: filesError } = await supabase
-        .from('lead_files')
-        .select('id, name, columns')
-
-      if (filesError) throw filesError
-      if (!files || files.length === 0) return
-
-      const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
-      const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
-
-      if (nonDuplicateFileIds.length === 0) {
-        setLeadStats({ totalLeads: 0, emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 })
-        return
+    // Read messaging stats from localStorage
+    const getMessagingStats = () => {
+      const saved = localStorage.getItem('exodia-outreach-leads')
+      if (!saved) return { emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
+      try {
+        const leads = JSON.parse(saved)
+        return {
+          emailsSent: leads.filter((l: any) => l.status === 'sent').length,
+          replied: leads.filter((l: any) => l.status === 'replied').length,
+          noReply: leads.filter((l: any) => l.status === 'no-reply').length,
+          meetingsLeft: leads.filter((l: any) => l.status === 'meeting-booked').length,
+        }
+      } catch {
+        return { emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
       }
-
-      const { data: allRows, error: rowsError } = await supabase
-        .from('lead_rows')
-        .select('file_id, data')
-        .in('file_id', nonDuplicateFileIds)
-
-      if (rowsError) throw rowsError
-      if (!allRows) return
-
-      setLeadStats(computeStats(nonDuplicateFiles, allRows))
-    } catch (err) {
-      console.error('Error fetching lead stats:', err)
     }
+
+    // Total from Lead Generation (Supabase or localStorage)
+    let totalLeads = countTotalLeads()
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: files, error: filesError } = await supabase
+          .from('lead_files')
+          .select('id, name, columns')
+
+        if (!filesError && files) {
+          const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
+          const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+
+          if (nonDuplicateFileIds.length > 0) {
+            const { data: allRows, error: rowsError } = await supabase
+              .from('lead_rows')
+              .select('file_id, data')
+              .in('file_id', nonDuplicateFileIds)
+
+            if (!rowsError && allRows) {
+              totalLeads = 0
+              for (const row of allRows) {
+                const data = row.data as Record<string, string>
+                const file = nonDuplicateFiles.find(f => f.id === row.file_id)
+                if (!file) continue
+                const columns = file.columns as string[]
+                const companyCol = columns.find(col => col.toLowerCase().includes('company'))
+                if (companyCol && data[companyCol]?.trim()) totalLeads++
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching lead stats:', err)
+      }
+    }
+
+    const msgStats = getMessagingStats()
+    setLeadStats({ totalLeads, ...msgStats })
   }, [])
 
   useEffect(() => {
