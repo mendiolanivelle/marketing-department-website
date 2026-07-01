@@ -9,8 +9,6 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
-  sendOtp: (email: string) => Promise<{ error: Error | null }>
-  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>
   configError: string | null
 }
 
@@ -67,38 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null }
   }
 
-  const sendOtp = async (email: string) => {
-    if (!supabase) {
-      return { error: new Error('Supabase is not configured') }
-    }
-    // Call the OTP endpoint directly — this sends a 6-digit numeric code
-    // NOT a magic link
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-    try {
-      const res = await fetch(supabaseUrl + '/auth/v1/otp', {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, create_user: true }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        return { error: new Error(err.msg || err.message || 'Failed to send OTP') }
-      }
-    } catch (e: any) {
-      return { error: e }
-    }
-    return { error: null }
-  }
-
-  const verifyOtp = async (email: string, token: string) => {
-    if (!supabase) {
-      return { error: new Error('Supabase is not configured') }
-    }
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
-    return { error: error as Error | null }
-  }
-
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
@@ -107,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut, sendOtp, verifyOtp, configError }}>
+    <AuthContext.Provider value={{ user, session, loading, signIn, signOut, configError }}>
       {children}
     </AuthContext.Provider>
   )
