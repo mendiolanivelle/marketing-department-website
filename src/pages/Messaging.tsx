@@ -549,63 +549,60 @@ export default function Messaging() {
     return (
       <div
         key={lead.id}
-        className="group rounded-lg border-2 exodia-card p-3 transition-all hover:shadow-sm cursor-pointer"
-        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', borderLeft: `3px solid ${status.color}` }}
+        className="group rounded-lg border exodia-card transition-all hover:shadow-sm cursor-pointer"
+        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
         onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
       >
-        <div className="flex items-center gap-2">
-          <div className="relative w-7 h-7 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)', fontSize: 10 }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
+        <div className="px-3 py-2.5 flex items-center gap-3">
+          <div className="relative w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
             {lead.photoUrl ? (
               <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
             ) : (
               <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}</span>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{lead.name}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: `${status.color}20`, color: status.color, fontWeight: 500 }}>
-                {status.label}
-              </span>
-            </div>
-            <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+          <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-0.5">
+            <span className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{lead.name}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full text-center whitespace-nowrap" style={{ backgroundColor: `${status.color}18`, color: status.color, fontWeight: 600 }}>
+              {status.label}
+            </span>
+            {lead.lastContacted && (
+              <span className="text-[10px] text-right whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.lastContacted}</span>
+            )}
+            <p className="text-[11px] truncate col-span-3" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
               {lead.company}{lead.role ? ` · ${lead.role}` : ''} · {lead.email}
             </p>
           </div>
-          {lead.lastContacted && (
-            <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.lastContacted}</span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--border-primary)' }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
-            className="px-2 py-1 text-[10px] rounded-lg transition flex items-center gap-1"
-            style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Email
-          </button>
-          <select
-            value={lead.status}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
-            className="px-1.5 py-1 text-[10px] rounded border outline-none cursor-pointer"
-            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-          >
-            <option value="pending">{statusConfig.pending.label}</option>
-            <option value="sent">{statusConfig.sent.label}</option>
-            <option value="follow-up">{statusConfig['follow-up'].label}</option>
-            <option value="no-reply">{statusConfig['no-reply'].label}</option>
-            <option value="replied">{statusConfig.replied.label}</option>
-            <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
-          </select>
-          <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1 rounded transition" style={{ color: 'var(--accent)' }} title="Edit">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1 rounded transition" style={{ color: 'var(--accent)' }} title="Delete">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+              className="p-1.5 rounded transition hover:scale-105"
+              style={{ color: 'var(--accent)' }}
+              title="Send Email"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            </button>
+            <select
+              value={lead.status}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
+              className="px-1.5 py-1 text-[10px] rounded border outline-none cursor-pointer"
+              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
+            >
+              <option value="pending">{statusConfig.pending.label}</option>
+              <option value="sent">{statusConfig.sent.label}</option>
+              <option value="follow-up">{statusConfig['follow-up'].label}</option>
+              <option value="no-reply">{statusConfig['no-reply'].label}</option>
+              <option value="replied">{statusConfig.replied.label}</option>
+              <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
+            </select>
+            <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="Edit">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="Delete">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+          </div>
         </div>
       </div>
     )
