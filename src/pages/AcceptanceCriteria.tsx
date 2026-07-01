@@ -339,9 +339,9 @@ export default function AcceptanceCriteria() {
           {!loading && submissions.length > 0 && (
             <div className="flex gap-3 flex-wrap">
               {[
-                { label: 'Total', value: submissions.length, color: '#1B1A1C', bg: '#F3F4F6', activeBg: '#1B1A1C' },
-                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#2563EB', bg: '#EBF5FF', activeBg: '#2563EB' },
-                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#EA580C', bg: '#FFF7ED', activeBg: '#EA580C' },
+                { label: 'Total', value: submissions.length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
+                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
+                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
               ].map((stat, i) => (
                 <button
                   key={i}
