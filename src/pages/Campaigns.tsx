@@ -20,6 +20,7 @@ export default function Campaigns() {
     ]
   })
   const [showAdd, setShowAdd] = useState(false)
+  const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: '' })
 
   const addCampaign = () => {
@@ -29,6 +30,20 @@ export default function Campaigns() {
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
     setShowAdd(false)
+    setForm({ name: '', dept: '', status: 'Pending', due: '' })
+  }
+
+  const editCampaign = (camp: Campaign) => {
+    setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: camp.due })
+    setEditId(camp.id)
+  }
+
+  const saveEdit = () => {
+    if (!form.name.trim() || editId === null) return
+    const updated = campaigns.map(c => c.id === editId ? { ...c, ...form } : c)
+    setCampaigns(updated)
+    localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    setEditId(null)
     setForm({ name: '', dept: '', status: 'Pending', due: '' })
   }
 
@@ -135,6 +150,11 @@ export default function Campaigns() {
                         <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {camp.due}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
+                      <button onClick={() => editCampaign(camp)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: '#9CA3AF' }}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
                       <button onClick={() => deleteCampaign(camp.id)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: 'var(--accent)' }}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -168,6 +188,30 @@ export default function Campaigns() {
             <div className="flex gap-3 justify-end mt-4">
               <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={addCampaign} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Create</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Campaign Modal */}
+      {editId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: '' }) }} />
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Campaign</h3>
+            <div className="space-y-3">
+              <input type="text" placeholder="Campaign Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="text" placeholder="Requesting Dept (e.g. HR)" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }}>
+                <option value="Pending">Pending</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Done">Done</option>
+              </select>
+              <input type="text" placeholder="Due Date (e.g. Aug 01)" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+            </div>
+            <div className="flex gap-3 justify-end mt-4">
+              <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: '' }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={saveEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
             </div>
           </div>
         </div>
