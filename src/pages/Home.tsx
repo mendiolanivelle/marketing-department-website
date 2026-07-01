@@ -361,8 +361,8 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {calendarItems.slice(0, 4).map((item) => {
+              <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 space-y-3 sm:space-y-4">
+                {calendarItems.map((item) => {
                   const tag = tagFromType(item.type)
                   const tagColors: Record<string, { bg: string; text: string }> = {
                     Meeting: { bg: '#EBF5FF', text: '#2563EB' },
@@ -394,17 +394,6 @@ export default function Home() {
                   )
                 })}
               </div>
-              {calendarItems.length > 4 && (
-                <div className="mt-4 text-center">
-                  <button
-                    onClick={() => setSelectedAnnouncement(calendarItems[4])}
-                    className="text-xs px-4 py-1.5 rounded-lg transition"
-                    style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}
-                  >
-                    View {calendarItems.length - 4} more
-                  </button>
-                </div>
-              )}
             </div>
           </div>
 
