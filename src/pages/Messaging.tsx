@@ -294,15 +294,18 @@ export default function Messaging() {
     const lead = meetingBookLead
     const now = new Date().toISOString()
 
-    // Find the Introductory Call column
+    // Find the target table and column
+    let targetTableId = 'onboarding-default'
     let targetColumnKey = 'col-1'
     try {
       const savedTables = localStorage.getItem('exodia-timeline-tables')
       if (savedTables) {
         const tables = JSON.parse(savedTables)
-        const onboardingTable = tables.find((t: any) => t.id === 'onboarding-default') || tables[0]
-        if (onboardingTable?.columns) {
-          const introCol = onboardingTable.columns.find((c: any) =>
+        // Pick the first available table (or one matching "onboarding")
+        const targetTable = tables.find((t: any) => /onboarding|client/i.test(t.title)) || tables[0]
+        if (targetTable) {
+          targetTableId = targetTable.id
+          const introCol = (targetTable.columns || []).find((c: any) =>
             /introductory|intro call|discovery/i.test(c.label)
           )
           if (introCol) targetColumnKey = introCol.key
@@ -337,7 +340,7 @@ export default function Messaging() {
     const timelineLeads: any[] = savedTimelineLeads ? JSON.parse(savedTimelineLeads) : []
     timelineLeads.push({
       id: crypto.randomUUID(),
-      table_id: 'onboarding-default',
+      table_id: targetTableId,
       company: lead.company,
       contact: lead.name,
       email: lead.email,
@@ -356,7 +359,7 @@ export default function Messaging() {
     if (isSupabaseConfigured && supabase) {
       supabase.from('calendar_items').insert([calendarItem]).then(() => {}).catch(() => {})
       supabase.from('timeline_leads').insert([{
-        table_id: 'onboarding-default',
+        table_id: targetTableId,
         company: lead.company,
         contact: lead.name,
         email: lead.email,
