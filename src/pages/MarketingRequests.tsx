@@ -26,7 +26,7 @@ export default function MarketingRequests() {
             </p>
             <div className="space-y-3 mb-6">
               {[
-                { icon: '📧', title: 'Email', info: 'marketing@exodiagamedev.com' },
+                { icon: '📧', title: 'Email', info: 'maxene_pableo@exodiagamedev.com' },
                 { icon: '💬', title: 'Slack', info: '#marketing-requests' },
                 { icon: '📍', title: 'Office', info: 'Floor 4, Room 412' },
               ].map((item, i) => (
