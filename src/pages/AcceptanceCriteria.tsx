@@ -744,8 +744,8 @@ export default function AcceptanceCriteria() {
                   onClick={async () => {
                       setSendForm({
                         to: selectedSubmission.email || '',
-                        subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
-                        body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView Acceptance Criteria Form: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                        subject: 'Forwarded Acceptance Criteria: ' + (selectedSubmission.project_name || 'Untitled') + ' (Ref: ' + formatId(selectedSubmission) + ')',
+                        body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
                         additionalAttachments: [],
                       })
                     setShowSendModal(true)
@@ -835,8 +835,9 @@ export default function AcceptanceCriteria() {
                   </div>
                   <button
                     onClick={async () => {
-                      const attachmentLines = sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l).join('\n')
-                      const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
+                      const attLinks = sendForm.additionalAttachments.filter(l => l.trim())
+                      const attSection = attLinks.length > 0 ? '\nAttachment Link:\n' + attLinks.join('\n') : ''
+                      const fullBody = sendForm.body.replace('📎 Resource Links', '📎 Resource Links') + attSection
                       const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
                       const apiUrl = import.meta.env.VITE_SUPABASE_URL
                       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
