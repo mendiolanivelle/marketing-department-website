@@ -737,7 +737,7 @@ export default function Messaging() {
           reader.readAsDataURL(file)
           e.target.value = ''
         }} />
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[600px] overflow-y-auto pr-2">
           {filtered.map(renderLeadCard)}
           {filtered.length === 0 && (
             <div className="text-center py-12">

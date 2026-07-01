@@ -1147,61 +1147,38 @@ setEmailBody('')
                         <div
                           key={lead.id}
                           onClick={() => setSelectedLead(lead)}
-                          className="rounded-xl p-3 border cursor-pointer transition-all group hover:shadow-md"
+                          className="rounded-xl p-3 border cursor-pointer transition-all hover:shadow-md"
                           style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-sm mb-0.5 truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{lead.company}</h4>
-                              <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.value}</span>
-                                <span className="text-xs" style={{ color: 'var(--border-primary)', fontWeight: 300 }}>{lead.date}</span>
-                              </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm mb-0.5 truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{lead.company}</h4>
+                            <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.value}</span>
+                              <span className="text-xs" style={{ color: 'var(--border-primary)', fontWeight: 300 }}>{lead.date}</span>
                             </div>
-                            {/* Action icons - only visible on hover */}
-                            <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
-                                className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--accent)' }}
-                                title="Move to previous column"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
-                                className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--accent)' }}
-                                title="Move to next column"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setEditingLead({ ...lead }) }}
-                                className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--accent)' }}
-                                title="Edit"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }}
-                                className="p-1 rounded-lg transition"
-                                style={{ color: 'var(--accent)' }}
-                                title="Delete"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
+                          </div>
+                          <div className="flex items-center justify-center gap-1 pt-2 border-t" style={{ borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
+                              className="p-1.5 rounded-lg transition hover:scale-110"
+                              style={{ color: 'var(--accent)' }}
+                              title="Move to previous column"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
+                              className="p-1.5 rounded-lg transition hover:scale-110"
+                              style={{ color: 'var(--accent)' }}
+                              title="Move to next column"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       ))}
