@@ -397,7 +397,7 @@ export default function AcceptanceCriteria() {
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Public link: /acceptance-form</p>
         </div>
       ) : (
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+        <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
@@ -421,7 +421,7 @@ export default function AcceptanceCriteria() {
                     key={sub.id}
                     onClick={() => setSelectedSubmission(sub)}
                     className="cursor-pointer transition hover:opacity-80"
-                    style={{ borderTop: '1px solid var(--border-secondary)' }}
+                    style={{ borderTop: '2px solid var(--border-secondary)' }}
                   >
                     <td className="p-3">
                       <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{sub.project_name || 'Untitled'}</span>
@@ -435,7 +435,7 @@ export default function AcceptanceCriteria() {
                       {sub.email && <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{sub.email}</span>}
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-md text-xs font-medium transition hover:opacity-80 hover:scale-105 inline-block" style={sub.project_type === 'Staff Augmentation' ? { backgroundColor: '#FFF7ED', color: '#EA580C' } : { backgroundColor: '#EBF5FF', color: '#2563EB' }}>
+                      <span className="px-3 py-1 rounded-md text-xs font-medium transition hover:opacity-80 hover:scale-105 inline-block" style={sub.project_type === 'Staff Augmentation' ? { backgroundColor: '#FFF7ED', color: '#EA580C' } : { backgroundColor: '#EBF5FF', color: '#2563EB' }}>
                         {sub.project_type || 'N/A'}
                       </span>
                     </td>
@@ -745,7 +745,7 @@ export default function AcceptanceCriteria() {
                       setSendForm({
                         to: selectedSubmission.email || '',
                         subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
-                        body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                        body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView Acceptance Criteria Form: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
                         additionalAttachments: [],
                       })
                     setShowSendModal(true)

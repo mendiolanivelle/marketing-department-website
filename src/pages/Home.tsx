@@ -419,7 +419,7 @@ export default function Home() {
                     <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Click any stat below to view full details</p>
                   </div>
                 </div>
-                <Link to="/templates" className="text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1" style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}>
+                <Link to="/messaging" className="text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1" style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}>
                   View All Leads
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
