@@ -84,6 +84,9 @@ export default function Timeline() {
   const [newChecklistItem, setNewChecklistItem] = useState('')
   const [editingChecklistIdx, setEditingChecklistIdx] = useState<number | null>(null)
   const [editingChecklistValue, setEditingChecklistValue] = useState('')
+  const [activeRightTab, setActiveRightTab] = useState('notes')
+  const [showAddPopup, setShowAddPopup] = useState<'note' | 'checklist' | 'attachment' | null>(null)
+  const [addPopupValue, setAddPopupValue] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
@@ -471,13 +474,13 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
   }
 
   const addNote = async () => {
-    if (!selectedLead || !supabase) return
-    const text = window.prompt('Enter a note:')
-    if (!text || !text.trim()) return
-    const updatedNotes = selectedLead.notes ? `${selectedLead.notes}\n${text.trim()}` : text.trim()
+    if (!selectedLead || !addPopupValue.trim() || !supabase) return
+    const updatedNotes = selectedLead.notes ? `${selectedLead.notes}\n${addPopupValue.trim()}` : addPopupValue.trim()
     const updated = { ...selectedLead, notes: updatedNotes }
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setShowAddPopup(null)
+    setAddPopupValue('')
     logActivity('Timeline', `Added note to "${selectedLead.company}"`)
     try {
       await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
@@ -513,13 +516,13 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
   }
 
   const addAttachment = async () => {
-    if (!selectedLead || !supabase) return
-    const url = window.prompt('Paste a link or file URL:')
-    if (!url || !url.trim()) return
-    const updatedAttachments = [...selectedLead.attachments, url.trim()]
+    if (!selectedLead || !addPopupValue.trim() || !supabase) return
+    const updatedAttachments = [...selectedLead.attachments, addPopupValue.trim()]
     const updated = { ...selectedLead, attachments: updatedAttachments }
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setShowAddPopup(null)
+    setAddPopupValue('')
     try {
       await supabase.from('timeline_leads').update({ attachments: updatedAttachments }).eq('id', selectedLead.id)
     } catch (err) { console.error('Error adding attachment:', err) }
@@ -566,13 +569,13 @@ setEmailBody('')
   }
 
   const addChecklistItem = async () => {
-    if (!selectedLead) return
-    const text = window.prompt('Enter a checklist item:')
-    if (!text || !text.trim()) return
+    if (!selectedLead || !addPopupValue.trim()) return
     const checklist = selectedLead.checklist || []
-    const updated = { ...selectedLead, checklist: [...checklist, { text: text.trim(), done: false }] }
+    const updated = { ...selectedLead, checklist: [...checklist, { text: addPopupValue.trim(), done: false }] }
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    setShowAddPopup(null)
+    setAddPopupValue('')
     try { await supabase.from('timeline_leads').update({ checklist: updated.checklist }).eq('id', selectedLead.id) } catch {}
   }
 
@@ -831,136 +834,162 @@ setEmailBody('')
                 </div>
               </div>
 
-              {/* Right side panel - Notes, Attachments, Send Email */}
+              {/* Right side panel - Tabs */}
               <div className="w-[480px] overflow-y-auto p-6">
-                {/* Notes Section */}
-                <div className="mb-6">
-                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Notes</h4>
-                  {selectedLead.notes && selectedLead.notes.split('\n').filter(n => n.trim()).length > 0 ? (
-                    <div className="space-y-2 mb-3">
-                      {selectedLead.notes.split('\n').filter(n => n.trim()).map((note, i) => (
-                        <div key={i} className="group flex items-start gap-2 p-3 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-                          {editingNoteIndex === i ? (
-                            <div className="flex-1 flex gap-2">
-                              <input
-                                type="text"
-                                value={editingNoteValue}
-                                onChange={(e) => setEditingNoteValue(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') updateNote(i); if (e.key === 'Escape') { setEditingNoteIndex(null); setEditingNoteValue('') } }}
-                                className="flex-1 px-2 py-1 text-sm border rounded outline-none"
-                                style={{ borderColor: 'var(--border-focus)', color: 'var(--text-primary)' }}
-                                autoFocus
-                              />
-                              <button onClick={() => updateNote(i)} className="px-2 py-1 text-xs text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
-                              <button onClick={() => { setEditingNoteIndex(null); setEditingNoteValue('') }} className="px-2 py-1 text-xs rounded" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+                {(() => {
+                  const tabs = [
+                    { key: 'notes', label: 'Notes', count: selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()).length : 0 },
+                    { key: 'checklist', label: 'Checklist', count: selectedLead.checklist ? selectedLead.checklist.length : 0 },
+                    { key: 'attachments', label: 'Attachments & Links', count: selectedLead.attachments.length },
+                    { key: 'email', label: 'Send Email' },
+                  ]
+                  return (
+                    <>
+                      {/* Tab bar */}
+                      <div className="flex gap-1 mb-4" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
+                        {tabs.map(tab => (
+                          <button
+                            key={tab.key}
+                            onClick={() => setActiveRightTab(tab.key)}
+                            className="px-3 py-2 text-xs font-medium transition rounded-t-lg relative -mb-px"
+                            style={{
+                              color: activeRightTab === tab.key ? 'var(--accent)' : 'var(--text-muted)',
+                              borderBottom: activeRightTab === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
+                            }}
+                          >
+                            {tab.label}
+                            {tab.count !== undefined && <span className="ml-1 text-[10px] opacity-60">({tab.count})</span>}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Notes Tab */}
+                      {activeRightTab === 'notes' && (
+                        <div>
+                          {selectedLead.notes && selectedLead.notes.split('\n').filter(n => n.trim()).length > 0 ? (
+                            <div className="space-y-2 mb-3">
+                              {selectedLead.notes.split('\n').filter(n => n.trim()).map((note, i) => (
+                                <div key={i} className="group flex items-start gap-2 p-3 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                                  {editingNoteIndex === i ? (
+                                    <div className="flex-1 flex gap-2">
+                                      <input type="text" value={editingNoteValue} onChange={(e) => setEditingNoteValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') updateNote(i); if (e.key === 'Escape') { setEditingNoteIndex(null); setEditingNoteValue('') } }} className="flex-1 px-2 py-1 text-sm border rounded outline-none" style={{ borderColor: 'var(--border-focus)', color: 'var(--text-primary)' }} autoFocus />
+                                      <button onClick={() => updateNote(i)} className="px-2 py-1 text-xs text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+                                      <button onClick={() => { setEditingNoteIndex(null); setEditingNoteValue('') }} className="px-2 py-1 text-xs rounded" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>Cancel</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <p className="flex-1 text-sm whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{note}</p>
+                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setEditingNoteIndex(i); setEditingNoteValue(note) }} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Edit"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                        <button onClick={() => deleteNote(i)} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Delete"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           ) : (
-                            <>
-                              <p className="flex-1 text-sm whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{note}</p>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingNoteIndex(i); setEditingNoteValue(note) }} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Edit">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
-                                <button onClick={() => deleteNote(i)} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Delete">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </>
+                            <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                              <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No notes yet.</p>
+                            </div>
                           )}
+                          <button onClick={() => setShowAddPopup('note')} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Note</button>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No notes yet.</p>
-                    </div>
-                  )}
-                  <button onClick={() => addNote()} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Note</button>
-                </div>
+                      )}
 
-                {/* Checklist Section */}
-                <div className="mb-6">
-                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Checklist</h4>
-                  {selectedLead.checklist && selectedLead.checklist.length > 0 ? (
-                    <div className="space-y-1 mb-3">
-                      {selectedLead.checklist.map((item, i) => (
-                        <div key={i} className="group flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                          <input type="checkbox" checked={item.done} onChange={() => toggleChecklistItem(i)} className="w-4 h-4 rounded cursor-pointer flex-shrink-0" style={{ accentColor: '#FF5900' }} />
-                          {editingChecklistIdx === i ? (
-                            <div className="flex-1 flex gap-2">
-                              <input type="text" value={editingChecklistValue} onChange={(e) => setEditingChecklistValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') updateChecklistItem(i); if (e.key === 'Escape') { setEditingChecklistIdx(null); setEditingChecklistValue('') } }} className="flex-1 px-2 py-1 text-sm border rounded outline-none" style={{ borderColor: 'var(--border-focus)', color: 'var(--text-primary)' }} autoFocus />
-                              <button onClick={() => updateChecklistItem(i)} className="px-2 py-1 text-xs text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
-                              <button onClick={() => { setEditingChecklistIdx(null); setEditingChecklistValue('') }} className="px-2 py-1 text-xs rounded" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>Cancel</button>
+                      {/* Checklist Tab */}
+                      {activeRightTab === 'checklist' && (
+                        <div>
+                          {selectedLead.checklist && selectedLead.checklist.length > 0 ? (
+                            <div className="space-y-1 mb-3">
+                              {selectedLead.checklist.map((item, i) => (
+                                <div key={i} className="group flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                  <input type="checkbox" checked={item.done} onChange={() => toggleChecklistItem(i)} className="w-4 h-4 rounded cursor-pointer flex-shrink-0" style={{ accentColor: '#FF5900' }} />
+                                  {editingChecklistIdx === i ? (
+                                    <div className="flex-1 flex gap-2">
+                                      <input type="text" value={editingChecklistValue} onChange={(e) => setEditingChecklistValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') updateChecklistItem(i); if (e.key === 'Escape') { setEditingChecklistIdx(null); setEditingChecklistValue('') } }} className="flex-1 px-2 py-1 text-sm border rounded outline-none" style={{ borderColor: 'var(--border-focus)', color: 'var(--text-primary)' }} autoFocus />
+                                      <button onClick={() => updateChecklistItem(i)} className="px-2 py-1 text-xs text-white rounded" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+                                      <button onClick={() => { setEditingChecklistIdx(null); setEditingChecklistValue('') }} className="px-2 py-1 text-xs rounded" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>Cancel</button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span className={`flex-1 text-sm ${item.done ? 'line-through' : ''}`} style={{ color: item.done ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: 300 }}>{item.text}</span>
+                                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setEditingChecklistIdx(i); setEditingChecklistValue(item.text) }} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Edit"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
+                                        <button onClick={() => deleteChecklistItem(i)} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Remove"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           ) : (
-                            <>
-                              <span className={`flex-1 text-sm ${item.done ? 'line-through' : ''}`} style={{ color: item.done ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: 300 }}>{item.text}</span>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingChecklistIdx(i); setEditingChecklistValue(item.text) }} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Edit">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                </button>
-                                <button onClick={() => deleteChecklistItem(i)} className="p-1 rounded" style={{ color: 'var(--accent)' }} title="Remove">
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                              </div>
-                            </>
+                            <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                              <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No checklist items yet.</p>
+                            </div>
                           )}
+                          <button onClick={() => setShowAddPopup('checklist')} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Item</button>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No checklist items yet.</p>
-                    </div>
-                  )}
-                  <button onClick={() => addChecklistItem()} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Item</button>
-                </div>
+                      )}
 
-                {/* Attachments Section */}
-                <div className="mb-6">
-                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Attachments & Links</h4>
-                  {selectedLead.attachments.length > 0 ? (
-                    <div className="space-y-1 mb-3">
-                      {selectedLead.attachments.map((att, i) => (
-                        <div key={i} className="group flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                          <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                          </svg>
-                          <a href={att} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate hover:underline" style={{ color: 'var(--text-secondary)' }}>{att}</a>
-                          <button onClick={() => deleteAttachment(i)} className="p-1 rounded opacity-0 group-hover:opacity-100 transition" style={{ color: 'var(--accent)' }} title="Remove">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                      {/* Attachments Tab */}
+                      {activeRightTab === 'attachments' && (
+                        <div>
+                          {selectedLead.attachments.length > 0 ? (
+                            <div className="space-y-1 mb-3">
+                              {selectedLead.attachments.map((att, i) => (
+                                <div key={i} className="group flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                  <svg className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                  <a href={att} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate hover:underline" style={{ color: 'var(--text-secondary)' }}>{att}</a>
+                                  <button onClick={() => deleteAttachment(i)} className="p-1 rounded opacity-0 group-hover:opacity-100 transition" style={{ color: 'var(--accent)' }} title="Remove"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                              <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No attachments yet.</p>
+                            </div>
+                          )}
+                          <button onClick={() => setShowAddPopup('attachment')} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Link</button>
+                        </div>
+                      )}
+
+                      {/* Send Email Tab */}
+                      {activeRightTab === 'email' && (
+                        <div>
+                          <button
+                            onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition"
+                            style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            Compose Email to {selectedLead.contact}
                           </button>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-xl border mb-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No attachments yet.</p>
-                    </div>
-                  )}
-                  <button onClick={() => addAttachment()} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>+ Add Link</button>
-                </div>
+                      )}
+                    </>
+                  )
+                })()}
 
-                {/* Send Email Section */}
-                <div>
-                  <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Send Email</h4>
-                  <button
-                    onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition"
-                    style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Compose Email to {selectedLead.contact}
-                  </button>
-                </div>
+                {/* Add popup */}
+                {showAddPopup && (
+                  <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }} onClick={() => { setShowAddPopup(null); setAddPopupValue('') }}>
+                    <div className="relative rounded-2xl border p-5 max-w-sm w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+                      <h4 className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                        {showAddPopup === 'note' ? 'Add Note' : showAddPopup === 'checklist' ? 'Add Checklist Item' : 'Add Link'}
+                      </h4>
+                      {showAddPopup === 'attachment' ? (
+                        <input type="url" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addAttachment() }} placeholder="Paste a link or file URL..." className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
+                      ) : (
+                        <input type="text" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { showAddPopup === 'note' ? addNote() : addChecklistItem() } }} placeholder={showAddPopup === 'note' ? 'Enter a note...' : 'Enter a checklist item...'} className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
+                      )}
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => { setShowAddPopup(null); setAddPopupValue('') }} className="px-3 py-1.5 text-xs rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+                        <button onClick={() => { showAddPopup === 'note' ? addNote() : showAddPopup === 'checklist' ? addChecklistItem() : addAttachment() }} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
