@@ -19,6 +19,7 @@ const Campaigns = lazy(() => import('./pages/Campaigns'))
 const AcceptanceCriteria = lazy(() => import('./pages/AcceptanceCriteria'))
 const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
 const ViewAcceptanceForm = lazy(() => import('./pages/ViewAcceptanceForm'))
+const SubmitRequestForm = lazy(() => import('./pages/SubmitRequestForm'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
@@ -65,6 +66,14 @@ function App() {
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
                   <ViewAcceptanceForm />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/submit-request"
+              element={
+                <Suspense fallback={<RouteFallback fullScreen />}>
+                  <SubmitRequestForm />
                 </Suspense>
               }
             />
