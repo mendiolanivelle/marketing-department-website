@@ -625,55 +625,67 @@ setEmailBody('')
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Timeline</h1>
-          <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Drag and drop cards between columns and tables. Click a card to view details.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {showSearch ? (
+      <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+        <div className="p-5 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Timeline</h1>
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Drag and drop cards between columns and tables. Click a card to view details.</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search timelines..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-3 py-2 text-sm border rounded-lg outline-none"
-                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
-              />
+              {showSearch ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search timelines..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="px-3 py-2 text-sm border rounded-lg outline-none"
+                    style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
+                  />
+                  <button
+                    onClick={() => { setShowSearch(false); setSearchQuery('') }}
+                    className="p-2 rounded-lg"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="p-2 rounded-lg border transition"
+                  style={{ borderColor: 'var(--border-primary)', color: 'var(--accent)' }}
+                  title="Search timelines"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              )}
               <button
-                onClick={() => { setShowSearch(false); setSearchQuery('') }}
-                className="p-2 rounded-lg"
-                style={{ color: 'var(--accent)' }}
+                onClick={() => setShowAddTable(true)}
+                className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
+                style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
+                Add Timeline Table
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setShowSearch(true)}
-              className="p-2 rounded-lg border transition"
-              style={{ borderColor: 'var(--border-primary)', color: 'var(--accent)' }}
-              title="Search timelines"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          )}
-          <button
-            onClick={() => setShowAddTable(true)}
-            className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
-            style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Timeline Table
-          </button>
+          </div>
         </div>
       </div>
 
@@ -1051,12 +1063,14 @@ setEmailBody('')
         </div>
       )}
 
-      {/* Timeline Tables */}
-      <div className="space-y-8">
+{/* Timeline Tables */}
+      <div className="space-y-6">
         {filteredTables.map((table) => (
-          <div key={table.id} className="rounded-2xl border-2 exodia-card p-4 sm:p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div key={table.id} className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+            <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+            <div className="p-4 sm:p-6">
             {/* Table Header */}
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 {editingTableTitle === table.id ? (
                   <input
@@ -1071,7 +1085,7 @@ setEmailBody('')
                   />
                 ) : (
                   <h2
-                    className="text-lg sm:text-xl cursor-pointer hover:underline truncate"
+                    className="text-lg sm:text-xl cursor-pointer hover:opacity-70 truncate"
                     style={{ color: 'var(--text-primary)', fontWeight: 700 }}
                     onClick={() => { setEditingTableTitle(table.id); setEditingTableTitleValue(table.title) }}
                     title="Click to edit title"
@@ -1093,8 +1107,8 @@ setEmailBody('')
                 </button>
                 <button
                   onClick={() => { setAddColumnTableId(table.id); setNewColumnName(''); setShowAddColumn(true) }}
-                  className="px-3 py-1.5 text-xs text-white rounded-lg transition flex items-center gap-1"
-                  style={{ backgroundColor: 'var(--text-primary)', fontWeight: 500 }}
+                  className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontWeight: 500, border: '1px solid var(--border-secondary)' }}
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -1103,8 +1117,8 @@ setEmailBody('')
                 </button>
                 <button
                   onClick={() => deleteTimelineTable(table.id)}
-                  className="p-1.5 rounded-lg transition"
-                  style={{ color: 'var(--accent)' }}
+                  className="p-1.5 rounded-lg transition hover:opacity-70"
+                  style={{ color: 'var(--text-muted)' }}
                   title="Delete table"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1115,18 +1129,23 @@ setEmailBody('')
             </div>
 
             {/* Columns */}
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2">
               {table.columns.map((col) => {
                 const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
                 const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
                 const colIndex = table.columns.findIndex(c => c.key === col.key)
-                const borderColor = colIndex % 2 === 0 ? '#1B1A1C' : '#3E4048'
+                const borderColors = ['#FF5900', '#2563EB', '#0B8043', '#7C3AED', '#DC2626']
+                const borderColor = borderColors[colIndex % borderColors.length]
                 return (
                   <div
                     key={col.key}
                     className="min-w-[240px] sm:min-w-[260px] flex-1 rounded-xl p-3"
                     style={{
-                      backgroundColor: 'var(--bg-card)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      opacity: isDraggedColumn ? 0.5 : 1,
+                      border: '1px solid var(--border-secondary)',
+                      borderTop: `3px solid ${borderColor}`,
+                    }}
                       opacity: isDraggedColumn ? 0.5 : 1,
                       border: `2px solid ${borderColor}`,
                       borderTop: `4px solid ${borderColor}`,
@@ -1220,19 +1239,18 @@ setEmailBody('')
                         <div
                           key={lead.id}
                           onClick={() => setSelectedLead(lead)}
-                          className="rounded-xl p-3 border cursor-pointer transition-all hover:shadow-md"
-                          style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
+                          className="rounded-xl p-3 border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+                          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
                         >
                           <div className="min-w-0">
-                            <h4 className="text-sm mb-0.5 truncate" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{lead.company}</h4>
-                            <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs" style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{lead.value}</span>
-                              <span className="text-xs" style={{ color: 'var(--border-primary)', fontWeight: 300 }}>{lead.date}</span>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{lead.company}</h4>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>{lead.date}</span>
                             </div>
+                            <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
                             {lead.checklist && lead.checklist.length > 0 && (
                               <div className="mb-2">
-                                <div className="flex items-center gap-1.5 mb-1">
+                                <div className="flex items-center gap-1.5">
                                   <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border-secondary)' }}>
                                     <div className="h-1 rounded-full transition-all" style={{ width: `${Math.round((lead.checklist.filter(c => c.done).length / lead.checklist.length) * 100)}%`, backgroundColor: '#0B8043' }} />
                                   </div>
@@ -1241,7 +1259,7 @@ setEmailBody('')
                               </div>
                             )}
                           </div>
-                          <div className="flex items-center justify-center gap-1 pt-2 border-t" style={{ borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1 pt-2" style={{ borderTop: '1px solid var(--border-secondary)' }} onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
                               className="p-1.5 rounded-lg transition hover:scale-110"
