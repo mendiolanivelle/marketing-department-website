@@ -455,7 +455,8 @@ export default function AcceptanceCriteria() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          const link = window.location.origin + '/view-acceptance.html?id=' + sub.id
+                          const encoded = btoa(encodeURIComponent(JSON.stringify(sub)))
+                          const link = window.location.origin + '/view-acceptance.html#' + encoded
                           navigator.clipboard.writeText(link)
                         }}
                         className="p-1.5 rounded-lg transition hover:opacity-70"
@@ -718,10 +719,11 @@ export default function AcceptanceCriteria() {
                 <button
                   onClick={async () => {
                     const pdfUrl = await uploadPDF(selectedSubmission)
-                    setSendForm({
-                      to: selectedSubmission.email || '',
-                      subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
-                      body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
+                    const encoded = btoa(encodeURIComponent(JSON.stringify(selectedSubmission)))
+                      setSendForm({
+                        to: selectedSubmission.email || '',
+                        subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
+                        body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/view-acceptance.html#${encoded}\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
                       attachment: pdfUrl || '',
                       additionalAttachments: [],
                     })
