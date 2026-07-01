@@ -125,7 +125,9 @@ export default function Messaging() {
     localStorage.setItem('exodia-outreach-leads', JSON.stringify(leads))
   }, [leads])
 
-  // Sync leads from Lead Generation files
+// Sync leads from Lead Generation files
+  const reSyncAll = useRef(false)
+
   useEffect(() => {
     const syncLeadFiles = () => {
       const savedFiles = localStorage.getItem('exodia-lead-files')
@@ -134,62 +136,79 @@ export default function Messaging() {
       try { leadFiles = JSON.parse(savedFiles) } catch { return }
 
       const currentLeadsRaw = localStorage.getItem('exodia-outreach-leads')
-      const currentLeads: OutreachLead[] = currentLeadsRaw ? JSON.parse(currentLeadsRaw) : []
+      let currentLeads: OutreachLead[] = currentLeadsRaw ? JSON.parse(currentLeadsRaw) : []
 
-      const syncedFileIds: string[] = []
+      let syncedFileIds: string[] = []
       try {
         const saved = localStorage.getItem('exodia-synced-lead-files')
-        if (saved) syncedFileIds.push(...JSON.parse(saved))
+        if (saved && !reSyncAll.current) syncedFileIds.push(...JSON.parse(saved))
       } catch {}
+      reSyncAll.current = false
 
       let newLeads: OutreachLead[] = []
+      let updatedCount = 0
       const newlySynced: string[] = []
       let maxId = currentLeads.length > 0 ? Math.max(...currentLeads.map(l => l.id)) : 0
 
       for (const file of leadFiles) {
-        if (syncedFileIds.includes(file.id)) continue
-
         const cols = (file.columns as string[]) || []
-        const nameCol = cols.find(c => /name|contact/i.test(c)) || ''
-        const emailCol = cols.find(c => /email/i.test(c)) || ''
-        const companyCol = cols.find(c => /company|organization|studio/i.test(c)) || ''
-        const roleCol = cols.find(c => /role|position|title/i.test(c)) || ''
+        const nameCol = cols.find(c => /name|contact person|full name/i.test(c)) || ''
+        const emailCol = cols.find(c => /email|e-mail|mail/i.test(c)) || ''
+        const companyCol = cols.find(c => /company|organization|studio|client/i.test(c)) || ''
+        const roleCol = cols.find(c => /role|position|title|designation/i.test(c)) || ''
 
         const savedRows = localStorage.getItem(`exodia-lead-rows-${file.id}`)
-        if (savedRows) {
-          try {
-            const rows = JSON.parse(savedRows)
-            for (const row of rows) {
-              const data = row.data as Record<string, string> || {}
-              const rowName = nameCol ? (data[nameCol] || '').trim() : ''
-              const rowEmail = emailCol ? (data[emailCol] || '').trim() : ''
-              const rowCompany = companyCol ? (data[companyCol] || '').trim() : ''
-              const rowRole = roleCol ? (data[roleCol] || '').trim() : ''
-              if (rowName || rowEmail) {
-                maxId++
-                newLeads.push({
-                  id: maxId,
-                  name: rowName || rowEmail.split('@')[0] || 'Unknown',
-                  email: rowEmail || '',
-                  company: rowCompany || file.name,
-                  role: rowRole || '',
-                  status: 'pending',
-                  lastContacted: '',
-                  notes: '',
-                })
-              }
+        if (!savedRows) continue
+
+        let rows: any[]
+        try { rows = JSON.parse(savedRows) } catch { continue }
+
+        for (const row of rows) {
+          const data = row.data as Record<string, string> || {}
+          const rowEmail = emailCol ? (data[emailCol] || '').trim().toLowerCase() : ''
+          const rowName = nameCol ? (data[nameCol] || '').trim() : ''
+          const rowCompany = companyCol ? (data[companyCol] || '').trim() : ''
+          const rowRole = roleCol ? (data[roleCol] || '').trim() : ''
+          if (!rowName && !rowEmail) continue
+
+          // If this file was already synced, update matching leads instead of creating new
+          const existingIdx = syncedFileIds.includes(file.id)
+            ? currentLeads.findIndex(l => l.email.toLowerCase() === rowEmail && rowEmail)
+            : -1
+
+          if (existingIdx >= 0) {
+            const existing = currentLeads[existingIdx]
+            if (existing.name !== rowName || existing.company !== rowCompany || existing.role !== rowRole) {
+              currentLeads[existingIdx] = { ...existing, name: rowName || existing.name, company: rowCompany || existing.company, role: rowRole || existing.role }
+              updatedCount++
             }
-          } catch {}
+          } else if (!syncedFileIds.includes(file.id)) {
+            maxId++
+            newLeads.push({
+              id: maxId,
+              name: rowName || rowEmail.split('@')[0] || 'Unknown',
+              email: rowEmail || '',
+              company: rowCompany || file.name,
+              role: rowRole || '',
+              status: 'pending',
+              lastContacted: '',
+              notes: '',
+            })
+          }
         }
 
         newlySynced.push(file.id)
       }
 
+      if (updatedCount > 0) {
+        setLeads([...currentLeads])
+      }
       if (newLeads.length > 0) {
         setLeads(prev => [...newLeads, ...prev])
       }
       if (newlySynced.length > 0) {
-        localStorage.setItem('exodia-synced-lead-files', JSON.stringify([...syncedFileIds, ...newlySynced]))
+        const allSynced = [...new Set([...syncedFileIds, ...newlySynced])]
+        localStorage.setItem('exodia-synced-lead-files', JSON.stringify(allSynced))
       }
     }
 
@@ -234,6 +253,17 @@ export default function Messaging() {
     setNewLead({ name: '', email: '', company: '', role: '' })
     setShowAdd(false)
     logActivity('Lead', `Added "${newLead.name.trim()}" (${newLead.email.trim()})`)
+  }
+
+  const triggerReSync = () => {
+    localStorage.removeItem('exodia-synced-lead-files')
+    reSyncAll.current = true
+    // Run sync immediately
+    const savedFiles = localStorage.getItem('exodia-lead-files')
+    if (savedFiles) {
+      try { JSON.parse(savedFiles); addNotification('Re-syncing all leads from Lead Generation...', 'success') } catch {}
+    }
+    setTimeout(() => window.location.reload(), 500)
   }
 
   const deleteLead = (id: number) => {
@@ -618,14 +648,25 @@ export default function Messaging() {
             <h2 className="text-xl sm:text-2xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Reach Out</h2>
             <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Email outreach and follow-up management</p>
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
-            style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Lead
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={triggerReSync}
+              className="px-3 py-2 text-xs rounded-lg transition flex items-center gap-1.5"
+              style={{ color: 'var(--accent)', backgroundColor: 'var(--accent-light)', fontWeight: 500 }}
+              title="Re-sync all leads from Lead Generation files"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Sync All
+            </button>
+            <button
+              onClick={() => setShowAdd(true)}
+              className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
+              style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Add Lead
+            </button>
+          </div>
         </div>
 
         {/* Search */}
