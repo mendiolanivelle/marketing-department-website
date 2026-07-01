@@ -44,10 +44,7 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
-    const { createClient } = supabase;
-
     (async () => {
       const SUPABASE_URL = 'https://extkotvjigtswrrnxikw.supabase.co';
       const SUPABASE_ANON_KEY = 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o';
@@ -56,71 +53,54 @@
       const id = params.get('id');
 
       if (!id) {
-        document.getElementById('root').innerHTML = `
-          <div class="error-page">
-            <div class="error-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h1 class="error-title">Invalid Link</h1>
-            <p class="error-desc">This link is missing required information. Please check the link or contact the Marketing Department.</p>
-          </div>`;
+        document.getElementById('root').innerHTML = '<div class="error-page"><div class="error-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h1 class="error-title">Invalid Link</h1><p class="error-desc">This link is missing required information. Please check the link or contact the Marketing Department.</p></div>';
         return;
       }
 
-      let sub = null;
+      function getAuthToken() {
+        try {
+          var raw = window.localStorage.getItem('sb-extkotvjigtswrrnxikw-auth-token');
+          if (!raw) return null;
+          var session = JSON.parse(raw);
+          return session?.access_token || null;
+        } catch (e) { return null; }
+      }
 
-      // Try existing auth session (marketing users logged into SPA)
+      function redirectToLogin() {
+        var returnUrl = window.location.pathname + window.location.search;
+        sessionStorage.setItem('acceptanceRedirect', returnUrl);
+        window.location.href = '/#/login';
+      }
+
+      var token = getAuthToken();
+      if (!token) {
+        redirectToLogin();
+        return;
+      }
+
+      var sub = null;
+
       try {
-        const sessionStr = window.localStorage.getItem('sb-extkotvjigtswrrnxikw-auth-token');
-        if (sessionStr) {
-          const session = JSON.parse(sessionStr);
-          const token = session?.access_token;
-          if (token) {
-            const res = await fetch(SUPABASE_URL + '/rest/v1/acceptance_forms?select=*&id=eq.' + encodeURIComponent(id), {
-              headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY }
-            });
-            if (res.ok) {
-              const arr = await res.json();
-              if (arr && arr.length > 0) sub = arr[0];
-            }
-          }
+        var res = await fetch(SUPABASE_URL + '/rest/v1/acceptance_forms?select=*&id=eq.' + encodeURIComponent(id), {
+          headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          var arr = await res.json();
+          if (arr && arr.length > 0) sub = arr[0];
         }
-      } catch (e) { console.warn('Existing session query:', e); }
+      } catch (e) {}
 
-      // Try edge function
       if (!sub) {
         try {
-          const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
-          if (res.ok) sub = await res.json();
-        } catch (e) { console.warn('Edge function:', e); }
-      }
-
-      // Try anonymous sign-in
-      if (!sub) {
-        try {
-          const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
-          const { error: signInError } = await supabase.auth.signInAnonymously();
-          if (!signInError) {
-            const { data, error: qErr } = await supabase.from('acceptance_forms').select('*').eq('id', id).maybeSingle();
-            if (!qErr && data) sub = data;
-          }
-        } catch (e) { console.warn('Anonymous sign-in:', e); }
+          var edgeRes = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id), {
+            headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }
+          });
+          if (edgeRes.ok) sub = await edgeRes.json();
+        } catch (e) {}
       }
 
       if (!sub) {
-        document.getElementById('root').innerHTML = `
-          <div class="error-page">
-            <div class="error-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h1 class="error-title">Form Not Found</h1>
-            <p class="error-desc">The acceptance criteria form you're looking for doesn't exist or may have been removed.</p>
-            <p class="error-id">Please contact the Marketing Department for a new link.</p>
-          </div>`;
+        redirectToLogin();
         return;
       }
 

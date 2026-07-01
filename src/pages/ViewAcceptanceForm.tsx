@@ -16,24 +16,27 @@ export default function ViewAcceptanceForm() {
         const apiUrl = import.meta.env.VITE_SUPABASE_URL
         let data = null
 
-        // Method 1: Try edge function (bypasses RLS)
-        try {
-          const res = await fetch(apiUrl + '/functions/v1/get-public-form?id=' + encodeURIComponent(id))
-          if (res.ok) {
-            data = await res.json()
-          }
-        } catch (_) {}
-
-        // Method 2: Try Supabase client with anonymous sign-in
+        // Method 1: Try Supabase client (authenticated user)
         if (!data) {
           try {
-            await supabase!.auth.signInAnonymously()
             const { data: d, error: e } = await supabase!
               .from('acceptance_forms')
               .select('*')
               .eq('id', id)
               .maybeSingle()
             if (!e && d) data = d
+          } catch (_) {}
+        }
+
+        // Method 2: Try edge function (bypasses RLS)
+        if (!data) {
+          try {
+            const res = await fetch(apiUrl + '/functions/v1/get-public-form?id=' + encodeURIComponent(id), {
+              headers: { 'Authorization': 'Bearer ' + (import.meta.env.VITE_SUPABASE_ANON_KEY || ''), 'apikey': (import.meta.env.VITE_SUPABASE_ANON_KEY || '') }
+            })
+            if (res.ok) {
+              data = await res.json()
+            }
           } catch (_) {}
         }
 
