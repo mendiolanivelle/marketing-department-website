@@ -16,7 +16,7 @@
           var orig=C[m];methods[m]=function(){for(var i=0;i<arguments.length;i++){if(shouldSkip(String(arguments[i])))return}return orig.apply(C,arguments)}
         })
         window.console=new Proxy(C,{get:function(t,p){return methods[p]||(typeof t[p]==='function'?t[p].bind(t):t[p])}})
-        window.addEventListener('error',function(e){if(shouldSkip(e.message||'')){e.stopImmediatePropagation();e.preventDefault()}},true)
+        window.addEventListener('error',function(e){if(!shouldSkip(e.message||''))return;e.stopImmediatePropagation();e.preventDefault();if(sessionStorage.getItem('stale-chunk-reloaded')!=='true'){sessionStorage.setItem('stale-chunk-reloaded','true');location.reload()}},true)
         window.addEventListener('unhandledrejection',function(e){var m=(e.reason&&e.reason.message)||String(e.reason||'');if(shouldSkip(m)){e.preventDefault();return}if(m.indexOf('Failed to fetch')>-1||m.indexOf('Importing a module script failed')>-1||m.indexOf('Expected a JavaScript-or-Wasm module script')>-1){e.preventDefault();if(sessionStorage.getItem('stale-chunk-reloaded')!=='true'){sessionStorage.setItem('stale-chunk-reloaded','true');location.reload()}}})
       })()
     </script>
