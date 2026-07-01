@@ -80,10 +80,10 @@ export default function Login() {
     if (error) {
       setError(error.message)
     } else {
-      const redirectUrl = sessionStorage.getItem('acceptanceRedirect')
-      if (redirectUrl) {
-        sessionStorage.removeItem('acceptanceRedirect')
-        window.location.href = redirectUrl
+      const hash = window.location.hash.replace('#/', '')
+      const redirectMatch = hash.match(/[?&]redirect=([^&]+)/)
+      if (redirectMatch) {
+        window.location.href = decodeURIComponent(redirectMatch[1])
       } else {
         navigate('/dashboard')
       }
