@@ -66,7 +66,7 @@
                     window.sessionStorage.getItem('sb-extkotvjigtswrrnxikw-auth-token');
           if (!raw) return null;
           var session = JSON.parse(raw);
-          return session?.access_token || null;
+          return session?.access_token || session?.currentSession?.access_token || null;
         } catch (e) { return null; }
       }
 
@@ -75,35 +75,34 @@
         window.location.href = '/#/login?redirect=' + returnUrl;
       }
 
-      var token = getAuthToken();
-      if (!token) {
-        redirectToLogin();
-        return;
-      }
-
       var sub = null;
 
+      // Method 1: Edge function (public, no auth needed, bypasses RLS)
       try {
-        var res = await fetch(SUPABASE_URL + '/rest/v1/acceptance_forms?select=*&id=eq.' + encodeURIComponent(id), {
-          headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }
+        var edgeRes = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id), {
+          headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }
         });
-        if (res.ok) {
-          var arr = await res.json();
-          if (arr && arr.length > 0) sub = arr[0];
-        }
+        if (edgeRes.ok) sub = await edgeRes.json();
       } catch (e) {}
 
+      // Method 2: Authenticated REST API (requires valid auth token)
       if (!sub) {
-        try {
-          var edgeRes = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id), {
-            headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'apikey': SUPABASE_ANON_KEY }
-          });
-          if (edgeRes.ok) sub = await edgeRes.json();
-        } catch (e) {}
+        var token = getAuthToken();
+        if (token) {
+          try {
+            var res = await fetch(SUPABASE_URL + '/rest/v1/acceptance_forms?select=*&id=eq.' + encodeURIComponent(id), {
+              headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              var arr = await res.json();
+              if (arr && arr.length > 0) sub = arr[0];
+            }
+          } catch (e) {}
+        }
       }
 
       if (!sub) {
-        document.getElementById('root').innerHTML = '<div class="error-page"><div class="error-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h1 class="error-title">Form Not Found</h1><p class="error-desc">The acceptance criteria form you\'re looking for doesn\'t exist or may have been removed.</p><p class="error-id">Please contact the Marketing Department for a new link.</p></div>';
+        redirectToLogin();
         return;
       }
 
