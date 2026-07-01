@@ -72,38 +72,33 @@
       try {
         let sub = null;
 
-        // Method 1: Try Supabase JS client with anonymous sign-in
+        // Method 1: Try edge function (bypasses RLS with service_role)
         try {
-          const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { persistSession: false }
-          });
-          const { data: anonData } = await supabase.auth.signInAnonymously();
-          if (anonData) {
-            const { data: formData, error: queryError } = await supabase
-              .from('acceptance_forms')
-              .select('*')
-              .eq('id', id)
-              .maybeSingle();
-            if (!queryError && formData) {
-              sub = formData;
-            }
+          const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
+          if (res.ok) {
+            sub = await res.json();
           }
         } catch (e) {
-          // Anonymous sign-in not available, fall through
+          console.warn('Edge function unavailable:', e);
         }
 
-        // Method 2: Try edge function (bypasses RLS with service_role)
+        // Method 2: Try Supabase client with sign-in
         if (!sub) {
           try {
-            const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
-            if (res.ok) {
-              sub = await res.json();
-            } else if (res.status !== 404) {
-              const errData = await res.json();
-              console.warn('Edge function error:', errData);
+            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+              auth: { persistSession: false }
+            });
+            const { error: signInError } = await supabase.auth.signInAnonymously();
+            if (!signInError) {
+              const { data: formData, error: queryError } = await supabase
+                .from('acceptance_forms')
+                .select('*')
+                .eq('id', id)
+                .maybeSingle();
+              if (!queryError && formData) sub = formData;
             }
           } catch (e) {
-            console.warn('Edge function unavailable:', e);
+            console.warn('Anonymous sign-in unavailable:', e);
           }
         }
 
