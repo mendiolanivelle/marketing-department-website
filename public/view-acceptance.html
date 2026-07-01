@@ -59,33 +59,28 @@
       // Method 1: Data embedded in URL hash (no DB needed)
       if (hash) {
         try {
-          const decoded = JSON.parse(decodeURIComponent(atob(hash)));
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(hash))));
           if (decoded && decoded.project_name) sub = decoded;
-        } catch (e) {}
+        } catch (e) { console.warn('Hash decode failed:', e); }
       }
 
-      if (!sub && hash) {
-      }
-
-      try {
-        let sub = null;
-
-        // Method 1: Try edge function (bypasses RLS with service_role)
-        try {
-          const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
-          if (res.ok) {
-            sub = await res.json();
-          }
-        } catch (e) {
-          console.warn('Edge function unavailable:', e);
-        }
-
-        // Method 2: Try Supabase client with sign-in
-        if (!sub) {
+      // Method 2: Try edge function (bypasses RLS with service_role)
+      if (!sub) {
+        const id = params.get('id');
+        if (id) {
           try {
-            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-              auth: { persistSession: false }
-            });
+            const res = await fetch(SUPABASE_URL + '/functions/v1/get-public-form?id=' + encodeURIComponent(id));
+            if (res.ok) sub = await res.json();
+          } catch (e) { console.warn('Edge function unavailable:', e); }
+        }
+      }
+
+      // Method 3: Try Supabase client with anonymous sign-in
+      if (!sub) {
+        const id = params.get('id');
+        if (id) {
+          try {
+            const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
             const { error: signInError } = await supabase.auth.signInAnonymously();
             if (!signInError) {
               const { data: formData, error: queryError } = await supabase
@@ -95,25 +90,24 @@
                 .maybeSingle();
               if (!queryError && formData) sub = formData;
             }
-          } catch (e) {
-            console.warn('Anonymous sign-in unavailable:', e);
-          }
+          } catch (e) { console.warn('Anonymous sign-in unavailable:', e); }
         }
+      }
 
-        if (!sub) {
-          document.getElementById('root').innerHTML = `
-            <div class="error-page">
-              <div class="error-icon">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <h1 class="error-title">Form Not Found</h1>
-              <p class="error-desc">The acceptance criteria form you're looking for doesn't exist or may have been removed.</p>
-              <p class="error-id">Please contact the Marketing Department for a new link.</p>
-            </div>`;
-          return;
-        }
+      if (!sub) {
+        document.getElementById('root').innerHTML = `
+          <div class="error-page">
+            <div class="error-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h1 class="error-title">Form Not Found</h1>
+            <p class="error-desc">The acceptance criteria form you're looking for doesn't exist or may have been removed.</p>
+            <p class="error-id">Please contact the Marketing Department for a new link.</p>
+          </div>`;
+        return;
+      }
 
         function Row(label, value) {
           if (!value) value = '\u2014';
@@ -147,7 +141,7 @@
               </g>
             </svg>
             <h1>${sub.project_name || 'Acceptance Criteria'}</h1>
-            <div class="id-badge">${sub.tracking_id || id}</div>
+            <div class="id-badge">${sub.tracking_id || sub.id || ''}</div>
           </div>
           <div class="container">
             <div class="card">
@@ -215,18 +209,6 @@
           <div class="footer">
             <p>Exodia Game Development &middot; Marketing Department</p>
           </div>`;
-      } catch (err) {
-        document.getElementById('root').innerHTML = `
-          <div class="error-page">
-            <div class="error-icon">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h1 class="error-title">Something went wrong</h1>
-            <p class="error-desc">${err.message || 'Failed to load form data.'}</p>
-          </div>`;
-      }
     })();
   </script>
 </body>

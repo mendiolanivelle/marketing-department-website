@@ -719,7 +719,7 @@ export default function AcceptanceCriteria() {
                 <button
                   onClick={async () => {
                     const pdfUrl = await uploadPDF(selectedSubmission)
-                    const encoded = btoa(encodeURIComponent(JSON.stringify(selectedSubmission)))
+                    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(selectedSubmission))))
                       setSendForm({
                         to: selectedSubmission.email || '',
                         subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
