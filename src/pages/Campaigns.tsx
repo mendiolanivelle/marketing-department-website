@@ -36,9 +36,6 @@ function addToCalendar(campaign: Campaign) {
   items.push(newItem)
   localStorage.setItem(key, JSON.stringify(items))
   window.dispatchEvent(new CustomEvent('calendar-updated'))
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('New Campaign Created', { body: `${campaign.name} — Due: ${campaign.due}` })
-  }
 }
 
 function removeFromCalendar(campaignName: string) {
@@ -78,6 +75,12 @@ export default function Campaigns() {
   const [editId, setEditId] = useState<number | null>(null)
   const [editOldName, setEditOldName] = useState('')
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: '' })
+  const [note, setNote] = useState('')
+
+  const showNote = (msg: string) => {
+    setNote(msg)
+    setTimeout(() => setNote(''), 3000)
+  }
 
   const addCampaign = () => {
     if (!form.name.trim()) return
@@ -87,9 +90,7 @@ export default function Campaigns() {
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
     addToCalendar(campaign)
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
+    showNote(`Campaign "${campaign.name}" created — added to Calendar`)
     setShowAdd(false)
     setForm({ name: '', dept: '', status: 'Pending', due: '' })
   }
@@ -106,6 +107,7 @@ export default function Campaigns() {
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
     updateInCalendar(editOldName, { ...form, id: editId } as Campaign)
+    showNote(`Campaign "${form.name}" updated — Calendar synced`)
     setEditId(null)
     setEditOldName('')
     setForm({ name: '', dept: '', status: 'Pending', due: '' })
@@ -116,7 +118,7 @@ export default function Campaigns() {
     const updated = campaigns.filter(c => c.id !== id)
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
-    if (camp) removeFromCalendar(camp.name)
+    if (camp) { removeFromCalendar(camp.name); showNote(`Campaign "${camp.name}" removed from Calendar`) }
   }
 
   const statusCounts = {
@@ -133,6 +135,16 @@ export default function Campaigns() {
 
   return (
     <div>
+      {note && (
+        <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium transition-all" style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {note}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <section className="py-12 sm:py-16 px-4 sm:px-6 text-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="max-w-3xl mx-auto">
