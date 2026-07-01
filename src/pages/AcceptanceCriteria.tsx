@@ -339,22 +339,22 @@ export default function AcceptanceCriteria() {
           {!loading && submissions.length > 0 && (
             <div className="flex gap-3 flex-wrap">
               {[
-                { label: 'Total', value: submissions.length, color: '#1B1A1C' },
-                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#2563EB' },
-                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#EA580C' },
+                { label: 'Total', value: submissions.length, color: '#1B1A1C', bg: '#F3F4F6', activeBg: '#1B1A1C' },
+                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#2563EB', bg: '#EBF5FF', activeBg: '#2563EB' },
+                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#EA580C', bg: '#FFF7ED', activeBg: '#EA580C' },
               ].map((stat, i) => (
                 <button
                   key={i}
                   onClick={() => setFilterType(i === 0 ? null : stat.label === 'Staff Aug' ? 'Staff Aug' : 'Project Base')}
-                  className="px-3 py-2 rounded-xl border text-center transition hover:opacity-80"
+                  className="px-4 py-2.5 rounded-xl text-center transition hover:-translate-y-0.5 min-w-[100px]"
                   style={{
-                    backgroundColor: (i === 0 ? filterType === null : filterType === stat.label) ? 'var(--accent)' : 'var(--bg-secondary)',
-                    borderColor: 'var(--border-secondary)',
-                    color: (i === 0 ? filterType === null : filterType === stat.label) ? '#FFFFFF' : 'var(--text-primary)',
+                    backgroundColor: (i === 0 ? filterType === null : filterType === stat.label) ? stat.activeBg : stat.bg,
+                    border: (i === 0 ? filterType === null : filterType === stat.label) ? '2px solid ' + stat.activeBg : '2px solid transparent',
+                    color: (i === 0 ? filterType === null : filterType === stat.label) ? '#FFFFFF' : stat.color,
                   }}
                 >
-                  <div className="text-sm font-bold">{stat.value}</div>
-                  <div className="text-[10px]" style={{ opacity: 0.7 }}>{stat.label}</div>
+                  <div className="text-xl font-bold leading-none mb-1">{stat.value}</div>
+                  <div className="text-[11px] font-medium" style={{ opacity: 0.85 }}>{stat.label}</div>
                 </button>
               ))}
             </div>
