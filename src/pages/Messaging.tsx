@@ -398,12 +398,14 @@ export default function Messaging() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6">
           {[
             { label: 'Pending', count: leads.filter(l => l.status === 'pending').length, color: '#3E4048' },
             { label: 'Sent', count: leads.filter(l => l.status === 'sent').length, color: '#0B8043' },
             { label: 'Follow Up', count: leads.filter(l => l.status === 'follow-up').length, color: '#4A90D9' },
+            { label: 'No Reply', count: leads.filter(l => l.status === 'no-reply').length, color: '#DC2626' },
             { label: 'Replied', count: leads.filter(l => l.status === 'replied').length, color: '#FF5900' },
+            { label: 'Meeting Booked', count: leads.filter(l => l.status === 'meeting-booked').length, color: '#2563EB' },
           ].map((stat, i) => (
             <div key={i} className="p-4 rounded-xl border-2 exodia-card text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
               <div className="text-2xl sm:text-3xl mb-1" style={{ color: stat.color || 'var(--text-primary)', fontWeight: 700 }}>{stat.count}</div>
