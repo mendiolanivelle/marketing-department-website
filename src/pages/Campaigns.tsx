@@ -35,6 +35,7 @@ function addToCalendar(campaign: Campaign) {
   }
   items.push(newItem)
   localStorage.setItem(key, JSON.stringify(items))
+  window.dispatchEvent(new CustomEvent('calendar-updated'))
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification('New Campaign Created', { body: `${campaign.name} — Due: ${campaign.due}` })
   }
@@ -46,6 +47,7 @@ function removeFromCalendar(campaignName: string) {
   if (!saved) return
   const items = JSON.parse(saved).filter((i: any) => i.title !== campaignName)
   localStorage.setItem(key, JSON.stringify(items))
+  window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
 
 function updateInCalendar(oldName: string, campaign: Campaign) {

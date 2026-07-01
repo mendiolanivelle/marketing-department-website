@@ -97,11 +97,15 @@ export default function Calendar() {
   const [submitting, setSubmitting] = useState(false)
 
   const fetchItems = useCallback(async () => {
+    // Always merge local calendar items (from Campaigns page, etc.)
+    let localItems: CalendarItem[] = []
+    const saved = localStorage.getItem('exodia-calendar-items')
+    if (saved) {
+      try { localItems = JSON.parse(saved) } catch {}
+    }
+
     if (!isSupabaseConfigured || !supabase) {
-      const saved = localStorage.getItem('exodia-calendar-items')
-      if (saved) {
-        try { setItems(JSON.parse(saved)) } catch {}
-      }
+      setItems(localItems)
       setLoading(false)
       return
     }
@@ -112,11 +116,15 @@ export default function Calendar() {
         .order('date', { ascending: true })
       if (error) throw error
       if (data) {
-        setItems(data)
-        localStorage.setItem('exodia-calendar-items', JSON.stringify(data))
+        // Merge Supabase data with local items (local items take precedence)
+        const supabaseIds = new Set(data.map((i: CalendarItem) => i.id))
+        const merged = [...data, ...localItems.filter(i => !supabaseIds.has(i.id))]
+        setItems(merged)
+        localStorage.setItem('exodia-calendar-items', JSON.stringify(merged))
       }
     } catch (err) {
       console.error('Error fetching calendar items:', err)
+      setItems(localItems)
     } finally {
       setLoading(false)
     }
@@ -125,6 +133,7 @@ export default function Calendar() {
   useEffect(() => {
     fetchItems()
 
+    // Listen for real-time updates from Supabase
     if (!isSupabaseConfigured || !supabase) return
 
     const channel = supabase
@@ -137,6 +146,13 @@ export default function Calendar() {
     return () => {
       try { supabase.removeChannel(channel) } catch {}
     }
+  }, [fetchItems])
+
+  // Listen for calendar updates from other pages (e.g. Campaigns)
+  useEffect(() => {
+    const handler = () => { fetchItems() }
+    window.addEventListener('calendar-updated', handler)
+    return () => window.removeEventListener('calendar-updated', handler)
   }, [fetchItems])
 
   // Persist to localStorage on every change
