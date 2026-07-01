@@ -15,6 +15,7 @@ interface OutreachLead {
   lastContacted: string
   notes: string
   photoUrl?: string
+  rawData?: Record<string, string>
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -178,10 +179,14 @@ export default function Messaging() {
 
           if (existingIdx >= 0) {
             const existing = currentLeads[existingIdx]
-            if (existing.name !== rowName || existing.company !== rowCompany || existing.role !== rowRole) {
-              currentLeads[existingIdx] = { ...existing, name: rowName || existing.name, company: rowCompany || existing.company, role: rowRole || existing.role }
-              updatedCount++
+            currentLeads[existingIdx] = {
+              ...existing,
+              name: rowName || existing.name,
+              company: rowCompany || existing.company,
+              role: rowRole || existing.role,
+              rawData: data,
             }
+            updatedCount++
           } else if (!syncedFileIds.includes(file.id)) {
             maxId++
             newLeads.push({
@@ -193,6 +198,7 @@ export default function Messaging() {
               status: 'pending',
               lastContacted: '',
               notes: '',
+              rawData: data,
             })
           }
         }
@@ -258,12 +264,8 @@ export default function Messaging() {
   const triggerReSync = () => {
     localStorage.removeItem('exodia-synced-lead-files')
     reSyncAll.current = true
-    // Run sync immediately
-    const savedFiles = localStorage.getItem('exodia-lead-files')
-    if (savedFiles) {
-      try { JSON.parse(savedFiles); addNotification('Re-syncing all leads from Lead Generation...', 'success') } catch {}
-    }
-    setTimeout(() => window.location.reload(), 500)
+    addNotification('Re-syncing all leads from Lead Generation...', 'success')
+    setTimeout(() => window.location.reload(), 800)
   }
 
   const deleteLead = (id: number) => {
@@ -824,7 +826,7 @@ export default function Messaging() {
               </div>
               <div className="flex flex-col sm:flex-row h-full max-h-[calc(90vh-60px)] overflow-y-auto">
                 {/* Left: Lead Info */}
-                <div className="sm:w-1/2 p-6 border-r" style={{ borderColor: 'var(--border-secondary)' }}>
+                <div className="sm:w-1/2 p-6 border-r overflow-y-auto" style={{ borderColor: 'var(--border-secondary)' }}>
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
                       {selectedDetailLead.photoUrl ? (
@@ -861,6 +863,16 @@ export default function Messaging() {
                       <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Last Contacted</label>
                       <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.lastContacted || 'Not yet contacted'}</p>
                     </div>
+                    {/* Detected fields from CSV/Spreadsheet */}
+                    {selectedDetailLead.rawData && Object.entries(selectedDetailLead.rawData)
+                      .filter(([key]) => !/name|email|company|organization|role|position|title|designation|studio|client|contact/i.test(key))
+                      .map(([key, val]) => val?.trim() ? (
+                        <div key={key}>
+                          <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{key}</label>
+                          <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{val}</p>
+                        </div>
+                      ) : null
+                    )}
                     <div>
                       <button
                         onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
