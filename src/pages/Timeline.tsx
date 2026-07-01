@@ -832,6 +832,16 @@ setEmailBody('')
                     </div>
                   )}
                 </div>
+
+                {/* Send Email */}
+                <button
+                  onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition mt-4"
+                  style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  Compose Email to {selectedLead.contact}
+                </button>
               </div>
 
               {/* Right side panel - Tabs */}
@@ -968,22 +978,12 @@ setEmailBody('')
                       ) : (
                         <input type="text" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { showAddPopup === 'note' ? addNote() : addChecklistItem() } }} placeholder={showAddPopup === 'note' ? 'Enter a note...' : 'Enter a checklist item...'} className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
                       )}
-                      <div className="flex gap-2 justify-end">
+<div className="flex gap-2 justify-end">
                         <button onClick={() => { setShowAddPopup(null); setAddPopupValue('') }} className="px-3 py-1.5 text-xs rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                         <button onClick={() => { showAddPopup === 'note' ? addNote() : showAddPopup === 'checklist' ? addChecklistItem() : addAttachment() }} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
-</div>
-                </div>
-
-                {/* Send Email */}
-                <button
-                  onClick={() => { setShowSendEmail(true); setEmailSubject(''); setEmailBody('') }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white transition mt-4"
-                  style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  Compose Email to {selectedLead.contact}
-                </button>
-              </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
