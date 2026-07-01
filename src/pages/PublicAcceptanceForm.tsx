@@ -308,7 +308,7 @@ export default function PublicAcceptanceForm() {
       {/* Header */}
       <div className="py-10 px-4 text-center" style={{ background: 'linear-gradient(135deg, #1B1A1C 0%, #2D2B2E 100%)', borderBottom: '3px solid #FF5900' }}>
         <div className="max-w-4xl mx-auto">
-          <div className="w-16 h-16 rounded-[16px] flex items-center justify-center mx-auto mb-3" style="background: rgba(255,255,255,0.08)"><svg className="w-8 h-8" style="color: #FF5900" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+          <div className="w-16 h-16 rounded-[16px] flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.08)' }}><svg className="w-8 h-8" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
           <h1 className="text-2xl mb-2" style={{ color: '#FFFFFF', fontWeight: 700, letterSpacing: '-0.02em' }}>Production Specs &amp; Acceptance Criteria Form</h1>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,89,0,0.15)' }}>
             <span className="text-xs" style={{ color: '#FF8C42', fontWeight: 600 }}>Exodia Game Development &middot; Marketing Department</span>
