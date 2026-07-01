@@ -102,6 +102,9 @@ export default function FileTracker() {
   const [userAssets, setUserAssets] = useState<Asset[]>(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
   })
+  const [deletedMockIds, setDeletedMockIds] = useState<Set<string>>(() => {
+    try { const s = localStorage.getItem('exodia-deleted-mock-assets'); return new Set(s ? JSON.parse(s) : []) } catch { return new Set() }
+  })
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('All Files')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -131,7 +134,12 @@ export default function FileTracker() {
     if (folderInputRef.current) folderInputRef.current.setAttribute('webkitdirectory', '')
   }, [])
 
-  const allAssets = [...userAssets, ...mockAssets]
+  const allAssets = [...userAssets, ...mockAssets.filter(m => !deletedMockIds.has(m.id))]
+
+  // Persist deleted mock IDs
+  useEffect(() => {
+    localStorage.setItem('exodia-deleted-mock-assets', JSON.stringify([...deletedMockIds]))
+  }, [deletedMockIds])
 
   const filtered = allAssets.filter(a => {
     const matchCategory = activeCategory === 'All Files' || a.category === activeCategory
@@ -211,8 +219,12 @@ export default function FileTracker() {
   }
 
   const handleDelete = (id: string) => {
-    const asset = userAssets.find(a => a.id === id)
-    setUserAssets(prev => prev.filter(a => a.id !== id))
+    const asset = userAssets.find(a => a.id === id) || mockAssets.find(a => a.id === id)
+    if (asset && mockAssets.some(m => m.id === id)) {
+      setDeletedMockIds(prev => { const next = new Set(prev); next.add(id); return next })
+    } else {
+      setUserAssets(prev => prev.filter(a => a.id !== id))
+    }
     if (previewAsset?.id === id) setPreviewAsset(null)
     if (asset) logActivity('Files', `Deleted "${asset.name}"`)
   }
