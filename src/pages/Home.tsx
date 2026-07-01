@@ -4,13 +4,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity, getActivityLog } from '../lib/activityLogger'
 import type { ActivityEntry } from '../lib/activityLogger'
 
-const announcements = [
-  { id: 1, title: 'Q3 Campaign Planning Kickoff', date: 'Jun 25, 2026', tag: 'Meeting', content: 'Join us for the Q3 campaign planning session where we will discuss upcoming initiatives and strategies.' },
-  { id: 2, title: 'New Brand Guidelines v2.0 Released', date: 'Jun 20, 2026', tag: 'Update', content: 'The updated brand guidelines are now available. Please review and update your materials accordingly.' },
-  { id: 3, title: 'Marketing Offsite - July 10-12', date: 'Jun 18, 2026', tag: 'Event', content: 'Annual marketing offsite at the mountain resort. All team members are required to attend.' },
-  { id: 4, title: 'Annual Review Submissions Due July 1', date: 'Jun 15, 2026', tag: 'Deadline', content: 'Please submit your annual performance reviews by July 1st to HR.' },
-]
-
 const quickLinks = []
 
 export default function Home() {
@@ -21,19 +14,19 @@ export default function Home() {
     noReply: 0,
     meetingsLeft: 0,
   })
+  const [calendarItems, setCalendarItems] = useState<any[]>(() => {
+    const saved = localStorage.getItem('exodia-calendar-items')
+    return saved ? JSON.parse(saved) : []
+  })
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
   const [showPipeline, setShowPipeline] = useState(false)
-  const [announcementsList, setAnnouncementsList] = useState(() => {
-    const saved = localStorage.getItem('exodia-announcements')
-    return saved ? JSON.parse(saved) : announcements
-  })
-  const [readAnnouncementIds, setReadAnnouncementIds] = useState<number[]>(() => {
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('exodia-read-announcements')
     return saved ? JSON.parse(saved) : []
   })
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
-  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: '', tag: 'Update', content: '' })
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem('exodia-tasks')
     return saved ? JSON.parse(saved) : [
@@ -68,14 +61,24 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key])
 
-  // Persist tasks and announcements to localStorage
+  // Listen for calendar-updated events from Calendar page
+  useEffect(() => {
+    const handler = () => {
+      const saved = localStorage.getItem('exodia-calendar-items')
+      if (saved) setCalendarItems(JSON.parse(saved))
+    }
+    window.addEventListener('calendar-updated', handler)
+    return () => window.removeEventListener('calendar-updated', handler)
+  }, [])
+
+  // Persist tasks and calendar items to localStorage
   useEffect(() => {
     localStorage.setItem('exodia-tasks', JSON.stringify(tasks))
   }, [tasks])
 
   useEffect(() => {
-    localStorage.setItem('exodia-announcements', JSON.stringify(announcementsList))
-  }, [announcementsList])
+    localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
+  }, [calendarItems])
 
   useEffect(() => {
     localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
@@ -230,30 +233,82 @@ export default function Home() {
     setEditingTaskText('')
   }
 
+  const tagFromType = (type: string) => {
+    if (type === 'meeting') return 'Meeting'
+    if (type === 'event') return 'Event'
+    if (type === 'task') return 'Update'
+    return 'Event'
+  }
+
+  const typeFromTag = (tag: string) => {
+    if (tag === 'Meeting') return 'meeting'
+    if (tag === 'Event') return 'event'
+    if (tag === 'Update' || tag === 'Deadline') return 'task'
+    return 'event'
+  }
+
+  const formatCalendarDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    try {
+      return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    } catch {
+      return dateStr
+    }
+  }
+
   const addAnnouncement = () => {
     if (!newAnnouncement.title.trim()) return
-    const newId = announcementsList.length > 0 ? Math.max(...announcementsList.map(a => a.id)) + 1 : 1
-    setAnnouncementsList([{ ...newAnnouncement, id: newId }, ...announcementsList])
-    setNewAnnouncement({ title: '', date: '', tag: 'Update', content: '' })
+    const now = new Date().toISOString()
+    const newItem = {
+      id: crypto.randomUUID(),
+      title: newAnnouncement.title.trim(),
+      type: typeFromTag(newAnnouncement.tag),
+      date: newAnnouncement.date || new Date().toISOString().split('T')[0],
+      start_time: null,
+      end_time: null,
+      description: newAnnouncement.content.trim() || null,
+      location: null,
+      color: newAnnouncement.tag === 'Meeting' ? '#FF5900' : newAnnouncement.tag === 'Event' ? '#0B8043' : '#1a73e8',
+      assignees: [],
+      notes: '',
+      created_at: now,
+      updated_at: now,
+    }
+    setCalendarItems(prev => [newItem, ...prev])
+    window.dispatchEvent(new CustomEvent('calendar-updated'))
+    setNewAnnouncement({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
     setShowAddAnnouncement(false)
     logActivity('Announcement', `Added "${newAnnouncement.title.trim()}"`)
     setActivityLog(getActivityLog())
   }
 
-  const deleteAnnouncement = (id: number) => {
-    const item = announcementsList.find(a => a.id === id)
-    setAnnouncementsList(announcementsList.filter(a => a.id !== id))
+  const deleteAnnouncement = (id: string) => {
+    const item = calendarItems.find(a => a.id === id)
+    setCalendarItems(prev => prev.filter(a => a.id !== id))
+    window.dispatchEvent(new CustomEvent('calendar-updated'))
     if (item) logActivity('Announcement', `Deleted "${item.title}"`)
     setActivityLog(getActivityLog())
   }
 
   const startEditingAnnouncement = (announcement: any) => {
-    setEditingAnnouncement({ ...announcement })
+    setEditingAnnouncement({
+      ...announcement,
+      tag: tagFromType(announcement.type),
+    })
   }
 
   const saveAnnouncementEdit = () => {
     if (!editingAnnouncement) return
-    setAnnouncementsList(announcementsList.map(a => a.id === editingAnnouncement.id ? editingAnnouncement : a))
+    setCalendarItems(prev => prev.map(a => a.id === editingAnnouncement.id ? {
+      ...a,
+      title: editingAnnouncement.title,
+      type: typeFromTag(editingAnnouncement.tag),
+      date: editingAnnouncement.date,
+      description: editingAnnouncement.content || null,
+      color: editingAnnouncement.tag === 'Meeting' ? '#FF5900' : editingAnnouncement.tag === 'Event' ? '#0B8043' : '#1a73e8',
+      updated_at: new Date().toISOString(),
+    } : a))
+    window.dispatchEvent(new CustomEvent('calendar-updated'))
     setEditingAnnouncement(null)
   }
 
@@ -292,7 +347,7 @@ export default function Home() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Announcements</h2>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{announcementsList.length} updates</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{calendarItems.length} updates</p>
                   </div>
                 </div>
                 <button
@@ -307,14 +362,15 @@ export default function Home() {
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {announcementsList.slice(0, 4).map((item, index) => {
+                {calendarItems.slice(0, 4).map((item) => {
+                  const tag = tagFromType(item.type)
                   const tagColors: Record<string, { bg: string; text: string }> = {
                     Meeting: { bg: '#EBF5FF', text: '#2563EB' },
                     Update: { bg: '#FFF7ED', text: '#EA580C' },
                     Event: { bg: '#F0FDF4', text: '#16A34A' },
                     Deadline: { bg: '#FEF2F2', text: '#DC2626' },
                   }
-                  const tc = tagColors[item.tag] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
+                  const tc = tagColors[tag] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
                   return (
                     <div
                       key={item.id}
@@ -324,28 +380,28 @@ export default function Home() {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 rounded-md text-[11px] font-medium" style={{ backgroundColor: tc.bg, color: tc.text }}>
-                          {item.tag}
+                          {tag}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{item.date}</span>
+                        <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{formatCalendarDate(item.date)}</span>
                       </div>
                       <p className="text-sm font-medium mb-2" style={{ color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: readAnnouncementIds.includes(item.id) ? 400 : 600 }}>
                         {item.title}
                       </p>
                       <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-                        {item.content}
+                        {item.description}
                       </p>
                     </div>
                   )
                 })}
               </div>
-              {announcementsList.length > 4 && (
+              {calendarItems.length > 4 && (
                 <div className="mt-4 text-center">
                   <button
-                    onClick={() => setSelectedAnnouncement(announcementsList[4])}
+                    onClick={() => setSelectedAnnouncement(calendarItems[4])}
                     className="text-xs px-4 py-1.5 rounded-lg transition"
                     style={{ color: 'var(--accent)', fontWeight: 500, backgroundColor: 'var(--accent-light)' }}
                   >
-                    View {announcementsList.length - 4} more
+                    View {calendarItems.length - 4} more
                   </button>
                 </div>
               )}
@@ -432,38 +488,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              {/* Campaign Spotlight */}
-              <div>
-                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>CAMPAIGN SPOTLIGHT</p>
-                <div className="space-y-2">
-                  {campaigns
-                    .sort((a, b) => {
-                      const order: Record<string, number> = { Pending: 0, Ongoing: 1, Done: 2 }
-                      return (order[a.status] ?? 3) - (order[b.status] ?? 3)
-                    })
-                    .slice(0, 3)
-                    .map((camp) => {
-                      const statusColors: Record<string, { bg: string; text: string }> = {
-                        Pending: { bg: '#FFF7ED', text: '#EA580C' },
-                        Ongoing: { bg: '#EBF5FF', text: '#2563EB' },
-                        Done: { bg: '#F0FDF4', text: '#16A34A' },
-                      }
-                      const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
-                      return (
-                        <div key={camp.id} className="flex items-center gap-3 p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept}</p>
-                          </div>
-                          <span className="px-2 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>
-                            {camp.status}
-                          </span>
-                          <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Due: {camp.due}</span>
-                        </div>
-                      )
-                    })}
-                </div>
-              </div>
+              
             </div>
           </div>
 
@@ -597,7 +622,7 @@ export default function Home() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <span className="px-2.5 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
-                  {selectedAnnouncement.tag}
+                  {tagFromType(selectedAnnouncement.type)}
                 </span>
                 <h3 className="text-xl mt-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{selectedAnnouncement.title}</h3>
               </div>
@@ -611,9 +636,9 @@ export default function Home() {
                 </svg>
               </button>
             </div>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedAnnouncement.content}</p>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedAnnouncement.description}</p>
             <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{selectedAnnouncement.date}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{formatCalendarDate(selectedAnnouncement.date)}</span>
               <button
                 onClick={() => {
                   if (readAnnouncementIds.includes(selectedAnnouncement.id)) {
@@ -652,8 +677,7 @@ export default function Home() {
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
               />
               <input
-                type="text"
-                placeholder="Date (e.g., Jun 25, 2026)"
+                type="date"
                 value={newAnnouncement.date}
                 onChange={(e) => setNewAnnouncement({ ...newAnnouncement, date: e.target.value })}
                 className="w-full px-3 py-2.5 border rounded-lg outline-none"
@@ -665,9 +689,9 @@ export default function Home() {
                 className="w-full px-3 py-2.5 border rounded-lg outline-none"
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
               >
+                <option value="Event">Event</option>
                 <option value="Meeting">Meeting</option>
                 <option value="Update">Update</option>
-                <option value="Event">Event</option>
                 <option value="Deadline">Deadline</option>
               </select>
               <textarea
@@ -719,8 +743,7 @@ export default function Home() {
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
               />
               <input
-                type="text"
-                placeholder="Date (e.g., Jun 25, 2026)"
+                type="date"
                 value={editingAnnouncement.date}
                 onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, date: e.target.value })}
                 className="w-full px-3 py-2.5 border rounded-lg outline-none"
@@ -732,9 +755,9 @@ export default function Home() {
                 className="w-full px-3 py-2.5 border rounded-lg outline-none"
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
               >
+                <option value="Event">Event</option>
                 <option value="Meeting">Meeting</option>
                 <option value="Update">Update</option>
-                <option value="Event">Event</option>
                 <option value="Deadline">Deadline</option>
               </select>
               <textarea

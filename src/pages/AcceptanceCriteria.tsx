@@ -356,7 +356,7 @@ export default function AcceptanceCriteria() {
             <span className="text-xs" style={{ opacity: 0.7 }}>Project Base</span>
             <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Project Base').length}</span>
           </button>
-          <button onClick={() => setFilterType('Staff Aug')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Staff Aug' ? '#2563EB' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Staff Aug' ? '#FFFFFF' : 'var(--text-primary)' }}>
+          <button onClick={() => setFilterType('Staff Aug')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Staff Aug' ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Staff Aug' ? '#FFFFFF' : 'var(--text-primary)' }}>
             <span className="text-xs" style={{ opacity: 0.7 }}>Staff Aug</span>
             <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Staff Augmentation').length}</span>
           </button>
@@ -414,7 +414,7 @@ export default function AcceptanceCriteria() {
                       {sub.email && <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>{sub.email}</span>}
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-md text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>
+                      <span className="px-2 py-0.5 rounded-md text-xs font-medium transition hover:opacity-80 hover:scale-105 inline-block" style={sub.project_type === 'Staff Augmentation' ? { backgroundColor: '#FFF7ED', color: '#EA580C' } : { backgroundColor: '#EBF5FF', color: '#2563EB' }}>
                         {sub.project_type || 'N/A'}
                       </span>
                     </td>
