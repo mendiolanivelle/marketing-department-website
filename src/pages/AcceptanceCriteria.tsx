@@ -52,7 +52,7 @@ export default function AcceptanceCriteria() {
   const [sentTicketLink, setSentTicketLink] = useState('')
   const [sentCount, setSentCount] = useState(0)
 
-  const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', attachment: '', additionalAttachments: [] as string[] })
+  const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', additionalAttachments: [] as string[] })
 
   const formatId = (sub: Submission): string => {
     if (sub.tracking_id) return sub.tracking_id
@@ -293,27 +293,66 @@ export default function AcceptanceCriteria() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex items-start justify-between gap-4 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Acceptance Criteria Forms</h1>
-          <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            View all client-submitted acceptance criteria forms. New submissions appear in real time.
-          </p>
+      {/* Header */}
+      <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+        <div className="p-5 sm:p-8">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Acceptance Criteria Forms</h1>
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                  View all client-submitted acceptance criteria forms. New submissions appear in real time.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/#/acceptance-form"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm text-white rounded-lg transition flex-shrink-0 hover:-translate-y-0.5"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open Public Form
+            </a>
+          </div>
+
+          {/* Stats row */}
+          {!loading && submissions.length > 0 && (
+            <div className="flex gap-3 flex-wrap">
+              {[
+                { label: 'Total', value: submissions.length, color: '#1B1A1C' },
+                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#2563EB' },
+                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#EA580C' },
+              ].map((stat, i) => (
+                <button
+                  key={i}
+                  onClick={() => setFilterType(i === 0 ? null : stat.label === 'Staff Aug' ? 'Staff Aug' : 'Project Base')}
+                  className="px-3 py-2 rounded-xl border text-center transition hover:opacity-80"
+                  style={{
+                    backgroundColor: (i === 0 ? filterType === null : filterType === stat.label) ? 'var(--accent)' : 'var(--bg-secondary)',
+                    borderColor: 'var(--border-secondary)',
+                    color: (i === 0 ? filterType === null : filterType === stat.label) ? '#FFFFFF' : 'var(--text-primary)',
+                  }}
+                >
+                  <div className="text-sm font-bold">{stat.value}</div>
+                  <div className="text-[10px]" style={{ opacity: 0.7 }}>{stat.label}</div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <a
-          href="/#/acceptance-form"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 text-sm text-white rounded-lg transition flex-shrink-0 hover:-translate-y-0.5"
-          style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 500 }}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          Open Public Form
-        </a>
       </div>
-        {showSentModal && (
+
+      {showSentModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowSentModal(false)}>
           <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
             <button
@@ -342,24 +381,6 @@ export default function AcceptanceCriteria() {
               Copy ticket link
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Stats row */}
-      {!loading && submissions.length > 0 && (
-        <div className="flex gap-3 sm:gap-4 mb-4 flex-wrap">
-          <button onClick={() => setFilterType(null)} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === null ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === null ? '#FFFFFF' : 'var(--text-primary)' }}>
-            <span className="text-xs" style={{ opacity: 0.7 }}>Total</span>
-            <span className="ml-2 text-sm font-bold">{submissions.length}</span>
-          </button>
-          <button onClick={() => setFilterType('Project Base')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Project Base' ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Project Base' ? '#FFFFFF' : 'var(--text-primary)' }}>
-            <span className="text-xs" style={{ opacity: 0.7 }}>Project Base</span>
-            <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Project Base').length}</span>
-          </button>
-          <button onClick={() => setFilterType('Staff Aug')} className="px-4 py-2 rounded-xl border transition hover:opacity-80" style={{ backgroundColor: filterType === 'Staff Aug' ? 'var(--accent)' : 'var(--bg-card)', borderColor: 'var(--border-primary)', color: filterType === 'Staff Aug' ? '#FFFFFF' : 'var(--text-primary)' }}>
-            <span className="text-xs" style={{ opacity: 0.7 }}>Staff Aug</span>
-            <span className="ml-2 text-sm font-bold">{submissions.filter(s => s.project_type === 'Staff Augmentation').length}</span>
-          </button>
         </div>
       )}
 
@@ -721,14 +742,12 @@ export default function AcceptanceCriteria() {
               <div className="pt-4 text-center">
                 <button
                   onClick={async () => {
-                    const pdfUrl = await uploadPDF(selectedSubmission)
                       setSendForm({
                         to: selectedSubmission.email || '',
                         subject: formatId(selectedSubmission) + ' - ' + (selectedSubmission.project_name || 'Untitled'),
                         body: `Dear ${selectedSubmission.client_name || 'Client'},\n\nPlease find attached the Acceptance Criteria Form for "${selectedSubmission.project_name || 'Untitled'}" submitted on ${new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.\n\nView online: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nBest regards,\nMarketing Department\nExodia Game Dev`,
-                      attachment: pdfUrl || '',
-                      additionalAttachments: [],
-                    })
+                        additionalAttachments: [],
+                      })
                     setShowSendModal(true)
                   }}
                   className="px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
@@ -771,34 +790,6 @@ export default function AcceptanceCriteria() {
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Email Message / Body</label>
                     <textarea value={sendForm.body} onChange={(e) => setSendForm({ ...sendForm, body: e.target.value })} rows={6} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
                   </div>
-                  <div>
-                    <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Attachment Link</label>
-                    <input type="text" value={sendForm.attachment} onChange={(e) => setSendForm({ ...sendForm, attachment: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Paste a Google Drive or file link..." />
-                  </div>
-                  {sendForm.attachment && (
-                    <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#E5E7EB', backgroundColor: '#FAFAFA' }}>
-                      <div className="px-4 py-3 border-b text-xs font-medium flex items-center gap-2" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: '#374151' }}>
-                        <svg className="w-4 h-4" style={{ color: '#FF5900' }} fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                          <path d="M14 2v6h6" fill="none" stroke="#fff" strokeWidth="2" />
-                          <path d="M16 13H8m0 4h8m-8-8h2" fill="none" stroke="#FF5900" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        Attached PDF — Acceptance Criteria Form
-                      </div>
-                      <div className="px-4 py-3 flex items-center justify-between">
-                        <a
-                          href={sendForm.attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm underline truncate max-w-[70%]"
-                          style={{ color: '#2563EB' }}
-                        >
-                          {sendForm.attachment}
-                        </a>
-                        <span className="text-xs" style={{ color: '#6B7280' }}>PDF</span>
-                      </div>
-                    </div>
-                  )}
                   <div>
                     <label className="block text-xs mb-1.5 font-medium" style={{ color: '#374151' }}>Additional Attachment Links</label>
                     <div className="space-y-2">
@@ -844,10 +835,7 @@ export default function AcceptanceCriteria() {
                   </div>
                   <button
                     onClick={async () => {
-                      const attachmentLines = [
-                        sendForm.attachment ? 'Attached Meeting Link: ' + sendForm.attachment : '',
-                        ...sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l)
-                      ].filter(Boolean).join('\n')
+                      const attachmentLines = sendForm.additionalAttachments.filter(l => l.trim()).map((l, i) => 'Attachment ' + (i + 1) + ': ' + l).join('\n')
                       const fullBody = sendForm.body + (attachmentLines ? '\n\n' + attachmentLines : '')
                       const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
                       const apiUrl = import.meta.env.VITE_SUPABASE_URL
@@ -865,7 +853,6 @@ export default function AcceptanceCriteria() {
                               email_to: sendForm.to,
                               email_subject: sendForm.subject,
                               email_body: fullBody,
-                              attachment_pdf: sendForm.attachment || null,
                               additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
                               ticket_link: 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission)),
                               status: 'Sent',
