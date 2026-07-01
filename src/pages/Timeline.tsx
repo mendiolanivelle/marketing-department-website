@@ -1145,11 +1145,7 @@ setEmailBody('')
                       opacity: isDraggedColumn ? 0.5 : 1,
                       border: '1px solid var(--border-secondary)',
                       borderTop: `3px solid ${borderColor}`,
-                    }}
-                      opacity: isDraggedColumn ? 0.5 : 1,
-                      border: `2px solid ${borderColor}`,
-                      borderTop: `4px solid ${borderColor}`,
-                    }}
+}}
                     onDragOver={(e) => {
                       e.preventDefault()
                       e.dataTransfer.dropEffect = 'move'
