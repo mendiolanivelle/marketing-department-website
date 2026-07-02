@@ -155,9 +155,9 @@ export default function Calendar() {
     return () => window.removeEventListener('calendar-updated', handler)
   }, [fetchItems])
 
-  // Persist to localStorage on every change (skip initial empty state)
+  // Persist items to localStorage (skip initial empty write before first fetch completes)
   useEffect(() => {
-    if (items.length > 0 || loading === false) {
+    if (!loading) {
       localStorage.setItem('exodia-calendar-items', JSON.stringify(items))
     }
   }, [items, loading])
