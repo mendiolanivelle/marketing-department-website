@@ -211,10 +211,10 @@ export default function SubmitRequestForm() {
               An edit link was sent to <strong style={{ color: '#FF5900' }}>{form.email}</strong>
             </p>
           )}
-          <div className="mb-6 p-3 rounded-xl text-left" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>EDIT LINK — SAVE THIS TO EDIT LATER</p>
+          <div className="mb-6 p-3 rounded-xl text-left" style={{ backgroundColor: '#FFFFFF' }}>
+            <p className="text-xs mb-1" style={{ color: '#1B1A1C', fontWeight: 500 }}>EDIT LINK — SAVE THIS TO EDIT LATER</p>
             <div className="flex items-center gap-2">
-              <input readOnly value={editUrl} className="flex-1 px-2 py-1.5 text-xs rounded-lg bg-transparent outline-none" style={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              <input readOnly value={editUrl} className="flex-1 px-2 py-1.5 text-xs rounded-lg bg-transparent outline-none" style={{ color: '#1B1A1C', border: '1px solid #D1D5DB' }} />
               <button
                 onClick={() => { navigator.clipboard.writeText(editUrl) }}
                 className="px-2.5 py-1.5 text-xs text-white rounded-lg flex-shrink-0"
