@@ -1286,7 +1286,10 @@ setEmailBody('')
               })}
             </div>
           </div>
-        )})}
+        )
+        }
+        )
+        }
       </div>
 
       {filteredTables.length === 0 && (
