@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const departments = ['HR Department', 'Operations Department', 'Finance Department', 'Sales Department', 'IT Department', 'Facilities Department']
-const requestTypes = ['Social Media', 'Event Promo', 'Print', 'Video', 'Photo', 'Other']
+const requestTypes = ['Social Media', 'Print', 'Video', 'Photo', 'Other']
 const priorities = ['Low', 'Standard', 'High', 'Rush']
 
 function generateToken(): string {
