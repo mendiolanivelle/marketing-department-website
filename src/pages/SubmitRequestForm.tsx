@@ -141,7 +141,7 @@ export default function SubmitRequestForm() {
       resource_links: form.resourceLinks.filter(l => l.trim()).join(', '),
       date_needed: form.dateNeeded,
       priority: form.priority,
-      management_approval: form.managementApproval,
+      management_approval: form.managementApproval || 'Pending',
       edit_token: token,
       updated_at: now,
     }
@@ -150,10 +150,10 @@ export default function SubmitRequestForm() {
     if (isSupabaseConfigured && supabase) {
       if (editToken) {
         const { error: err } = await supabase.from('marketing_requests').update(dbPayload).eq('edit_token', editToken)
-        if (err) { console.error(err); setError('Failed to update. Please try again.'); setSubmitting(false); return }
+        if (err) { console.error('Update error:', err); setError(err.message || 'Failed to update. Please try again.'); setSubmitting(false); return }
       } else {
         const { error: err } = await supabase.from('marketing_requests').insert([dbPayload])
-        if (err) { console.error(err); setError('Failed to submit. Please try again.'); setSubmitting(false); return }
+        if (err) { console.error('Insert error:', err); setError(err.message || 'Failed to submit. Please try again.'); setSubmitting(false); return }
       }
     } else {
       const requests = getRequests()
