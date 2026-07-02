@@ -1,4 +1,4 @@
--- Marketing Requests table
+-- Marketing Requests table for submitted form data
 CREATE TABLE IF NOT EXISTS marketing_requests (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   name text NOT NULL,
@@ -13,11 +13,15 @@ CREATE TABLE IF NOT EXISTS marketing_requests (
   resource_links text,
   date_needed date NOT NULL,
   priority text NOT NULL,
-  management_approval text NOT NULL,
-  created_at timestamptz DEFAULT now()
+  management_approval text NOT NULL DEFAULT 'Pending',
+  edit_token text UNIQUE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE marketing_requests ENABLE ROW LEVEL LOOKUP;
+CREATE INDEX IF NOT EXISTS idx_marketing_requests_edit_token ON marketing_requests(edit_token);
+
+ALTER TABLE marketing_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can insert marketing requests"
   ON marketing_requests FOR INSERT
@@ -26,3 +30,8 @@ CREATE POLICY "Anyone can insert marketing requests"
 CREATE POLICY "Anyone can view marketing requests"
   ON marketing_requests FOR SELECT
   USING (true);
+
+CREATE POLICY "Anyone can update marketing requests"
+  ON marketing_requests FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
