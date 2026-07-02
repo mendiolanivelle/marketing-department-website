@@ -155,10 +155,12 @@ export default function Calendar() {
     return () => window.removeEventListener('calendar-updated', handler)
   }, [fetchItems])
 
-  // Persist to localStorage on every change
+  // Persist to localStorage on every change (skip initial empty state)
   useEffect(() => {
-    localStorage.setItem('exodia-calendar-items', JSON.stringify(items))
-  }, [items])
+    if (items.length > 0 || loading === false) {
+      localStorage.setItem('exodia-calendar-items', JSON.stringify(items))
+    }
+  }, [items, loading])
 
   const itemsByDate = useMemo(() => {
     const map: Record<string, CalendarItem[]> = {}
