@@ -236,9 +236,11 @@ export default function MarketingRequests() {
                         <div className="pt-4 space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                             {[
+                              { label: 'Tracking ID', value: req.tracking_id || '—' },
                               { label: 'Requester', value: req.name },
                               { label: 'Department', value: req.department },
                               { label: 'Email', value: req.email },
+                              { label: 'Tracking ID', value: req.tracking_id || '—' },
                               { label: 'Date Needed', value: req.dateNeeded },
                               { label: 'Management Approval', value: req.managementApproval },
                             ].map((item, i) => (
