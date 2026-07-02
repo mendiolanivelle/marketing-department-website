@@ -1,5 +1,4 @@
--- Auto-generate tracking_id for marketing_requests
--- Format: MKTGRQ - DEPARTMENT - YYMM - UUID
+-- Update tracking_id format to: MKTGRQ - DEPARTMENT - YYMM - UUID
 
 CREATE OR REPLACE FUNCTION assign_tracking_id()
 RETURNS TRIGGER AS $$
@@ -25,9 +24,3 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_assign_tracking_id ON marketing_requests;
-CREATE TRIGGER trg_assign_tracking_id
-  BEFORE INSERT ON marketing_requests
-  FOR EACH ROW
-  EXECUTE FUNCTION assign_tracking_id();

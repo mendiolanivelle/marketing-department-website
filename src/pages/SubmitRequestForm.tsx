@@ -10,11 +10,20 @@ function generateToken(): string {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
 }
 
-function generateTrackingId(): string {
-  const prefix = 'MRQ'
-  const nums = Date.now().toString().slice(-6)
-  const rand = Math.random().toString(36).substring(2, 5).toUpperCase()
-  return `${prefix}-${nums}${rand}`
+function generateTrackingId(department: string): string {
+  const deptMap: Record<string, string> = {
+    'HR Department': 'HR',
+    'Operations Department': 'OPS',
+    'Finance Department': 'FIN',
+    'Sales Department': 'SAL',
+    'IT Department': 'IT',
+    'Facilities Department': 'FAC',
+  }
+  const dept = deptMap[department] || department.substring(0, 3).toUpperCase()
+  const yy = String(new Date().getFullYear()).slice(-2)
+  const mm = String(new Date().getMonth() + 1).padStart(2, '0')
+  const uuid = Math.random().toString(36).substring(2, 10)
+  return `MKTGRQ - ${dept} - ${yy}${mm} - ${uuid}`
 }
 
 function getRequests(): any[] {
@@ -198,7 +207,7 @@ export default function SubmitRequestForm() {
       }
     } else {
       const requests = getRequests()
-      const localPayload = { ...dbPayload, editToken: token, resourceLinks: form.resourceLinks.filter(l => l.trim()), tracking_id: editToken ? dbPayload.tracking_id : generateTrackingId() }
+      const localPayload = { ...dbPayload, editToken: token, resourceLinks: form.resourceLinks.filter(l => l.trim()), tracking_id: editToken ? dbPayload.tracking_id : generateTrackingId(form.department) }
       if (editToken) {
         const idx = requests.findIndex((r: any) => r.editToken === editToken)
         if (idx !== -1) requests[idx] = localPayload
