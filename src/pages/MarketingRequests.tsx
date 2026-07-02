@@ -63,9 +63,22 @@ export default function MarketingRequests() {
       const { data } = await supabase.from('marketing_requests').select('*').order('created_at', { ascending: false })
       if (data) {
         setSubmitted(data.map((r: any) => ({
-          ...r,
-          requestType: Array.isArray(r.requestType) ? r.requestType : (r.request_type || []),
-          resourceLinks: Array.isArray(r.resourceLinks) ? r.resourceLinks : (r.resource_links ? [r.resource_links] : []),
+          id: r.id,
+          name: r.name,
+          department: r.department,
+          email: r.email,
+          title: r.title,
+          campaign: r.campaign,
+          description: r.description,
+          requestType: Array.isArray(r.request_type) ? r.request_type : (r.request_type ? [r.request_type] : []),
+          platforms: r.platforms,
+          audience: r.audience,
+          resourceLinks: r.resource_links ? r.resource_links.split(', ').filter(Boolean) : [],
+          dateNeeded: r.date_needed,
+          priority: r.priority,
+          managementApproval: r.management_approval,
+          created_at: r.created_at,
+          editToken: r.edit_token,
         })))
       }
     } else {

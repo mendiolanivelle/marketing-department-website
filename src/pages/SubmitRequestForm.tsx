@@ -125,36 +125,49 @@ export default function SubmitRequestForm() {
     const finalRequestTypes = [...form.requestType]
     if (form.otherRequestType.trim()) finalRequestTypes.push(`Other: ${form.otherRequestType.trim()}`)
 
-    const payload = {
-      ...form,
-      requestType: finalRequestTypes,
-      resourceLinks: form.resourceLinks.filter(l => l.trim()),
-      editToken: editToken || generateToken(),
-      updated_at: new Date().toISOString(),
-    }
+    const now = new Date().toISOString()
+    const token = editToken || generateToken()
 
-    if (!editToken) payload.created_at = new Date().toISOString()
+    const dbPayload: Record<string, any> = {
+      name: form.name,
+      department: form.department,
+      email: form.email,
+      title: form.title,
+      campaign: form.campaign || null,
+      description: form.description || null,
+      request_type: finalRequestTypes,
+      platforms: form.platforms || null,
+      audience: form.audience || null,
+      resource_links: form.resourceLinks.filter(l => l.trim()).join(', '),
+      date_needed: form.dateNeeded,
+      priority: form.priority,
+      management_approval: form.managementApproval,
+      edit_token: token,
+      updated_at: now,
+    }
+    if (!editToken) dbPayload.created_at = now
 
     if (isSupabaseConfigured && supabase) {
       if (editToken) {
-        const { error: err } = await supabase.from('marketing_requests').update(payload).eq('editToken', editToken)
-        if (err) { setError('Failed to update. Please try again.'); setSubmitting(false); return }
+        const { error: err } = await supabase.from('marketing_requests').update(dbPayload).eq('edit_token', editToken)
+        if (err) { console.error(err); setError('Failed to update. Please try again.'); setSubmitting(false); return }
       } else {
-        const { error: err } = await supabase.from('marketing_requests').insert([payload])
-        if (err) { setError('Failed to submit. Please try again.'); setSubmitting(false); return }
+        const { error: err } = await supabase.from('marketing_requests').insert([dbPayload])
+        if (err) { console.error(err); setError('Failed to submit. Please try again.'); setSubmitting(false); return }
       }
     } else {
       const requests = getRequests()
+      const localPayload = { ...dbPayload, editToken: token, resourceLinks: form.resourceLinks.filter(l => l.trim()) }
       if (editToken) {
         const idx = requests.findIndex((r: any) => r.editToken === editToken)
-        if (idx !== -1) requests[idx] = payload
+        if (idx !== -1) requests[idx] = localPayload
       } else {
-        requests.push(payload)
+        requests.push(localPayload)
       }
       saveRequests(requests)
     }
 
-    setEditToken(payload.editToken)
+    setEditToken(token)
     setSubmitting(false)
     setSubmitted(true)
     localStorage.removeItem('exodia-marketing-request-draft')
