@@ -312,50 +312,6 @@ export default function MarketingRequests() {
         </div>
       </div>
 
-      {/* Reach Out to Us */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 text-center" style={{ backgroundColor: 'var(--btn-primary-bg)' }}>
-        <div className="max-w-4xl mx-auto">
-          <h2 id="contact" className="text-2xl sm:text-4xl mb-4" style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>Reach Out to Us</h2>
-          <p className="text-sm sm:text-base mb-12 leading-relaxed max-w-xl mx-auto" style={{ color: 'var(--btn-primary-text)', opacity: 0.8, fontWeight: 300 }}>
-            Need marketing support? Have a question about brand guidelines? Reach us through the channels below.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 max-w-3xl mx-auto">
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #EA4335, #FB8861)' }}>
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-base mb-1.5" style={{ color: '#FFFFFF', fontWeight: 600 }}>Email</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>maxene_pableo@exodiagamedev.com</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #4A154B, #7B2D8E)' }}>
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 15.5C6 17.43 4.93 19 3.5 19S1 17.43 1 15.5 2.07 12 3.5 12 6 13.57 6 15.5M6 8.5C6 10.43 4.93 12 3.5 12S1 10.43 1 8.5 2.07 5 3.5 5 6 6.57 6 8.5M9 12c0 1.93 1.07 3.5 2.5 3.5S14 13.93 14 12s-1.07-3.5-2.5-3.5S9 10.07 9 12m6-3.5c0 1.93 1.07 3.5 2.5 3.5S20 10.43 20 8.5 18.93 5 17.5 5 15 6.57 15 8.5m2.5 6c-1.43 0-2.5 1.57-2.5 3.5s1.07 3.5 2.5 3.5 2.5-1.57 2.5-3.5-1.07-3.5-2.5-3.5z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-base mb-1.5" style={{ color: '#FFFFFF', fontWeight: 600 }}>Slack</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>#marketing-requests</p>
-              </div>
-            </div>
-            <div className="flex flex-col items-center gap-4 p-7 sm:p-9 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 group" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(4px)', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" style={{ background: 'linear-gradient(135deg, #0078D4, #00BCF2)' }}>
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-base mb-1.5" style={{ color: '#FFFFFF', fontWeight: 600 }}>Office</p>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>Floor 4, Room 412</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
+      </div>
   )
 }
