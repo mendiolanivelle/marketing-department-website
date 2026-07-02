@@ -37,3 +37,7 @@ CREATE POLICY "Anyone can update marketing requests"
   ON marketing_requests FOR UPDATE
   USING (true)
   WITH CHECK (true);
+
+CREATE POLICY "Anyone can delete marketing requests"
+  ON marketing_requests FOR DELETE
+  USING (true);
