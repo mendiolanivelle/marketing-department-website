@@ -243,7 +243,7 @@ export default function Campaigns() {
               </div>
               {/* All campaigns list */}
               <div className="space-y-2">
-                {campaigns.map((camp) => {
+                {[...campaigns].reverse().map((camp) => {
                   const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
                   return (
                     <div key={camp.id} className="group flex items-center gap-3 p-3.5 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
