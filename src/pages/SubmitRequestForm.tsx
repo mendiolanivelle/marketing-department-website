@@ -13,9 +13,10 @@ interface FormData {
   campaign: string
   description: string
   requestType: string[]
+  otherRequestType: string
   platforms: string
   audience: string
-  resourceLinks: string
+  resourceLinks: string[]
   dateNeeded: string
   priority: string
   managementApproval: string
@@ -30,9 +31,10 @@ export default function SubmitRequestForm() {
     campaign: '',
     description: '',
     requestType: [],
+    otherRequestType: '',
     platforms: '',
     audience: '',
-    resourceLinks: '',
+    resourceLinks: [],
     dateNeeded: '',
     priority: '',
     managementApproval: '',
@@ -55,9 +57,13 @@ export default function SubmitRequestForm() {
     setError('')
     setSubmitting(true)
 
+    const finalRequestTypes = [...form.requestType]
+    if (form.otherRequestType.trim()) finalRequestTypes.push(`Other: ${form.otherRequestType.trim()}`)
+
     const payload = {
       ...form,
-      requestType: form.requestType,
+      requestType: finalRequestTypes,
+      resourceLinks: form.resourceLinks.filter(l => l.trim()),
       created_at: new Date().toISOString(),
     }
 
@@ -203,6 +209,16 @@ export default function SubmitRequestForm() {
                     </button>
                   ))}
                 </div>
+                {form.requestType.includes('Other') && (
+                  <input
+                    type="text"
+                    value={form.otherRequestType}
+                    onChange={(e) => setForm({ ...form, otherRequestType: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2 mt-2"
+                    style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                    placeholder="Please specify your request type"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Required Platforms / Sizes</label>
@@ -214,7 +230,41 @@ export default function SubmitRequestForm() {
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Resource Links</label>
-                <input type="text" value={form.resourceLinks} onChange={(e) => setForm({ ...form, resourceLinks: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Google Drive links to logos, copy, or mood boards" />
+                <div className="space-y-2">
+                  {form.resourceLinks.map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={link}
+                        onChange={(e) => {
+                          const newLinks = [...form.resourceLinks]
+                          newLinks[idx] = e.target.value
+                          setForm({ ...form, resourceLinks: newLinks })
+                        }}
+                        className="flex-1 px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2"
+                        style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
+                        placeholder="Google Drive links to logos, copy, or mood boards"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, resourceLinks: form.resourceLinks.filter((_, i) => i !== idx) })}
+                        className="p-2 rounded-lg transition hover:bg-red-50"
+                        style={{ color: '#DC2626' }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, resourceLinks: [...form.resourceLinks, ''] })}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium transition hover:opacity-80"
+                    style={{ color: '#FF5900' }}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Add Link
+                  </button>
+                </div>
               </div>
             </div>
           </div>
