@@ -22,8 +22,10 @@ function generateTrackingId(department: string): string {
   const dept = deptMap[department] || department.substring(0, 3).toUpperCase()
   const yy = String(new Date().getFullYear()).slice(-2)
   const mm = String(new Date().getMonth() + 1).padStart(2, '0')
-  const uuid = Math.random().toString(36).substring(2, 10)
-  return `MKTGRQ - ${dept} - ${yy}${mm} - ${uuid}`
+  const existing = localStorage.getItem('exodia-marketing-requests')
+  const count = existing ? JSON.parse(existing).length : 0
+  const seq = String(count + 1).padStart(3, '0')
+  return `MKRQ - ${dept} - ${yy}${mm} - ${seq}`
 }
 
 function getRequests(): any[] {

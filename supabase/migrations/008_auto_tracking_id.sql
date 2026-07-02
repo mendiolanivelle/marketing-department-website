@@ -1,12 +1,13 @@
 -- Auto-generate tracking_id for marketing_requests
--- Format: MKTGRQ - DEPARTMENT - YYMM - UUID
+-- Format: MKRQ - DEPARTMENT - YYMM - 001
+
+CREATE SEQUENCE IF NOT EXISTS marketing_requests_tracking_seq START 1;
 
 CREATE OR REPLACE FUNCTION assign_tracking_id()
 RETURNS TRIGGER AS $$
 DECLARE
   dept_abbr text;
   yy_mm text;
-  uuid_part text;
 BEGIN
   IF NEW.tracking_id IS NULL OR NEW.tracking_id = '' THEN
     dept_abbr := CASE NEW.department
@@ -19,8 +20,7 @@ BEGIN
       ELSE UPPER(SUBSTRING(NEW.department, 1, 3))
     END;
     yy_mm := TO_CHAR(NOW(), 'YYMM');
-    uuid_part := SUBSTR(REPLACE(gen_random_uuid()::text, '-', ''), 1, 8);
-    NEW.tracking_id := 'MKTGRQ - ' || dept_abbr || ' - ' || yy_mm || ' - ' || uuid_part;
+    NEW.tracking_id := 'MKRQ - ' || dept_abbr || ' - ' || yy_mm || ' - ' || LPAD(nextval('marketing_requests_tracking_seq')::text, 3, '0');
   END IF;
   RETURN NEW;
 END;
