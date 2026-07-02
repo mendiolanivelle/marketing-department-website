@@ -78,6 +78,14 @@ function App() {
               }
             />
             <Route
+              path="/edit-request/:token"
+              element={
+                <Suspense fallback={<RouteFallback fullScreen />}>
+                  <SubmitRequestForm />
+                </Suspense>
+              }
+            />
+            <Route
               path="/login"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>

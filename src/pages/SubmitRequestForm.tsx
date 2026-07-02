@@ -1,9 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const departments = ['HR Department', 'Operations Department', 'Finance Department', 'Sales Department', 'IT Department', 'Facilities Department']
 const requestTypes = ['Social Media', 'Event Promo', 'Game Asset', 'Print', 'Video', 'Other']
 const priorities = ['Low', 'Standard', 'High', 'Rush']
+
+function generateToken(): string {
+  return Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
+}
+
+function getRequests(): any[] {
+  const existing = localStorage.getItem('exodia-marketing-requests')
+  return existing ? JSON.parse(existing) : []
+}
+
+function saveRequests(requests: any[]) {
+  localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
+}
 
 interface FormData {
   name: string
@@ -23,6 +37,9 @@ interface FormData {
 }
 
 export default function SubmitRequestForm() {
+  const { token } = useParams<{ token: string }>()
+  const isEditMode = !!token
+
   const [form, setForm] = useState<FormData>({
     name: '',
     department: '',
@@ -39,9 +56,44 @@ export default function SubmitRequestForm() {
     priority: '',
     managementApproval: '',
   })
+  const [editToken, setEditToken] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(isEditMode)
+
+  useEffect(() => {
+    if (token) {
+      const requests = getRequests()
+      const existing = requests.find((r: any) => r.editToken === token)
+      if (existing) {
+        const parsedOther = existing.requestType?.find((t: string) => t.startsWith('Other: '))
+        const cleanedTypes = parsedOther
+          ? existing.requestType.filter((t: string) => t !== parsedOther)
+          : existing.requestType || []
+        setForm({
+          name: existing.name || '',
+          department: existing.department || '',
+          email: existing.email || '',
+          title: existing.title || '',
+          campaign: existing.campaign || '',
+          description: existing.description || '',
+          requestType: cleanedTypes,
+          otherRequestType: parsedOther ? parsedOther.replace('Other: ', '') : '',
+          platforms: existing.platforms || '',
+          audience: existing.audience || '',
+          resourceLinks: existing.resourceLinks || [],
+          dateNeeded: existing.dateNeeded || '',
+          priority: existing.priority || '',
+          managementApproval: existing.managementApproval || '',
+        })
+        setEditToken(token)
+      } else {
+        setError('Request not found. The edit link may be invalid.')
+      }
+      setLoading(false)
+    }
+  }, [token])
 
   const toggleRequestType = (type: string) => {
     setForm(prev => ({
@@ -64,28 +116,46 @@ export default function SubmitRequestForm() {
       ...form,
       requestType: finalRequestTypes,
       resourceLinks: form.resourceLinks.filter(l => l.trim()),
-      created_at: new Date().toISOString(),
+      editToken: editToken || generateToken(),
+      updated_at: new Date().toISOString(),
     }
+
+    if (!editToken) payload.created_at = new Date().toISOString()
 
     if (isSupabaseConfigured && supabase) {
-      const { error: err } = await supabase.from('marketing_requests').insert([payload])
-      if (err) {
-        setError('Failed to submit. Please try again.')
-        setSubmitting(false)
-        return
+      if (editToken) {
+        const { error: err } = await supabase.from('marketing_requests').update(payload).eq('editToken', editToken)
+        if (err) { setError('Failed to update. Please try again.'); setSubmitting(false); return }
+      } else {
+        const { error: err } = await supabase.from('marketing_requests').insert([payload])
+        if (err) { setError('Failed to submit. Please try again.'); setSubmitting(false); return }
       }
     } else {
-      const existing = localStorage.getItem('exodia-marketing-requests')
-      const requests = existing ? JSON.parse(existing) : []
-      requests.push(payload)
-      localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
+      const requests = getRequests()
+      if (editToken) {
+        const idx = requests.findIndex((r: any) => r.editToken === editToken)
+        if (idx !== -1) requests[idx] = payload
+      } else {
+        requests.push(payload)
+      }
+      saveRequests(requests)
     }
 
+    setEditToken(payload.editToken)
     setSubmitting(false)
     setSubmitted(true)
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#1B1A1C' }}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#FF5900' }}></div>
+      </div>
+    )
+  }
+
   if (submitted) {
+    const editUrl = `${window.location.origin}/#/edit-request/${editToken}`
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#1B1A1C' }}>
         <div className="max-w-md w-full text-center">
@@ -94,17 +164,39 @@ export default function SubmitRequestForm() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl mb-3" style={{ color: '#FFFFFF', fontWeight: 700 }}>Request Submitted</h1>
-          <p className="text-sm mb-8 max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300, lineHeight: 1.6 }}>
-            Your marketing request has been received. The team will review it and get back to you.
+          <h1 className="text-2xl mb-3" style={{ color: '#FFFFFF', fontWeight: 700 }}>{isEditMode ? 'Request Updated' : 'Request Submitted'}</h1>
+          <p className="text-sm mb-3 max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300, lineHeight: 1.6 }}>
+            {isEditMode ? 'Your changes have been saved.' : 'Your marketing request has been received.'}
           </p>
-          <a
-            href="/#/submit-request"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
-            style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
-          >
-            Submit Another Request
-          </a>
+          <div className="mb-6 p-3 rounded-xl text-left" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>EDIT LINK — SAVE THIS TO EDIT LATER</p>
+            <div className="flex items-center gap-2">
+              <input readOnly value={editUrl} className="flex-1 px-2 py-1.5 text-xs rounded-lg bg-transparent outline-none" style={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              <button
+                onClick={() => { navigator.clipboard.writeText(editUrl) }}
+                className="px-2.5 py-1.5 text-xs text-white rounded-lg flex-shrink-0"
+                style={{ backgroundColor: '#FF5900' }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <a
+              href={`/#/edit-request/${editToken}`}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+              style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
+            >
+              Edit Again
+            </a>
+            <a
+              href="/#/submit-request"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition hover:-translate-y-0.5"
+              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
+            >
+              New Request
+            </a>
+          </div>
         </div>
       </div>
     )
@@ -121,9 +213,9 @@ export default function SubmitRequestForm() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h1 className="text-2xl sm:text-3xl mb-3" style={{ color: '#FFFFFF', fontWeight: 700, letterSpacing: '-0.02em' }}>Marketing Request Form</h1>
+            <h1 className="text-2xl sm:text-3xl mb-3" style={{ color: '#FFFFFF', fontWeight: 700, letterSpacing: '-0.02em' }}>{isEditMode ? 'Edit Request' : 'Marketing Request Form'}</h1>
             <p className="text-sm sm:text-base max-w-lg mx-auto" style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 300 }}>
-              Fill out the details below and our marketing team will get back to you shortly.
+              {isEditMode ? 'Update your answers below and save your changes.' : 'Fill out the details below and our marketing team will get back to you shortly.'}
             </p>
           </div>
         </div>
@@ -325,7 +417,7 @@ export default function SubmitRequestForm() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
               )}
-              {submitting ? 'Submitting...' : 'Submit Request'}
+              {submitting ? 'Saving...' : isEditMode ? 'Update Request' : 'Submit Request'}
             </button>
           </div>
         </div>
