@@ -621,6 +621,225 @@ setEmailBody('')
       </div>
     )
   }
+const timelineTables = filteredTables.map((table) => {
+  const columns = table.columns.map((col) => {
+    const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
+    const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
+    const colIndex = table.columns.findIndex(c => c.key === col.key)
+    const borderColors = ['#FF5900', '#2563EB', '#0B8043', '#7C3AED', '#DC2626']
+    const borderColor = borderColors[colIndex % borderColors.length]
+    return (
+      <div
+        key={col.key}
+        className="min-w-[240px] sm:min-w-[260px] flex-1 rounded-xl p-3"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          opacity: isDraggedColumn ? 0.5 : 1,
+          border: '1px solid var(--border-secondary)',
+          borderTop: `3px solid ${borderColor}`,
+        }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          const columnData = e.dataTransfer.getData('application/column')
+          const cardId = e.dataTransfer.getData('text/plain')
+          if (columnData) {
+            handleColumnDrop(e, table.id, col.key)
+          } else if (cardId) {
+            handleDrop(e, table.id, col.key)
+          }
+        }}
+      >
+        {/* Column Header */}
+        <div
+          className="group flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
+          draggable
+          onDragStart={(e) => {
+            e.stopPropagation()
+            e.dataTransfer.setData('application/column', JSON.stringify({ tableId: table.id, colKey: col.key }))
+            e.dataTransfer.effectAllowed = 'move'
+            handleColumnDragStart(e, table.id, col.key)
+          }}
+          onDragEnd={handleColumnDragEnd}
+          title="Drag to reorder column"
+        >
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: borderColor }}></div>
+            {editingColumnLabel?.tableId === table.id && editingColumnLabel?.colKey === col.key ? (
+              <input
+                type="text"
+                value={editingColumnValue}
+                onChange={(e) => setEditingColumnValue(e.target.value)}
+                onBlur={() => saveColumnLabel(table.id, col.key)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveColumnLabel(table.id, col.key); if (e.key === 'Escape') setEditingColumnLabel(null) }}
+                className="flex-1 text-xs px-1 py-0.5 border rounded outline-none"
+                style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 500 }}
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+                onDragStart={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <h3
+                className="text-xs truncate cursor-pointer hover:underline"
+                style={{ color: 'var(--text-primary)', fontWeight: 500 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditingColumnLabel({ tableId: table.id, colKey: col.key })
+                  setEditingColumnValue(col.label)
+                }}
+                onDragStart={(e) => e.stopPropagation()}
+                title="Click to edit column name"
+              >
+                {col.label}
+              </h3>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              {colLeads.length}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteColumn(table.id, col.key) }}
+              className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
+              style={{ color: 'var(--accent)' }}
+              title="Delete column"
+              onDragStart={(e) => e.stopPropagation()}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div className="space-y-2">
+          {colLeads.map((lead) => (
+            <div
+              key={lead.id}
+              onClick={() => setSelectedLead(lead)}
+              className="rounded-xl p-3 border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
+              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h4 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{lead.company}</h4>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>{lead.date}</span>
+                </div>
+                <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
+                {lead.checklist && lead.checklist.length > 0 && (
+                  <div className="mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border-secondary)' }}>
+                        <div className="h-1 rounded-full transition-all" style={{ width: `${Math.round((lead.checklist.filter(c => c.done).length / lead.checklist.length) * 100)}%`, backgroundColor: '#0B8043' }} />
+                      </div>
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.checklist.filter(c => c.done).length}/{lead.checklist.length}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-center gap-1 pt-2" style={{ borderTop: '1px solid var(--border-secondary)' }} onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
+                  className="p-1.5 rounded-lg transition hover:scale-110"
+                  style={{ color: 'var(--accent)' }}
+                  title="Move to previous column"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
+                  className="p-1.5 rounded-lg transition hover:scale-110"
+                  style={{ color: 'var(--accent)' }}
+                  title="Move to next column"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  })
+  return (
+    <div key={table.id} className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+        <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+        <div className="p-4 sm:p-6">
+        {/* Table Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {editingTableTitle === table.id ? (
+              <input
+                type="text"
+                value={editingTableTitleValue}
+                onChange={(e) => setEditingTableTitleValue(e.target.value)}
+                onBlur={() => saveTableTitle(table.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveTableTitle(table.id); if (e.key === 'Escape') setEditingTableTitle(null) }}
+                className="text-lg sm:text-xl px-2 py-1 border rounded-lg outline-none"
+                style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 700 }}
+                autoFocus
+              />
+            ) : (
+              <h2
+                className="text-lg sm:text-xl cursor-pointer hover:opacity-70 truncate"
+                style={{ color: 'var(--text-primary)', fontWeight: 700 }}
+                onClick={() => { setEditingTableTitle(table.id); setEditingTableTitleValue(table.title) }}
+                title="Click to edit title"
+              >
+                {table.title}
+              </h2>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => { setAddLeadTableId(table.id); setAddLeadColumnKey(table.columns[0]?.key || 'col-1'); setShowAddLead(true) }}
+              className="px-3 py-1.5 text-xs text-white rounded-lg transition flex items-center gap-1"
+              style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Lead
+            </button>
+            <button
+              onClick={() => { setAddColumnTableId(table.id); setNewColumnName(''); setShowAddColumn(true) }}
+              className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
+              style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontWeight: 500, border: '1px solid var(--border-secondary)' }}
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Add Column
+            </button>
+            <button
+              onClick={() => deleteTimelineTable(table.id)}
+              className="p-1.5 rounded-lg transition hover:opacity-70"
+              style={{ color: 'var(--text-muted)' }}
+              title="Delete table"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Columns */}
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2">
+          {columns}
+        </div>
+      </div>
+    </div>
+  )
+})
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -1065,227 +1284,7 @@ setEmailBody('')
 
 {/* Timeline Tables */}
       <div className="space-y-6">
-        {filteredTables.map((table) => (
-          <div key={table.id} className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
-            <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
-            <div className="p-4 sm:p-6">
-            {/* Table Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                {editingTableTitle === table.id ? (
-                  <input
-                    type="text"
-                    value={editingTableTitleValue}
-                    onChange={(e) => setEditingTableTitleValue(e.target.value)}
-                    onBlur={() => saveTableTitle(table.id)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') saveTableTitle(table.id); if (e.key === 'Escape') setEditingTableTitle(null) }}
-                    className="text-lg sm:text-xl px-2 py-1 border rounded-lg outline-none"
-                    style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 700 }}
-                    autoFocus
-                  />
-                ) : (
-                  <h2
-                    className="text-lg sm:text-xl cursor-pointer hover:opacity-70 truncate"
-                    style={{ color: 'var(--text-primary)', fontWeight: 700 }}
-                    onClick={() => { setEditingTableTitle(table.id); setEditingTableTitleValue(table.title) }}
-                    title="Click to edit title"
-                  >
-                    {table.title}
-                  </h2>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => { setAddLeadTableId(table.id); setAddLeadColumnKey(table.columns[0]?.key || 'col-1'); setShowAddLead(true) }}
-                  className="px-3 py-1.5 text-xs text-white rounded-lg transition flex items-center gap-1"
-                  style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Lead
-                </button>
-                <button
-                  onClick={() => { setAddColumnTableId(table.id); setNewColumnName(''); setShowAddColumn(true) }}
-                  className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontWeight: 500, border: '1px solid var(--border-secondary)' }}
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  Add Column
-                </button>
-                <button
-                  onClick={() => deleteTimelineTable(table.id)}
-                  className="p-1.5 rounded-lg transition hover:opacity-70"
-                  style={{ color: 'var(--text-muted)' }}
-                  title="Delete table"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Columns */}
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2">
-              {table.columns.map((col) => {
-                const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
-                const isDraggedColumn = draggedColumn?.tableId === table.id && draggedColumn?.colKey === col.key
-                const colIndex = table.columns.findIndex(c => c.key === col.key)
-                const borderColors = ['#FF5900', '#2563EB', '#0B8043', '#7C3AED', '#DC2626']
-                const borderColor = borderColors[colIndex % borderColors.length]
-                return (
-                  <div
-                    key={col.key}
-                    className="min-w-[240px] sm:min-w-[260px] flex-1 rounded-xl p-3"
-                    style={{
-                      backgroundColor: 'var(--bg-secondary)',
-                      opacity: isDraggedColumn ? 0.5 : 1,
-                      border: '1px solid var(--border-secondary)',
-                      borderTop: `3px solid ${borderColor}`,
-}}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.dataTransfer.dropEffect = 'move'
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      // Check if it's a column drag or card drag
-                      const columnData = e.dataTransfer.getData('application/column')
-                      const cardId = e.dataTransfer.getData('text/plain')
-
-                      if (columnData) {
-                        handleColumnDrop(e, table.id, col.key)
-                      } else if (cardId) {
-                        handleDrop(e, table.id, col.key)
-                      }
-                    }}
-                  >
-                    {/* Column Header - Draggable for reordering */}
-                    <div
-                      className="group flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing"
-                      draggable
-                      onDragStart={(e) => {
-                        e.stopPropagation()
-                        // Set data to indicate this is a column drag
-                        e.dataTransfer.setData('application/column', JSON.stringify({ tableId: table.id, colKey: col.key }))
-                        e.dataTransfer.effectAllowed = 'move'
-                        handleColumnDragStart(e, table.id, col.key)
-                      }}
-                      onDragEnd={handleColumnDragEnd}
-                      title="Drag to reorder column"
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: borderColor }}></div>
-                        {editingColumnLabel?.tableId === table.id && editingColumnLabel?.colKey === col.key ? (
-                          <input
-                            type="text"
-                            value={editingColumnValue}
-                            onChange={(e) => setEditingColumnValue(e.target.value)}
-                            onBlur={() => saveColumnLabel(table.id, col.key)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveColumnLabel(table.id, col.key); if (e.key === 'Escape') setEditingColumnLabel(null) }}
-                            className="flex-1 text-xs px-1 py-0.5 border rounded outline-none"
-                            style={{ borderColor: 'var(--accent)', color: 'var(--text-primary)', fontWeight: 500 }}
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                            onDragStart={(e) => e.stopPropagation()}
-                          />
-                        ) : (
-                          <h3
-                            className="text-xs truncate cursor-pointer hover:underline"
-                            style={{ color: 'var(--text-primary)', fontWeight: 500 }}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingColumnLabel({ tableId: table.id, colKey: col.key })
-                              setEditingColumnValue(col.label)
-                            }}
-                            onDragStart={(e) => e.stopPropagation()}
-                            title="Click to edit column name"
-                          >
-                            {col.label}
-                          </h3>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                          {colLeads.length}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteColumn(table.id, col.key)
-                          }}
-                          className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
-                          style={{ color: 'var(--accent)' }}
-                          title="Delete column"
-                          onDragStart={(e) => e.stopPropagation()}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Cards */}
-                    <div className="space-y-2">
-                      {colLeads.map((lead) => (
-                        <div
-                          key={lead.id}
-                          onClick={() => setSelectedLead(lead)}
-                          className="rounded-xl p-3 border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5"
-                          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{lead.company}</h4>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 500 }}>{lead.date}</span>
-                            </div>
-                            <p className="text-xs mb-2 truncate" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{lead.contact}</p>
-                            {lead.checklist && lead.checklist.length > 0 && (
-                              <div className="mb-2">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border-secondary)' }}>
-                                    <div className="h-1 rounded-full transition-all" style={{ width: `${Math.round((lead.checklist.filter(c => c.done).length / lead.checklist.length) * 100)}%`, backgroundColor: '#0B8043' }} />
-                                  </div>
-                                  <span className="text-[10px]" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.checklist.filter(c => c.done).length}/{lead.checklist.length}</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-center gap-1 pt-2" style={{ borderTop: '1px solid var(--border-secondary)' }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveToPrevColumn(lead, table) }}
-                              className="p-1.5 rounded-lg transition hover:scale-110"
-                              style={{ color: 'var(--accent)' }}
-                              title="Move to previous column"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveToNextColumn(lead, table) }}
-                              className="p-1.5 rounded-lg transition hover:scale-110"
-                              style={{ color: 'var(--accent)' }}
-                              title="Move to next column"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ))}
+        {timelineTables}
       </div>
 
       {filteredTables.length === 0 && (
