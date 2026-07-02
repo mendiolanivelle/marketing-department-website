@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
 
@@ -27,7 +27,6 @@ export default function MarketingRequests() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
-  const pollRef = useRef<ReturnType<typeof setInterval>>()
 
   useEffect(() => {
     loadSubmissions()
@@ -40,20 +39,15 @@ export default function MarketingRequests() {
         )
         .subscribe()
 
-      pollRef.current = setInterval(loadSubmissions, 30000)
-
       return () => {
         supabase.removeChannel(channel)
-        if (pollRef.current) clearInterval(pollRef.current)
       }
     } else {
       const handleStorage = () => loadSubmissions()
       window.addEventListener('marketing-request-updated', handleStorage)
-      pollRef.current = setInterval(loadSubmissions, 10000)
 
       return () => {
         window.removeEventListener('marketing-request-updated', handleStorage)
-        if (pollRef.current) clearInterval(pollRef.current)
       }
     }
   }, [])
@@ -92,19 +86,23 @@ export default function MarketingRequests() {
 
   const deleteRequest = async (index: number, req: SubmittedRequest) => {
     setDeleting(index)
-    if (isSupabaseConfigured && supabase) {
-      if (req.id) {
-        await supabase.from('marketing_requests').delete().eq('id', req.id)
-      } else if (req.editToken) {
-        await supabase.from('marketing_requests').delete().eq('edit_token', req.editToken)
+    try {
+      if (isSupabaseConfigured && supabase) {
+        if (req.id) {
+          await supabase.from('marketing_requests').delete().eq('id', req.id)
+        } else if (req.editToken) {
+          await supabase.from('marketing_requests').delete().eq('edit_token', req.editToken)
+        }
       }
-    }
-    const existing = localStorage.getItem('exodia-marketing-requests')
-    if (existing) {
-      const requests = JSON.parse(existing)
-      const idx = requests.findIndex((r: any) => r.editToken === req.editToken)
-      if (idx !== -1) requests.splice(idx, 1)
-      localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
+      const existing = localStorage.getItem('exodia-marketing-requests')
+      if (existing) {
+        const requests = JSON.parse(existing)
+        const idx = requests.findIndex((r: any) => r.editToken === req.editToken)
+        if (idx !== -1) requests.splice(idx, 1)
+        localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
+      }
+    } catch (err) {
+      console.error('Delete failed:', err)
     }
     setSubmitted(prev => prev.filter((_, i) => i !== index))
     setDeleting(null)
