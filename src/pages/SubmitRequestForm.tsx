@@ -166,10 +166,9 @@ export default function SubmitRequestForm() {
 
     const now = new Date().toISOString()
     const token = editToken || generateToken()
-    const tid = editToken ? '' : generateTrackingId()
+    let tid = editToken ? '' : ''
 
     const dbPayload: Record<string, any> = {
-      tracking_id: tid || null,
       name: form.name,
       department: form.department,
       email: form.email,
@@ -193,12 +192,13 @@ export default function SubmitRequestForm() {
         const { error: err } = await supabase.from('marketing_requests').update(dbPayload).eq('edit_token', editToken)
         if (err) { console.error('Update error:', err); setError(err.message || 'Failed to update. Please try again.'); setSubmitting(false); return }
       } else {
-        const { error: err } = await supabase.from('marketing_requests').insert([dbPayload])
+        const { data: inserted, error: err } = await supabase.from('marketing_requests').insert([dbPayload]).select('tracking_id')
         if (err) { console.error('Insert error:', err); setError(err.message || 'Failed to submit. Please try again.'); setSubmitting(false); return }
+        if (inserted && inserted[0]?.tracking_id) tid = inserted[0].tracking_id
       }
     } else {
       const requests = getRequests()
-      const localPayload = { ...dbPayload, editToken: token, resourceLinks: form.resourceLinks.filter(l => l.trim()) }
+      const localPayload = { ...dbPayload, editToken: token, resourceLinks: form.resourceLinks.filter(l => l.trim()), tracking_id: editToken ? dbPayload.tracking_id : generateTrackingId() }
       if (editToken) {
         const idx = requests.findIndex((r: any) => r.editToken === editToken)
         if (idx !== -1) requests[idx] = localPayload
@@ -206,6 +206,7 @@ export default function SubmitRequestForm() {
         requests.push(localPayload)
       }
       saveRequests(requests)
+      if (!editToken) tid = localPayload.tracking_id
     }
 
     setEditToken(token)
