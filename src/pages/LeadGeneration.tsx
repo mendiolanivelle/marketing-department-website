@@ -1198,189 +1198,187 @@ if (supabase) {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="mb-8 sm:mb-10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FF5900, #FF8C33)' }}>
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Lead Generation</h1>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Upload CSV files or create spreadsheets to manage your leads</p>
-            </div>
-          </div>
+    <div>
+      {/* Header */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 text-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-3xl mx-auto">
+          <svg className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          <h1 className="text-3xl sm:text-4xl mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Generation</h1>
+          <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+            Upload CSV files or create spreadsheets to manage your leads
+          </p>
         </div>
+      </section>
 
-        {/* Upload / Create Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-8">
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="group relative rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1"
-            style={{
-              border: '2px dashed var(--border-primary)',
-              backgroundColor: 'var(--bg-card)',
-            }}
-          >
-            <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-            {uploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
-                <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>Uploading and parsing CSV...</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, var(--accent-light), rgba(255,140,51,0.08))' }}>
-                  <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      {/* Upload / Create */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="group rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 border theme-transition"
+              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+            >
+              <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+              {uploading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
+                  <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>Uploading and parsing CSV...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, var(--accent-light), rgba(255,140,51,0.08))' }}>
+                    <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div
+              onClick={() => setShowNewSpreadsheetModal(true)}
+              className="group rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 border theme-transition"
+              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+            >
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(96,165,250,0.08))' }}>
+                  <svg className="w-8 h-8" style={{ color: '#2563EB' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
+                  <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Create Spreadsheet</p>
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Start from scratch</p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div
-            onClick={() => setShowNewSpreadsheetModal(true)}
-            className="group relative rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 hover:-translate-y-1"
-            style={{
-              border: '2px dashed var(--border-primary)',
-              backgroundColor: 'var(--bg-card)',
-            }}
-          >
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(96,165,250,0.08))' }}>
-                <svg className="w-8 h-8" style={{ color: '#2563EB' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>Create Spreadsheet</p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Start from scratch</p>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {showNewSpreadsheetModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} />
-            <div className="relative rounded-2xl border w-full max-w-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-primary)' }}>
-                <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Create New Spreadsheet</h2>
-                <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="px-6 py-5">
-                <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Spreadsheet Name</label>
-                <input
-                  type="text"
-                  value={newSpreadsheetName}
-                  onChange={(e) => setNewSpreadsheetName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') createSpreadsheet() }}
-                  className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none"
-                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
-                  placeholder="e.g., Q3 Lead List"
-                  autoFocus
-                />
-              </div>
-              <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--border-primary)' }}>
-                <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-                <button onClick={createSpreadsheet} disabled={!newSpreadsheetName.trim() || creatingSpreadsheet} className="px-5 py-2 text-sm text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
-                  {creatingSpreadsheet && <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
-                  Create
-                </button>
-              </div>
+      {showNewSpreadsheetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} />
+          <div className="relative rounded-2xl border w-full max-w-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-primary)' }}>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Create New Spreadsheet</h2>
+              <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* File Lists */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>CSV Files</h2>
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>{files.filter(f => f.source === 'csv').length}</span>
+            <div className="px-6 py-5">
+              <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Spreadsheet Name</label>
+              <input
+                type="text"
+                value={newSpreadsheetName}
+                onChange={(e) => setNewSpreadsheetName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') createSpreadsheet() }}
+                className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
+                placeholder="e.g., Q3 Lead List"
+                autoFocus
+              />
             </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
-            ) : files.filter(f => f.source === 'csv').length === 0 ? (
-              <div className="text-center py-12 sm:py-16 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                  <svg className="w-6 h-6" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                </div>
-                <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No CSV files uploaded yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                {files.filter(f => f.source === 'csv').map((file) => (
-                  <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--accent-light), rgba(255,140,51,0.08))' }}>
-                          <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{file.name}</h3>
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 hover:bg-red-50" style={{ color: 'var(--text-muted)' }} title="Delete">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Spreadsheets</h2>
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'rgba(37,99,235,0.1)', color: '#2563EB' }}>{files.filter(f => f.source === 'spreadsheet').length}</span>
+            <div className="px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--border-primary)' }}>
+              <button onClick={() => { setShowNewSpreadsheetModal(false); setNewSpreadsheetName('') }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={createSpreadsheet} disabled={!newSpreadsheetName.trim() || creatingSpreadsheet} className="px-5 py-2 text-sm text-white rounded-lg disabled:opacity-50 flex items-center gap-2" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
+                {creatingSpreadsheet && <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                Create
+              </button>
             </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
-            ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
-              <div className="text-center py-12 sm:py-16 rounded-2xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                  <svg className="w-6 h-6" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                </div>
-                <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No spreadsheets created yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                {files.filter(f => f.source === 'spreadsheet').map((file) => (
-                  <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(96,165,250,0.08))' }}>
-                          <svg className="w-5 h-5" style={{ color: '#2563EB' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{file.name}</h3>
-                          <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 hover:bg-red-50" style={{ color: 'var(--text-muted)' }} title="Delete">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* File Lists */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>CSV Files</h2>
+                <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>{files.filter(f => f.source === 'csv').length}</span>
+              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
+              ) : files.filter(f => f.source === 'csv').length === 0 ? (
+                <div className="text-center py-12 sm:py-16 rounded-2xl border theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <svg className="w-6 h-6" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </div>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No CSV files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  {files.filter(f => f.source === 'csv').map((file) => (
+                    <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--accent-light), rgba(255,140,51,0.08))' }}>
+                            <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{file.name}</h3>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 hover:bg-red-50" style={{ color: 'var(--text-muted)' }} title="Delete">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Spreadsheets</h2>
+                <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: 'rgba(37,99,235,0.1)', color: '#2563EB' }}>{files.filter(f => f.source === 'spreadsheet').length}</span>
+              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
+              ) : files.filter(f => f.source === 'spreadsheet').length === 0 ? (
+                <div className="text-center py-12 sm:py-16 rounded-2xl border theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <svg className="w-6 h-6" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                  </div>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No spreadsheets created yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                  {files.filter(f => f.source === 'spreadsheet').map((file) => (
+                    <div key={file.id} className="group rounded-xl border p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => openFile(file)}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(96,165,250,0.08))' }}>
+                            <svg className="w-5 h-5" style={{ color: '#2563EB' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{file.name}</h3>
+                            <p className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{file.columns.length} columns · {new Date(file.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); deleteFile(file.id) }} className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 hover:bg-red-50" style={{ color: 'var(--text-muted)' }} title="Delete">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Duplicate Notification Modal */}
       {duplicateModal && (
