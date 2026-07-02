@@ -60,6 +60,7 @@ export default function SubmitRequestForm() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [emailSent, setEmailSent] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
 
   useEffect(() => {
@@ -144,6 +145,16 @@ export default function SubmitRequestForm() {
     setEditToken(payload.editToken)
     setSubmitting(false)
     setSubmitted(true)
+
+    if (form.email && isSupabaseConfigured && supabase) {
+      try {
+        const editUrl = `${window.location.origin}/#/edit-request/${payload.editToken}`
+        await supabase.functions.invoke('send-edit-link', {
+          body: { to: form.email, name: form.name, editLink: editUrl, title: form.title },
+        })
+        setEmailSent(true)
+      } catch {}
+    }
   }
 
   if (loading) {
@@ -168,6 +179,11 @@ export default function SubmitRequestForm() {
           <p className="text-sm mb-3 max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300, lineHeight: 1.6 }}>
             {isEditMode ? 'Your changes have been saved.' : 'Your marketing request has been received.'}
           </p>
+          {emailSent && (
+            <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 300 }}>
+              An edit link was sent to <strong style={{ color: '#FF5900' }}>{form.email}</strong>
+            </p>
+          )}
           <div className="mb-6 p-3 rounded-xl text-left" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
             <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>EDIT LINK — SAVE THIS TO EDIT LATER</p>
             <div className="flex items-center gap-2">

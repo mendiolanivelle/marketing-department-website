@@ -1,5 +1,7 @@
 [functions]
 [functions.send-ticket-email]
 verify_jwt = false
+[functions.send-edit-link]
+verify_jwt = false
 [functions.get-public-form]
 verify_jwt = false
