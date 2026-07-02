@@ -65,34 +65,65 @@ export default function SubmitRequestForm() {
 
   useEffect(() => {
     if (token) {
-      const requests = getRequests()
-      const existing = requests.find((r: any) => r.editToken === token)
-      if (existing) {
-        const parsedOther = existing.requestType?.find((t: string) => t.startsWith('Other: '))
-        const cleanedTypes = parsedOther
-          ? existing.requestType.filter((t: string) => t !== parsedOther)
-          : existing.requestType || []
-        setForm({
-          name: existing.name || '',
-          department: existing.department || '',
-          email: existing.email || '',
-          title: existing.title || '',
-          campaign: existing.campaign || '',
-          description: existing.description || '',
-          requestType: cleanedTypes,
-          otherRequestType: parsedOther ? parsedOther.replace('Other: ', '') : '',
-          platforms: existing.platforms || '',
-          audience: existing.audience || '',
-          resourceLinks: existing.resourceLinks || [],
-          dateNeeded: existing.dateNeeded || '',
-          priority: existing.priority || '',
-          managementApproval: existing.managementApproval || '',
-        })
-        setEditToken(token)
-      } else {
-        setError('Request not found. The edit link may be invalid.')
+      const loadFromSupabase = async () => {
+        if (isSupabaseConfigured && supabase) {
+          const { data } = await supabase.from('marketing_requests').select('*').eq('edit_token', token).single()
+          if (data) {
+            const parsedOther = data.request_type?.find((t: string) => t.startsWith('Other: '))
+            const cleanedTypes = parsedOther
+              ? data.request_type.filter((t: string) => t !== parsedOther)
+              : data.request_type || []
+            setForm({
+              name: data.name || '',
+              department: data.department || '',
+              email: data.email || '',
+              title: data.title || '',
+              campaign: data.campaign || '',
+              description: data.description || '',
+              requestType: cleanedTypes,
+              otherRequestType: parsedOther ? parsedOther.replace('Other: ', '') : '',
+              platforms: data.platforms || '',
+              audience: data.audience || '',
+              resourceLinks: data.resource_links ? data.resource_links.split(', ').filter(Boolean) : [],
+              dateNeeded: data.date_needed || '',
+              priority: data.priority || '',
+              managementApproval: data.management_approval || '',
+            })
+            setEditToken(token)
+            setLoading(false)
+            return
+          }
+        }
+        const requests = getRequests()
+        const existing = requests.find((r: any) => r.editToken === token || r.edit_token === token)
+        if (existing) {
+          const parsedOther = existing.requestType?.find((t: string) => t.startsWith('Other: '))
+          const cleanedTypes = parsedOther
+            ? existing.requestType.filter((t: string) => t !== parsedOther)
+            : existing.requestType || []
+          setForm({
+            name: existing.name || '',
+            department: existing.department || '',
+            email: existing.email || '',
+            title: existing.title || '',
+            campaign: existing.campaign || '',
+            description: existing.description || '',
+            requestType: cleanedTypes,
+            otherRequestType: parsedOther ? parsedOther.replace('Other: ', '') : '',
+            platforms: existing.platforms || '',
+            audience: existing.audience || '',
+            resourceLinks: existing.resourceLinks || existing.resource_links?.split(', ').filter(Boolean) || [],
+            dateNeeded: existing.dateNeeded || existing.date_needed || '',
+            priority: existing.priority || '',
+            managementApproval: existing.managementApproval || existing.management_approval || '',
+          })
+          setEditToken(token)
+        } else {
+          setError('Request not found. The edit link may be invalid.')
+        }
+        setLoading(false)
       }
-      setLoading(false)
+      loadFromSupabase()
     } else {
       const saved = localStorage.getItem('exodia-marketing-request-draft')
       if (saved) {
