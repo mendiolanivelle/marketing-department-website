@@ -93,8 +93,20 @@ export default function SubmitRequestForm() {
         setError('Request not found. The edit link may be invalid.')
       }
       setLoading(false)
+    } else {
+      const saved = localStorage.getItem('exodia-marketing-request-draft')
+      if (saved) {
+        try { setForm(JSON.parse(saved)) } catch {}
+      }
+      setLoading(false)
     }
   }, [token])
+
+  useEffect(() => {
+    if (!isEditMode && !submitted) {
+      localStorage.setItem('exodia-marketing-request-draft', JSON.stringify(form))
+    }
+  }, [form, isEditMode, submitted])
 
   const toggleRequestType = (type: string) => {
     setForm(prev => ({
@@ -145,6 +157,7 @@ export default function SubmitRequestForm() {
     setEditToken(payload.editToken)
     setSubmitting(false)
     setSubmitted(true)
+    localStorage.removeItem('exodia-marketing-request-draft')
     window.dispatchEvent(new CustomEvent('marketing-request-updated'))
 
     if (form.email && isSupabaseConfigured && supabase) {
@@ -402,7 +415,7 @@ export default function SubmitRequestForm() {
                 <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Management Approval</label>
                 <div className="flex gap-4">
                   {['Yes', 'No', 'Pending'].map(opt => (
-                    <label key={opt} className="flex items-center gap-2 cursor-pointer group">
+                    <label key={opt} className="flex items-center gap-2 cursor-pointer group" onClick={() => setForm({ ...form, managementApproval: opt })}>
                       <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition" style={{ borderColor: form.managementApproval === opt ? '#FF5900' : '#D1D5DB' }}>
                         {form.managementApproval === opt && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF5900' }}></div>}
                       </div>
