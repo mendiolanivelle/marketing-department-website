@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-const departments = ['HR', 'Dev', 'Sales', 'Finance', 'Marketing', 'Operations', 'QA', 'Design', 'Executive']
+const departments = ['HR Department', 'Operations Department', 'Finance Department', 'Sales Department', 'IT Department', 'Facilities Department']
 const requestTypes = ['Social Media', 'Event Promo', 'Game Asset', 'Print', 'Video', 'Other']
 const priorities = ['Low', 'Standard', 'High', 'Rush']
 
