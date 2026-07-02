@@ -1,6 +1,7 @@
 -- Marketing Requests table for submitted form data
 CREATE TABLE IF NOT EXISTS marketing_requests (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  tracking_id text UNIQUE,
   name text NOT NULL,
   department text NOT NULL,
   email text NOT NULL,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS marketing_requests (
 );
 
 CREATE INDEX IF NOT EXISTS idx_marketing_requests_edit_token ON marketing_requests(edit_token);
+CREATE INDEX IF NOT EXISTS idx_marketing_requests_tracking_id ON marketing_requests(tracking_id);
 
 ALTER TABLE marketing_requests ENABLE ROW LEVEL SECURITY;
 

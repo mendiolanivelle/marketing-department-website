@@ -4,6 +4,7 @@ import { logActivity } from '../lib/activityLogger'
 
 interface SubmittedRequest {
   id?: number
+  tracking_id?: string
   name: string
   department: string
   email: string
@@ -64,6 +65,7 @@ export default function MarketingRequests() {
       if (data) {
         setSubmitted(data.map((r: any) => ({
           id: r.id,
+          tracking_id: r.tracking_id,
           name: r.name,
           department: r.department,
           email: r.email,
@@ -214,7 +216,7 @@ export default function MarketingRequests() {
                           <div className="min-w-0">
                             <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{req.title}</h3>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                              {req.name} · {req.department} · {new Date(req.created_at).toLocaleDateString()}
+                              {req.tracking_id && <span style={{ color: 'var(--accent)' }}>{req.tracking_id} · </span>}{req.name} · {req.department} · {new Date(req.created_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>

@@ -10,6 +10,13 @@ function generateToken(): string {
   return Math.random().toString(36).substring(2, 10) + Date.now().toString(36)
 }
 
+function generateTrackingId(): string {
+  const prefix = 'MRQ'
+  const nums = Date.now().toString().slice(-6)
+  const rand = Math.random().toString(36).substring(2, 5).toUpperCase()
+  return `${prefix}-${nums}${rand}`
+}
+
 function getRequests(): any[] {
   const existing = localStorage.getItem('exodia-marketing-requests')
   return existing ? JSON.parse(existing) : []
@@ -62,6 +69,7 @@ export default function SubmitRequestForm() {
   const [error, setError] = useState('')
   const [emailSent, setEmailSent] = useState(false)
   const [loading, setLoading] = useState(isEditMode)
+  const [trackingId, setTrackingId] = useState('')
 
   useEffect(() => {
     if (token) {
@@ -158,8 +166,10 @@ export default function SubmitRequestForm() {
 
     const now = new Date().toISOString()
     const token = editToken || generateToken()
+    const tid = editToken ? '' : generateTrackingId()
 
     const dbPayload: Record<string, any> = {
+      tracking_id: tid || null,
       name: form.name,
       department: form.department,
       email: form.email,
@@ -199,6 +209,7 @@ export default function SubmitRequestForm() {
     }
 
     setEditToken(token)
+    if (tid) setTrackingId(tid)
     setSubmitting(false)
     setSubmitted(true)
     localStorage.removeItem('exodia-marketing-request-draft')
@@ -206,7 +217,7 @@ export default function SubmitRequestForm() {
 
     if (form.email && isSupabaseConfigured && supabase) {
       try {
-        const editUrl = `${window.location.origin}/#/edit-request/${payload.editToken}`
+        const editUrl = `${window.location.origin}/#/edit-request/${token}`
         await supabase.functions.invoke('send-edit-link', {
           body: { to: form.email, name: form.name, editLink: editUrl, title: form.title },
         })
@@ -234,6 +245,11 @@ export default function SubmitRequestForm() {
             </svg>
           </div>
           <h1 className="text-2xl mb-3" style={{ color: '#FFFFFF', fontWeight: 700 }}>{isEditMode ? 'Request Updated' : 'Request Submitted'}</h1>
+          {trackingId && (
+            <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,89,0,0.15)' }}>
+              <span className="text-xs font-mono font-bold" style={{ color: '#FF5900' }}>{trackingId}</span>
+            </div>
+          )}
           <p className="text-sm mb-3 max-w-xs mx-auto" style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 300, lineHeight: 1.6 }}>
             {isEditMode ? 'Your changes have been saved.' : 'Your marketing request has been received.'}
           </p>
