@@ -1,6 +1,4 @@
--- Auto-generate tracking_id for marketing_requests
--- Format: MKRQ - DEPARTMENT - YYMM - 001
--- Reuses the lowest available number when rows are deleted
+-- Update tracking_id trigger to reuse lowest freed number on delete
 
 CREATE OR REPLACE FUNCTION assign_tracking_id()
 RETURNS TRIGGER AS $$
@@ -40,9 +38,3 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_assign_tracking_id ON marketing_requests;
-CREATE TRIGGER trg_assign_tracking_id
-  BEFORE INSERT ON marketing_requests
-  FOR EACH ROW
-  EXECUTE FUNCTION assign_tracking_id();
