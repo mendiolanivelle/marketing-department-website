@@ -60,8 +60,17 @@ function removeFromCalendar(campaignName: string) {
 }
 
 function updateInCalendar(oldName: string, campaign: Campaign) {
-  removeFromCalendar(oldName)
-  addToCalendar(campaign)
+  const key = 'exodia-calendar-items'
+  const saved = localStorage.getItem(key)
+  if (!saved) return
+  const items = JSON.parse(saved).map((i: any) => {
+    if (i.title === oldName || i.title === campaign.name) {
+      return { ...i, title: campaign.name, date: parseCampaignDate(campaign.due), description: `Campaign for ${campaign.dept}`, notes: `Status: ${campaign.status}`, updated_at: new Date().toISOString() }
+    }
+    return i
+  })
+  localStorage.setItem(key, JSON.stringify(items))
+  window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
 
 interface Campaign {
