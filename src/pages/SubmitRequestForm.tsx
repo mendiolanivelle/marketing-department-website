@@ -294,7 +294,7 @@ export default function SubmitRequestForm() {
           </div>
           <div className="flex items-center justify-center">
             <button
-              onClick={() => { window.location.href = '/#/submit-request' }}
+              onClick={() => { window.location.reload() }}
               className="inline-flex items-center gap-2 px-8 py-2.5 rounded-xl text-sm font-medium transition hover:-translate-y-0.5 cursor-pointer"
               style={{ backgroundColor: '#FF5900', color: '#FFFFFF', border: 'none', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
             >
