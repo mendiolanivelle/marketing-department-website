@@ -255,18 +255,11 @@ export default function SubmitRequestForm() {
               </button>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-3">
-            <a
-              href={`/#/edit-request/${editToken}`}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
-              style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
-            >
-              Edit Again
-            </a>
+          <div className="flex items-center justify-center">
             <a
               href="/#/submit-request"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition hover:-translate-y-0.5"
-              style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }}
+              className="inline-flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+              style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
             >
               New Request
             </a>
