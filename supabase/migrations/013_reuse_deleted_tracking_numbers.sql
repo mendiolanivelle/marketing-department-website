@@ -1,4 +1,4 @@
--- Update tracking_id trigger to reuse lowest freed number on delete
+-- Update tracking_id trigger to reuse lowest freed number globally (any department)
 
 CREATE OR REPLACE FUNCTION assign_tracking_id()
 RETURNS TRIGGER AS $$
@@ -24,13 +24,13 @@ BEGIN
       SELECT generate_series(1, (
         SELECT GREATEST(MAX(CAST(SPLIT_PART(tracking_id, ' - ', 4) AS integer)), 0) + 1
         FROM marketing_requests
-        WHERE tracking_id LIKE 'MKRQ - ' || dept_abbr || ' - ' || yy_mm || ' - %'
+        WHERE tracking_id LIKE 'MKRQ - %'
       )) AS seq
     ) t
     WHERE t.seq NOT IN (
       SELECT CAST(SPLIT_PART(tracking_id, ' - ', 4) AS integer)
       FROM marketing_requests
-      WHERE tracking_id LIKE 'MKRQ - ' || dept_abbr || ' - ' || yy_mm || ' - %'
+      WHERE tracking_id LIKE 'MKRQ - %'
     );
 
     NEW.tracking_id := 'MKRQ - ' || dept_abbr || ' - ' || yy_mm || ' - ' || LPAD(next_seq::text, 3, '0');
