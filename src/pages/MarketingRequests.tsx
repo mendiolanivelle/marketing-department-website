@@ -92,16 +92,19 @@ export default function MarketingRequests() {
 
   const deleteRequest = async (index: number, req: SubmittedRequest) => {
     setDeleting(index)
-    if (isSupabaseConfigured && supabase && req.id) {
-      await supabase.from('marketing_requests').delete().eq('id', req.id)
-    } else {
-      const existing = localStorage.getItem('exodia-marketing-requests')
-      if (existing) {
-        const requests = JSON.parse(existing)
-        const idx = requests.findIndex((r: any) => r.editToken === req.editToken)
-        if (idx !== -1) requests.splice(idx, 1)
-        localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
+    if (isSupabaseConfigured && supabase) {
+      if (req.id) {
+        await supabase.from('marketing_requests').delete().eq('id', req.id)
+      } else if (req.editToken) {
+        await supabase.from('marketing_requests').delete().eq('edit_token', req.editToken)
       }
+    }
+    const existing = localStorage.getItem('exodia-marketing-requests')
+    if (existing) {
+      const requests = JSON.parse(existing)
+      const idx = requests.findIndex((r: any) => r.editToken === req.editToken)
+      if (idx !== -1) requests.splice(idx, 1)
+      localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
     }
     setSubmitted(prev => prev.filter((_, i) => i !== index))
     setDeleting(null)
