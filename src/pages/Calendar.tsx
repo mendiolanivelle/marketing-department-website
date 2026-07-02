@@ -162,6 +162,21 @@ export default function Calendar() {
     }
   }, [items, loading])
 
+  // Sync viewItem when items refresh (e.g. campaign status update)
+  useEffect(() => {
+    if (viewItem) {
+      const updated = items.find(i => i.id === viewItem.id)
+      if (updated) setViewItem(updated)
+    }
+  }, [items])
+
+  // Listen for localStorage changes from other tabs
+  useEffect(() => {
+    const handler = () => fetchItems()
+    window.addEventListener('storage', handler)
+    return () => window.removeEventListener('storage', handler)
+  }, [fetchItems])
+
   const itemsByDate = useMemo(() => {
     const map: Record<string, CalendarItem[]> = {}
     items.forEach((item) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const MONTH_MAP: Record<string, string> = {
   Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
@@ -47,6 +48,9 @@ function addToCalendar(campaign: Campaign) {
   }
   items.push(newItem)
   localStorage.setItem(key, JSON.stringify(items))
+  if (isSupabaseConfigured && supabase) {
+    supabase.from('calendar_items').insert([newItem]).maybeSingle()
+  }
   window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
 
@@ -54,8 +58,13 @@ function removeFromCalendar(campaignName: string) {
   const key = 'exodia-calendar-items'
   const saved = localStorage.getItem(key)
   if (!saved) return
-  const items = JSON.parse(saved).filter((i: any) => i.title !== campaignName)
-  localStorage.setItem(key, JSON.stringify(items))
+  const items = JSON.parse(saved)
+  const removed = items.find((i: any) => i.title === campaignName)
+  const filtered = items.filter((i: any) => i.title !== campaignName)
+  localStorage.setItem(key, JSON.stringify(filtered))
+  if (removed && isSupabaseConfigured && supabase) {
+    supabase.from('calendar_items').delete().eq('id', removed.id).maybeSingle()
+  }
   window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
 
@@ -63,13 +72,18 @@ function updateInCalendar(oldName: string, campaign: Campaign) {
   const key = 'exodia-calendar-items'
   const saved = localStorage.getItem(key)
   if (!saved) return
+  let matchedItem: any = null
   const items = JSON.parse(saved).map((i: any) => {
     if (i.title === oldName || i.title === campaign.name) {
+      matchedItem = i
       return { ...i, title: campaign.name, date: parseCampaignDate(campaign.due), description: `Campaign for ${campaign.dept}`, notes: `Status: ${campaign.status}`, updated_at: new Date().toISOString() }
     }
     return i
   })
   localStorage.setItem(key, JSON.stringify(items))
+  if (matchedItem && isSupabaseConfigured && supabase) {
+    supabase.from('calendar_items').update({ title: campaign.name, date: parseCampaignDate(campaign.due), description: `Campaign for ${campaign.dept}`, notes: `Status: ${campaign.status}`, updated_at: new Date().toISOString() }).eq('id', matchedItem.id).maybeSingle()
+  }
   window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
 
