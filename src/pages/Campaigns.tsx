@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const MONTH_MAP: Record<string, string> = {
   Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
@@ -88,6 +88,19 @@ export default function Campaigns() {
   const [editOldName, setEditOldName] = useState('')
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO() })
   const [note, setNote] = useState('')
+
+  useEffect(() => {
+    const refresh = () => {
+      const saved = localStorage.getItem('exodia-campaigns')
+      if (saved) setCampaigns(JSON.parse(saved))
+    }
+    window.addEventListener('calendar-updated', refresh)
+    window.addEventListener('marketing-request-updated', refresh)
+    return () => {
+      window.removeEventListener('calendar-updated', refresh)
+      window.removeEventListener('marketing-request-updated', refresh)
+    }
+  }, [])
 
   const showNote = (msg: string) => {
     setNote(msg)

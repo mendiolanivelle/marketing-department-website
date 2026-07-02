@@ -236,6 +236,37 @@ export default function SubmitRequestForm() {
     localStorage.removeItem('exodia-marketing-request-draft')
     window.dispatchEvent(new CustomEvent('marketing-request-updated'))
 
+    // Auto-create campaign + calendar task
+    if (!editToken) {
+      const campaignsKey = 'exodia-campaigns'
+      const savedCampaigns = localStorage.getItem(campaignsKey)
+      const campaigns = savedCampaigns ? JSON.parse(savedCampaigns) : []
+      const newId = campaigns.length > 0 ? Math.max(...campaigns.map((c: any) => c.id)) + 1 : 1
+      const campaign = { id: newId, name: form.title, dept: form.department, status: 'Pending', due: form.dateNeeded }
+      campaigns.push(campaign)
+      localStorage.setItem(campaignsKey, JSON.stringify(campaigns))
+
+      const calKey = 'exodia-calendar-items'
+      const savedCal = localStorage.getItem(calKey)
+      const calItems = savedCal ? JSON.parse(savedCal) : []
+      const calId = crypto.randomUUID()
+      const now = new Date().toISOString()
+      const calItem = {
+        id: calId, title: form.title, type: 'task', date: form.dateNeeded,
+        start_time: null, end_time: null, description: `Campaign for ${form.department}`,
+        location: null, color: '#1a73e8', assignees: [], notes: 'Status: Pending',
+        created_at: now, updated_at: now,
+      }
+      calItems.push(calItem)
+      localStorage.setItem(calKey, JSON.stringify(calItems))
+
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('calendar_items').insert([calItem]).maybeSingle()
+      }
+
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+    }
+
     if (form.email && isSupabaseConfigured && supabase) {
       try {
         const editUrl = `${window.location.origin}/#/edit-request/${token}`
