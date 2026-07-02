@@ -128,8 +128,8 @@ export default function SubmitRequestForm() {
           {/* Section A */}
           <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <h2 className="text-base font-semibold" style={{ color: '#1B1A1C' }}>Requester Information</h2>
+            <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
+              <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION A: REQUESTER INFORMATION</h2>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -155,8 +155,8 @@ export default function SubmitRequestForm() {
           {/* Section B */}
           <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <h2 className="text-base font-semibold" style={{ color: '#1B1A1C' }}>Project Overview</h2>
+            <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
+              <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION B: PROJECT OVERVIEW</h2>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -179,8 +179,8 @@ export default function SubmitRequestForm() {
           {/* Section C */}
           <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <h2 className="text-base font-semibold" style={{ color: '#1B1A1C' }}>Specifications &amp; Assets</h2>
+            <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
+              <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION C: SPECIFICATIONS &amp; ASSETS</h2>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div>
@@ -222,8 +222,8 @@ export default function SubmitRequestForm() {
           {/* Section D */}
           <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
             <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
-            <div className="px-6 py-4" style={{ borderBottom: '1px solid #F3F4F6' }}>
-              <h2 className="text-base font-semibold" style={{ color: '#1B1A1C' }}>Logistics</h2>
+            <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
+              <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION D: LOGISTICS</h2>
             </div>
             <div className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
