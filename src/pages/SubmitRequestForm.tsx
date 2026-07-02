@@ -145,6 +145,7 @@ export default function SubmitRequestForm() {
     setEditToken(payload.editToken)
     setSubmitting(false)
     setSubmitted(true)
+    window.dispatchEvent(new CustomEvent('marketing-request-updated'))
 
     if (form.email && isSupabaseConfigured && supabase) {
       try {

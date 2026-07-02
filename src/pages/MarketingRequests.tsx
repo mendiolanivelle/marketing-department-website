@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
 
@@ -26,9 +26,35 @@ export default function MarketingRequests() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval>>()
 
   useEffect(() => {
     loadSubmissions()
+
+    if (isSupabaseConfigured && supabase) {
+      const channel = supabase.channel('marketing-requests-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'marketing_requests' },
+          () => { loadSubmissions() }
+        )
+        .subscribe()
+
+      pollRef.current = setInterval(loadSubmissions, 30000)
+
+      return () => {
+        supabase.removeChannel(channel)
+        if (pollRef.current) clearInterval(pollRef.current)
+      }
+    } else {
+      const handleStorage = () => loadSubmissions()
+      window.addEventListener('marketing-request-updated', handleStorage)
+      pollRef.current = setInterval(loadSubmissions, 10000)
+
+      return () => {
+        window.removeEventListener('marketing-request-updated', handleStorage)
+        if (pollRef.current) clearInterval(pollRef.current)
+      }
+    }
   }, [])
 
   const loadSubmissions = async () => {
