@@ -93,6 +93,8 @@ interface Campaign {
   dept: string
   status: string
   due: string
+  requesterName?: string
+  requesterEmail?: string
 }
 
 export default function Campaigns() {
@@ -276,6 +278,32 @@ export default function Campaigns() {
                         <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
+                      {camp.status !== 'Done' && camp.requesterEmail && (
+                        <button
+                          onClick={async () => {
+                            const updated = campaigns.map(c => c.id === camp.id ? { ...c, status: 'Done' } : c)
+                            setCampaigns(updated)
+                            localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                            updateInCalendar(camp.name, { ...camp, status: 'Done' })
+                            if (isSupabaseConfigured && supabase) {
+                              try {
+                                await supabase.functions.invoke('send-edit-link', {
+                                  body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: camp.name, editLink: window.location.origin + '/#/requests' },
+                                })
+                                showNote(`"${camp.name}" completed — notified ${camp.requesterEmail}`)
+                              } catch {
+                                showNote(`"${camp.name}" completed — notification failed`)
+                              }
+                            } else {
+                              showNote(`"${camp.name}" completed`)
+                            }
+                          }}
+                          className="text-[10px] px-2 py-1 rounded-lg font-medium transition hover:opacity-80 whitespace-nowrap"
+                          style={{ backgroundColor: '#16A34A', color: '#FFFFFF' }}
+                        >
+                          Complete & Notify
+                        </button>
+                      )}
                       <button onClick={() => editCampaign(camp)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: '#9CA3AF' }}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
