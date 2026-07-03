@@ -269,6 +269,7 @@ export default function Messaging() {
   const [newLead, setNewLead] = useState({ name: '', email: '', company: '', role: '' })
   const [emailSubject, setEmailSubject] = useState('')
   const [emailBody, setEmailBody] = useState('')
+  const [replyingTo, setReplyingTo] = useState<EmailHistoryItem | null>(null)
   const [editingLead, setEditingLead] = useState<OutreachLead | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showThread, setShowThread] = useState(false)
@@ -429,6 +430,7 @@ export default function Messaging() {
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
     const now = new Date().toISOString()
+    const messageId = `<${crypto.randomUUID()}@exodiagamedev.com>`
     const newEmail: EmailHistoryItem = {
       id: crypto.randomUUID(),
       subject: emailSubject.trim(),
@@ -439,7 +441,15 @@ export default function Messaging() {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.functions.invoke('send-outreach-email', {
-          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody },
+          body: {
+            to: selectedLead.email,
+            name: selectedLead.name,
+            subject: emailSubject,
+            body: emailBody,
+            inReplyTo: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
+            references: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
+            messageId,
+          },
         })
       } catch (err) {
         console.error('Email send failed:', err)
@@ -456,6 +466,7 @@ export default function Messaging() {
     setEmailSubject('')
     setEmailBody('')
     setSelectedLead(null)
+    setReplyingTo(null)
     setShowEmailSuccess(true)
     logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
   }
@@ -903,17 +914,27 @@ export default function Messaging() {
 
         {/* Compose Email Modal */}
         {showEmail && selectedLead && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEmail(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowEmail(false); setReplyingTo(null) }}>
             <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
               <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
               <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email} ({selectedLead.name})</p>
 
               {selectedLead.emailHistory?.length > 0 && (
                 <div className="mb-4 rounded-xl border" style={{ borderColor: 'var(--border-secondary)', backgroundColor: 'var(--bg-secondary)' }}>
-                  <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-secondary)' }}>Previous conversation</div>
+                  <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-secondary)' }}>Previous conversation — click an entry to reply in thread</div>
                   <div className="max-h-48 overflow-y-auto divide-y" style={{ borderColor: 'var(--border-secondary)' }}>
                     {selectedLead.emailHistory.map((email) => (
-                      <div key={email.id} className="px-3 py-2.5 space-y-1">
+                      <div
+                        key={email.id}
+                        onClick={() => {
+                          setReplyingTo(email)
+                          const prefix = email.subject.startsWith('Re:') ? '' : 'Re: '
+                          setEmailSubject(prefix + email.subject)
+                          setEmailBody(`\n\n---\nOn ${new Date(email.sentAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}, ${email.direction === 'sent' ? 'you' : selectedLead.name} wrote:\n> ${email.body.replace(/\n/g, '\n> ')}`)
+                        }}
+                        className="px-3 py-2.5 space-y-1 cursor-pointer transition hover:brightness-95"
+                        style={{ backgroundColor: replyingTo?.id === email.id ? 'var(--accent-light)' : 'transparent' }}
+                      >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium" style={{ color: email.direction === 'sent' ? 'var(--accent)' : 'var(--text-primary)' }}>
                             {email.direction === 'sent' ? 'You:' : `${selectedLead.name}:`}
@@ -927,6 +948,16 @@ export default function Messaging() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {replyingTo && (
+                <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                  <span className="flex-1">Replying to: <strong>{replyingTo.subject}</strong></span>
+                  <button onClick={() => { setReplyingTo(null); setEmailSubject(''); setEmailBody('') }} className="p-0.5 rounded hover:brightness-90" style={{ color: 'var(--accent)' }}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
                 </div>
               )}
 
@@ -968,7 +999,7 @@ export default function Messaging() {
               <input type="text" placeholder="Subject" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
               <textarea placeholder="Write your email..." value={emailBody} onChange={e => setEmailBody(e.target.value)} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4 resize-none" style={{ borderColor: 'var(--border-primary)' }} />
               <div className="flex gap-3 justify-end">
-                <button onClick={() => setShowEmail(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+                <button onClick={() => { setShowEmail(false); setReplyingTo(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                 <button onClick={sendEmail} disabled={!emailSubject.trim()} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Send Email</button>
               </div>
             </div>
@@ -1019,7 +1050,7 @@ export default function Messaging() {
               </div>
               <div className="mt-4 flex justify-end">
                 <button
-                  onClick={() => { setShowThread(false); setSelectedLead(threadLead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                  onClick={() => { setShowThread(false); setSelectedLead(threadLead); setShowEmail(true); setEmailSubject(''); setEmailBody(''); setReplyingTo(null) }}
                   className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
                   style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
                 >
@@ -1082,7 +1113,7 @@ export default function Messaging() {
                     </div>
                     <div>
                       <button
-                        onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                        onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody(''); setReplyingTo(null) }}
                         className="w-full px-3 py-2 text-xs text-white rounded-lg transition"
                         style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
                       >
