@@ -159,39 +159,39 @@ export default function MarketingRequests() {
                 Open Submission Form
               </a>
             </div>
+
+            {/* Stats badges */}
+            {!loading && submitted.length > 0 && (
+              <div className="flex gap-2 flex-wrap mt-5">
+                {[
+                  { label: 'Total', key: null, color: 'var(--text-primary)', bg: '#F3F4F6', activeBg: '#6B7280', count: submitted.length },
+                  { label: 'Rush', key: 'Rush', color: '#DC2626', bg: '#FEF2F2', activeBg: '#DC2626', count: submitted.filter(r => r.priority === 'Rush').length },
+                  { label: 'High', key: 'High', color: '#FF5900', bg: '#FFF7ED', activeBg: '#FF5900', count: submitted.filter(r => r.priority === 'High').length },
+                  { label: 'Standard', key: 'Standard', color: '#2563EB', bg: '#EFF6FF', activeBg: '#2563EB', count: submitted.filter(r => r.priority === 'Standard').length },
+                  { label: 'Low', key: 'Low', color: '#16A34A', bg: '#F0FDF4', activeBg: '#16A34A', count: submitted.filter(r => r.priority === 'Low').length },
+                ].map((badge) => {
+                  const isActive = badge.key === null ? filterPriority === null : filterPriority === badge.key
+                  return (
+                    <button
+                      key={badge.label}
+                      onClick={() => setFilterPriority(badge.key === null ? null : filterPriority === badge.key ? null : badge.key)}
+                      className="px-4 py-2 rounded-xl text-center transition hover:-translate-y-0.5"
+                      style={{
+                        backgroundColor: isActive ? badge.activeBg : badge.bg,
+                        border: isActive ? '2px solid ' + badge.activeBg : '2px solid transparent',
+                        color: isActive ? '#FFFFFF' : badge.color,
+                        minWidth: '90px',
+                      }}
+                    >
+                      <div className="text-lg font-bold leading-none mb-0.5">{badge.count}</div>
+                      <div className="text-[10px] font-medium" style={{ opacity: 0.85 }}>{badge.label}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Stats badges */}
-        {!loading && submitted.length > 0 && (
-          <div className="flex gap-2 flex-wrap mb-6">
-            {[
-              { label: 'Total', key: null, color: 'var(--text-primary)', bg: '#F3F4F6', activeBg: '#6B7280', count: submitted.length },
-              { label: 'Rush', key: 'Rush', color: '#DC2626', bg: '#FEF2F2', activeBg: '#DC2626', count: submitted.filter(r => r.priority === 'Rush').length },
-              { label: 'High', key: 'High', color: '#FF5900', bg: '#FFF7ED', activeBg: '#FF5900', count: submitted.filter(r => r.priority === 'High').length },
-              { label: 'Standard', key: 'Standard', color: '#2563EB', bg: '#EFF6FF', activeBg: '#2563EB', count: submitted.filter(r => r.priority === 'Standard').length },
-              { label: 'Low', key: 'Low', color: '#16A34A', bg: '#F0FDF4', activeBg: '#16A34A', count: submitted.filter(r => r.priority === 'Low').length },
-            ].map((badge) => {
-              const isActive = badge.key === null ? filterPriority === null : filterPriority === badge.key
-              return (
-                <button
-                  key={badge.label}
-                  onClick={() => setFilterPriority(badge.key === null ? null : filterPriority === badge.key ? null : badge.key)}
-                  className="px-4 py-2 rounded-xl text-center transition hover:-translate-y-0.5"
-                  style={{
-                    backgroundColor: isActive ? badge.activeBg : badge.bg,
-                    border: isActive ? '2px solid ' + badge.activeBg : '2px solid transparent',
-                    color: isActive ? '#FFFFFF' : badge.color,
-                    minWidth: '90px',
-                  }}
-                >
-                  <div className="text-lg font-bold leading-none mb-0.5">{badge.count}</div>
-                  <div className="text-[10px] font-medium" style={{ opacity: 0.85 }}>{badge.label}</div>
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {/* Submitted Requests */}
         <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
