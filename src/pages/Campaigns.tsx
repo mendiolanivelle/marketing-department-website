@@ -95,6 +95,9 @@ interface Campaign {
   due: string
   requesterName?: string
   requesterEmail?: string
+  priority?: string
+  requestType?: string[]
+  description?: string
 }
 
 export default function Campaigns() {
@@ -289,7 +292,7 @@ export default function Campaigns() {
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sc.text }}></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {displayDate(camp.due)}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept}{camp.requesterName ? ` &middot; ${camp.requesterName}` : ''} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
                       <button onClick={() => deleteCampaign(camp.id)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: 'var(--accent)' }}>
@@ -395,25 +398,38 @@ export default function Campaigns() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-x-8 gap-y-5 mb-8">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Department</p>
-                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingCampaign.dept}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Due Date</p>
-                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{displayDate(viewingCampaign.due)}</p>
-                </div>
+<div className="grid grid-cols-2 gap-x-8 gap-y-5 mb-6">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Requester</p>
                   <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingCampaign.requesterName || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Requester Email</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Department</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingCampaign.dept}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Email</p>
                   <p className="text-sm" style={{ color: '#FF5900' }}>{viewingCampaign.requesterEmail || '—'}</p>
                 </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Date Needed</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{displayDate(viewingCampaign.due)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Priority</p>
+                  <p className="text-sm font-semibold" style={{ color: viewingCampaign.priority === 'Rush' ? '#DC2626' : viewingCampaign.priority === 'High' ? '#FF5900' : viewingCampaign.priority === 'Standard' ? '#2563EB' : viewingCampaign.priority === 'Low' ? '#16A34A' : '#1B1A1C' }}>{viewingCampaign.priority || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Request Type</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingCampaign.requestType && viewingCampaign.requestType.length > 0 ? viewingCampaign.requestType.join(', ') : '—'}</p>
+                </div>
               </div>
-
+              {viewingCampaign.description && (
+                <div className="mb-6">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>Description</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#1B1A1C', lineHeight: 1.7 }}>{viewingCampaign.description}</p>
+                </div>
+              )}
               <div className="pt-6 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
                 <p className="text-[10px]" style={{ color: '#9CA3AF' }}>Exodia Game Development &middot; Marketing Department</p>
               </div>
