@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, subject, body, inReplyTo } = await req.json()
+    const { to, name, subject, body, inReplyTo, customMessageId } = await req.json()
     if (!to || !subject) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
@@ -37,6 +37,10 @@ serve(async (req) => {
       subject: subject,
       text: body || '',
       html: body ? body.replace(/\n/g, '<br>') : '',
+    }
+
+    if (customMessageId) {
+      mailOptions.messageId = customMessageId
     }
 
     if (inReplyTo) {
