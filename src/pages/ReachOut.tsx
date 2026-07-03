@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
 
+interface EmailHistoryItem {
+  id: string
+  subject: string
+  body: string
+  sentAt: string
+  direction: 'sent' | 'received'
+}
+
 interface OutreachLead {
   id: number
   name: string
@@ -8,13 +16,14 @@ interface OutreachLead {
   status: 'pending' | 'sent' | 'replied' | 'follow-up'
   lastContacted: string
   notes: string
+  emailHistory: EmailHistoryItem[]
 }
 
 const defaultLeads: OutreachLead[] = [
-  { id: 1, name: 'John Smith', email: 'john@acme.com', company: 'Acme Corp', status: 'pending', lastContacted: '', notes: '' },
-  { id: 2, name: 'Sarah Lee', email: 'sarah@techstart.io', company: 'TechStart Inc', status: 'sent', lastContacted: 'Jun 22', notes: 'Awaiting response on proposal' },
-  { id: 3, name: 'Mike Chen', email: 'mike@globalmedia.com', company: 'Global Media', status: 'replied', lastContacted: 'Jun 20', notes: 'Interested, scheduling call' },
-  { id: 4, name: 'Emma Davis', email: 'emma@brandify.co', company: 'Brandify', status: 'follow-up', lastContacted: 'Jun 15', notes: 'Need to follow up by end of week' },
+  { id: 1, name: 'John Smith', email: 'john@acme.com', company: 'Acme Corp', status: 'pending', lastContacted: '', notes: '', emailHistory: [] },
+  { id: 2, name: 'Sarah Lee', email: 'sarah@techstart.io', company: 'TechStart Inc', status: 'sent', lastContacted: 'Jun 22', notes: 'Awaiting response on proposal', emailHistory: [] },
+  { id: 3, name: 'Mike Chen', email: 'mike@globalmedia.com', company: 'Global Media', status: 'replied', lastContacted: 'Jun 20', notes: 'Interested, scheduling call', emailHistory: [] },
+  { id: 4, name: 'Emma Davis', email: 'emma@brandify.co', company: 'Brandify', status: 'follow-up', lastContacted: 'Jun 15', notes: 'Need to follow up by end of week', emailHistory: [] },
 ]
 
 const statusConfig: Record<string, { label: string; color: string }> = {
@@ -47,11 +56,13 @@ export default function ReachOut() {
   const [emailBody, setEmailBody] = useState('')
   const [editingLead, setEditingLead] = useState<OutreachLead | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [showThread, setShowThread] = useState(false)
+  const [threadLead, setThreadLead] = useState<OutreachLead | null>(null)
 
   const addLead = () => {
     if (!newLead.name.trim() || !newLead.email.trim()) return
     const id = leads.length > 0 ? Math.max(...leads.map(l => l.id)) + 1 : 1
-    setLeads(sortLeads([...leads, { ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '' }]))
+    setLeads(sortLeads([...leads, { ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '', emailHistory: [] }]))
     setNewLead({ name: '', email: '', company: '' })
     setShowAdd(false)
   }
@@ -73,10 +84,21 @@ export default function ReachOut() {
 
   const sendEmail = () => {
     if (!selectedLead || !emailSubject.trim()) return
-    const mailto = `mailto:${selectedLead.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(mailto, '_blank')
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? { ...l, status: 'sent', lastContacted: today } : l)))
+    const now = new Date().toISOString()
+    const newEmail: EmailHistoryItem = {
+      id: crypto.randomUUID(),
+      subject: emailSubject.trim(),
+      body: emailBody.trim(),
+      sentAt: now,
+      direction: 'sent',
+    }
+    setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? {
+      ...l,
+      status: 'sent',
+      lastContacted: today,
+      emailHistory: [...l.emailHistory, newEmail],
+    } : l)))
     setShowEmail(false)
     setEmailSubject('')
     setEmailBody('')
@@ -187,6 +209,16 @@ export default function ReachOut() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                   Email
                 </button>
+                {lead.emailHistory.length > 0 && (
+                  <button
+                    onClick={() => { setThreadLead(lead); setShowThread(true) }}
+                    className="px-3 py-1.5 text-xs rounded-lg transition flex items-center gap-1"
+                    style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--accent)', border: '1px solid var(--border-primary)', fontWeight: 500 }}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    Thread ({lead.emailHistory.length})
+                  </button>
+                )}
                 <select
                   value={lead.status}
                   onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
@@ -257,11 +289,90 @@ export default function ReachOut() {
           <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
             <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email} ({selectedLead.name}, {selectedLead.company})</p>
+
+            {selectedLead.emailHistory.length > 0 && (
+              <div className="mb-4 rounded-xl border" style={{ borderColor: 'var(--border-secondary)', backgroundColor: 'var(--bg-secondary)' }}>
+                <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-secondary)' }}>Previous conversation</div>
+                <div className="max-h-48 overflow-y-auto divide-y" style={{ borderColor: 'var(--border-secondary)' }}>
+                  {selectedLead.emailHistory.map((email) => (
+                    <div key={email.id} className="px-3 py-2.5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium" style={{ color: email.direction === 'sent' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                          {email.direction === 'sent' ? 'You:' : `${selectedLead.name}:`}
+                        </span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                          {new Date(email.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{email.subject}</p>
+                      <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{email.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <input type="text" placeholder="Subject" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
             <textarea placeholder="Write your email..." value={emailBody} onChange={e => setEmailBody(e.target.value)} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4 resize-none" style={{ borderColor: 'var(--border-primary)' }} />
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowEmail(false)} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={sendEmail} disabled={!emailSubject.trim()} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Send Email</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Thread View Modal */}
+      {showThread && threadLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowThread(false)}>
+          <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Email Thread</h3>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{threadLead.name} &middot; {threadLead.email}</p>
+              </div>
+              <button onClick={() => setShowThread(false)} className="p-1.5 rounded-lg transition" style={{ color: 'var(--accent)' }}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 -mr-1">
+              {threadLead.emailHistory.length === 0 ? (
+                <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No emails sent yet.</p>
+              ) : (
+                [...threadLead.emailHistory].reverse().map((email) => (
+                  <div
+                    key={email.id}
+                    className="rounded-xl p-4"
+                    style={{
+                      backgroundColor: email.direction === 'sent' ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                      border: '1px solid var(--border-secondary)',
+                      marginLeft: email.direction === 'received' ? '24px' : '0',
+                      marginRight: email.direction === 'sent' ? '24px' : '0',
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium" style={{ color: email.direction === 'sent' ? 'var(--accent)' : 'var(--text-primary)' }}>
+                        {email.direction === 'sent' ? 'You' : threadLead.name}
+                      </span>
+                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        {new Date(email.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{email.subject}</p>
+                    <p className="text-xs whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{email.body}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => { setShowThread(false); setSelectedLead(threadLead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
+                className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
+                style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                Reply
+              </button>
             </div>
           </div>
         </div>
