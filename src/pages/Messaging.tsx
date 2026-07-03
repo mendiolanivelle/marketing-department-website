@@ -837,7 +837,7 @@ export default function Messaging() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowEmail(false)}>
             <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
               <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email} ({selectedLead.name}, {selectedLead.company})</p>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email} ({selectedLead.name})</p>
               <input type="text" placeholder="Subject" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
               <textarea placeholder="Write your email..." value={emailBody} onChange={e => setEmailBody(e.target.value)} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-4 resize-none" style={{ borderColor: 'var(--border-primary)' }} />
               <div className="flex gap-3 justify-end">
