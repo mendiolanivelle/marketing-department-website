@@ -337,26 +337,30 @@ export default function AcceptanceCriteria() {
 
           {/* Stats row */}
           {!loading && submissions.length > 0 && (
-            <div className="flex gap-3 flex-wrap">
+            <div className="flex gap-2 flex-wrap mt-5">
               {[
-                { label: 'Total', value: submissions.length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
-                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
-                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#FF5900', bg: '#FFF0E6', activeBg: '#FF5900' },
-              ].map((stat, i) => (
-                <button
-                  key={i}
-                  onClick={() => setFilterType(i === 0 ? null : stat.label === 'Staff Aug' ? 'Staff Aug' : 'Project Base')}
-                  className="px-4 py-2.5 rounded-xl text-center transition hover:-translate-y-0.5 min-w-[100px]"
-                  style={{
-                    backgroundColor: (i === 0 ? filterType === null : filterType === stat.label) ? stat.activeBg : stat.bg,
-                    border: (i === 0 ? filterType === null : filterType === stat.label) ? '2px solid ' + stat.activeBg : '2px solid transparent',
-                    color: (i === 0 ? filterType === null : filterType === stat.label) ? '#FFFFFF' : stat.color,
-                  }}
-                >
-                  <div className="text-xl font-bold leading-none mb-1">{stat.value}</div>
-                  <div className="text-[11px] font-medium" style={{ opacity: 0.85 }}>{stat.label}</div>
-                </button>
-              ))}
+                { label: 'Total', value: submissions.length, color: 'var(--text-primary)', bg: '#F3F4F6', activeBg: '#6B7280' },
+                { label: 'Project Base', value: submissions.filter(s => s.project_type === 'Project Base').length, color: '#FF5900', bg: '#FFF7ED', activeBg: '#FF5900' },
+                { label: 'Staff Aug', value: submissions.filter(s => s.project_type === 'Staff Augmentation').length, color: '#2563EB', bg: '#EFF6FF', activeBg: '#2563EB' },
+              ].map((stat, i) => {
+                const isActive = i === 0 ? filterType === null : filterType === stat.label
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setFilterType(i === 0 ? null : filterType === stat.label ? null : stat.label)}
+                    className="px-4 py-2 rounded-xl text-center transition hover:-translate-y-0.5"
+                    style={{
+                      backgroundColor: isActive ? stat.activeBg : stat.bg,
+                      border: isActive ? '2px solid ' + stat.activeBg : '2px solid transparent',
+                      color: isActive ? '#FFFFFF' : stat.color,
+                      minWidth: '90px',
+                    }}
+                  >
+                    <div className="text-lg font-bold leading-none mb-0.5">{stat.value}</div>
+                    <div className="text-[10px] font-medium" style={{ opacity: 0.85 }}>{stat.label}</div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
