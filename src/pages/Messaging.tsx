@@ -648,12 +648,22 @@ export default function Messaging() {
       {/* ======== REACH OUT SECTION ======== */}
       <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Reach Out</h2>
-            <p className="text-sm sm:text-base" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Email outreach and follow-up management</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div className="rounded-2xl overflow-hidden mb-6 sm:mb-8 theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
+          <div className="h-1.5" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
+          <div className="p-5 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
+                  <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Reach Out</h1>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Email outreach and follow-up management</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
             <button
               onClick={triggerReSync}
               className="px-3 py-2 text-xs rounded-lg transition flex items-center gap-1.5"
@@ -671,6 +681,8 @@ export default function Messaging() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               Add Lead
             </button>
+          </div>
+          </div>
           </div>
         </div>
 
