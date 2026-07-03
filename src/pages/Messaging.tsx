@@ -879,7 +879,19 @@ export default function Messaging() {
               <select
                 onChange={(e) => {
                   const t = templates.find(t => t.id === e.target.value)
-                  if (t) { setEmailSubject(t.subject); setEmailBody(t.body) }
+                  if (t && selectedLead) {
+                    const replace = (text: string) =>
+                      text
+                        .replace(/\{\{contact_name\}\}/g, selectedLead.name || 'there')
+                        .replace(/\{\{company_name\}\}/g, selectedLead.company || 'your company')
+                        .replace(/\{\{sender_name\}\}/g, 'Marketing Team')
+                        .replace(/\{\{sales_rep_name\}\}/g, 'our Sales Team')
+                        .replace(/\{\{ops_rep_name\}\}/g, 'our Operations Team')
+                        .replace(/\{\{proposed_date\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+                        .replace(/\{\{project_name\}\}/g, 'your project')
+                    setEmailSubject(replace(t.subject))
+                    setEmailBody(replace(t.body))
+                  }
                 }}
                 className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none mb-3"
                 style={{ borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
