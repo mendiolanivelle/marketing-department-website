@@ -126,6 +126,7 @@ export default function Campaigns() {
   const [showNotifyConfirm, setShowNotifyConfirm] = useState(false)
   const [notifyLinks, setNotifyLinks] = useState<string[]>([])
   const [notifyLinkInput, setNotifyLinkInput] = useState('')
+  const [notifyMessage, setNotifyMessage] = useState('')
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [] as string[], description: '' })
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
@@ -450,6 +451,7 @@ export default function Campaigns() {
                     setNotifyId(viewingCampaign.id)
                     setNotifyLinks([])
                     setNotifyLinkInput('')
+                    setNotifyMessage(viewingCampaign.description || '')
                     setShowNotifyConfirm(true)
                   }}
                   className="px-4 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80"
@@ -517,7 +519,7 @@ export default function Campaigns() {
                       {/* Delivery Notes */}
                       <div className="mt-3">
                         <p className="text-xs font-bold mb-1" style={{ color: '#1B1A1C' }}>📝 Delivery Notes from the Team</p>
-                        <p className="text-xs" style={{ color: '#4B5563' }}>{camp?.description || 'Your request has been completed.'}</p>
+                        <p className="text-xs" style={{ color: '#4B5563' }}>{notifyMessage || 'Your request has been completed.'}</p>
                       </div>
                       <p className="mt-3 text-xs" style={{ color: '#4B5563' }}>If you need any minor tweaks, just reply to this email or message us on the internal portal.</p>
                       <p className="mt-4" style={{ color: '#9CA3AF' }}>Exodia Game Development &middot; Marketing Department</p>
@@ -559,6 +561,18 @@ export default function Campaigns() {
                       </div>
                     )}
                   </div>
+                  {/* Delivery Notes editor */}
+                  <div>
+                    <p className="text-xs font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>📝 Delivery Notes from the Team</p>
+                    <textarea
+                      value={notifyMessage}
+                      onChange={(e) => setNotifyMessage(e.target.value)}
+                      placeholder="Add a personalized message..."
+                      rows={3}
+                      className="w-full px-3 py-2 border rounded-lg text-xs outline-none resize-none"
+                      style={{ borderColor: 'var(--border-primary)' }}
+                    />
+                  </div>
                   <div className="flex gap-3 justify-end">
                     <button onClick={() => { setShowNotifyConfirm(false); setNotifyId(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                     <button
@@ -572,7 +586,7 @@ export default function Campaigns() {
                         if (isSupabaseConfigured && supabase && camp.requesterEmail) {
                           try {
                             await supabase.functions.invoke('notify-complete', {
-                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: camp.description || '' },
+                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: notifyMessage || camp.description || '' },
                             })
                             showNote(`"${form.name}" completed — notified ${camp.requesterEmail}`)
                           } catch { showNote(`"${form.name}" completed — notification failed`) }
