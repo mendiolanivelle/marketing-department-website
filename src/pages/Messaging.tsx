@@ -888,13 +888,15 @@ export default function Messaging() {
                 <option value="" disabled>Choose a message template...</option>
                 {defaultCategories.map(cat => {
                   const catTemplates = templates.filter(t => t.category === cat)
-                  return catTemplates.length > 0 ? (
+                  return (
                     <optgroup key={cat} label={cat}>
-                      {catTemplates.map(t => (
+                      {catTemplates.length > 0 ? catTemplates.map(t => (
                         <option key={t.id} value={t.id} style={{ color: 'var(--text-primary)' }}>{t.title}</option>
-                      ))}
+                      )) : (
+                        <option disabled style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No templates yet</option>
+                      )}
                     </optgroup>
-                  ) : null
+                  )
                 })}
               </select>
               <input type="text" placeholder="Subject" value={emailSubject} onChange={e => setEmailSubject(e.target.value)} className="w-full px-3 py-2.5 border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)' }} autoFocus />
