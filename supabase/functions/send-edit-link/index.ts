@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, editLink, title } = await req.json()
+    const { to, name, editLink, title, links } = await req.json()
     if (!to || !editLink) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
@@ -31,7 +31,11 @@ serve(async (req) => {
       auth: { user: smtpUser, pass: smtpPass },
     })
 
-    const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:0;background:#f4f4f5}.container{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}.header{background:#FF5900;padding:24px 32px;text-align:center}.header h1{color:#fff;margin:0;font-size:18px;font-weight:700}.body{padding:32px;text-align:center}.title{font-size:16px;font-weight:600;color:#1B1A1C;margin:8px 0 16px}.btn{display:inline-block;background:#FF5900;color:#fff;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:600;margin:8px 0}.footer{padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6}.footer p{color:#9ca3af;font-size:11px;margin:0}.note{font-size:12px;color:#6b7280;margin:16px 0 0}</style></head><body><div class="container"><div class="header"><h1>Exodia Game Development</h1></div><div class="body"><p style="color:#6b7280;font-size:14px;margin:0">Hi ${name},</p><p style="color:#6b7280;font-size:14px">Your marketing request has been received.</p><div class="title">${title || 'Marketing Request'}</div><a href="${editLink}" class="btn">Edit Your Request</a><p class="note">Save this email or bookmark the link to make changes later.</p></div><div class="footer"><p>Exodia Game Development &middot; Marketing Department</p></div></div></body></html>`
+    const linksHtml = links && links.length > 0
+      ? `<div style="margin-top:12px"><p style="font-size:13px;font-weight:600;color:#1B1A1C;margin:0 0 6px">Attached Resources:</p>${links.map((l: string) => `<p style="font-size:13px;color:#FF5900;margin:2px 0"><a href="${l}" style="color:#FF5900">${l}</a></p>`).join('')}</div>`
+      : ''
+
+    const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:0;background:#f4f4f5}.container{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}.header{background:#FF5900;padding:24px 32px;text-align:center}.header h1{color:#fff;margin:0;font-size:18px;font-weight:700}.body{padding:32px;text-align:center}.title{font-size:16px;font-weight:600;color:#1B1A1C;margin:8px 0 16px}.btn{display:inline-block;background:#FF5900;color:#fff;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:600;margin:8px 0}.footer{padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6}.footer p{color:#9ca3af;font-size:11px;margin:0}.note{font-size:12px;color:#6b7280;margin:16px 0 0}</style></head><body><div class="container"><div class="header"><h1>Exodia Game Development</h1></div><div class="body"><p style="color:#6b7280;font-size:14px;margin:0">Hi ${name},</p><p style="color:#6b7280;font-size:14px">Your marketing request has been received.</p><div class="title">${title || 'Marketing Request'}</div><a href="${editLink}" class="btn">Edit Your Request</a>${linksHtml}<p class="note">Save this email or bookmark the link to make changes later.</p></div><div class="footer"><p>Exodia Game Development &middot; Marketing Department</p></div></div></body></html>`
 
     await transporter.sendMail({
       from: fromEmail,
