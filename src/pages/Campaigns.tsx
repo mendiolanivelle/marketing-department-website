@@ -571,8 +571,8 @@ export default function Campaigns() {
                         updateInCalendar(camp.name, { ...camp, ...form, status: 'Done', id: notifyId })
                         if (isSupabaseConfigured && supabase && camp.requesterEmail) {
                           try {
-                            await supabase.functions.invoke('send-edit-link', {
-                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, editLink: window.location.origin + '/#/requests', links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: camp.description || '' },
+                            await supabase.functions.invoke('notify-complete', {
+                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: camp.description || '' },
                             })
                             showNote(`"${form.name}" completed — notified ${camp.requesterEmail}`)
                           } catch { showNote(`"${form.name}" completed — notification failed`) }
