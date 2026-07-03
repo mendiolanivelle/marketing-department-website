@@ -111,6 +111,7 @@ export default function Campaigns() {
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editOldName, setEditOldName] = useState('')
+  const [notifyId, setNotifyId] = useState<number | null>(null)
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO() })
   const [note, setNote] = useState('')
 
@@ -280,23 +281,9 @@ export default function Campaigns() {
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
                       {camp.status !== 'Done' && camp.requesterEmail && (
                         <button
-                          onClick={async () => {
-                            const updated = campaigns.map(c => c.id === camp.id ? { ...c, status: 'Done' } : c)
-                            setCampaigns(updated)
-                            localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
-                            updateInCalendar(camp.name, { ...camp, status: 'Done' })
-                            if (isSupabaseConfigured && supabase) {
-                              try {
-                                await supabase.functions.invoke('send-edit-link', {
-                                  body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: camp.name, editLink: window.location.origin + '/#/requests' },
-                                })
-                                showNote(`"${camp.name}" completed — notified ${camp.requesterEmail}`)
-                              } catch {
-                                showNote(`"${camp.name}" completed — notification failed`)
-                              }
-                            } else {
-                              showNote(`"${camp.name}" completed`)
-                            }
+                          onClick={() => {
+                            setForm({ name: camp.name, dept: camp.dept, status: 'Done', due: parseCampaignDate(camp.due) })
+                            setNotifyId(camp.id)
                           }}
                           className="text-[10px] px-2 py-1 rounded-lg font-medium transition hover:opacity-80 whitespace-nowrap"
                           style={{ backgroundColor: '#16A34A', color: '#FFFFFF' }}
@@ -366,6 +353,58 @@ export default function Campaigns() {
             <div className="flex gap-3 justify-end mt-4">
               <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={saveEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete & Notify Modal */}
+      {notifyId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setNotifyId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} />
+          <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Complete & Notify</h3>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Review and finalize campaign details before notifying the requester.</p>
+            <div className="space-y-3">
+              <input type="text" placeholder="Campaign Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="text" placeholder="Department" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <input type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
+              <div className="rounded-lg border p-3" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Notification will be sent to:</p>
+                <p className="text-sm mt-0.5" style={{ color: 'var(--accent)' }}>
+                  {campaigns.find(c => c.id === notifyId)?.requesterEmail || '—'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-4">
+              <button onClick={() => { setNotifyId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button
+                onClick={async () => {
+                  const camp = campaigns.find(c => c.id === notifyId)
+                  if (!camp) return
+                  const updated = campaigns.map(c => c.id === notifyId ? { ...c, ...form, status: 'Done' } : c)
+                  setCampaigns(updated)
+                  localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                  updateInCalendar(camp.name, { ...camp, ...form, status: 'Done', id: notifyId })
+                  if (isSupabaseConfigured && supabase && camp.requesterEmail) {
+                    try {
+                      await supabase.functions.invoke('send-edit-link', {
+                        body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, editLink: window.location.origin + '/#/requests' },
+                      })
+                      showNote(`"${form.name}" completed — notified ${camp.requesterEmail}`)
+                    } catch { showNote(`"${form.name}" completed — notification failed`) }
+                  }
+                  setNotifyId(null)
+                  setForm({ name: '', dept: '', status: 'Pending', due: todayISO() })
+                }}
+                className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
+                style={{ backgroundColor: '#16A34A', fontWeight: 500 }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Send Notification
+              </button>
             </div>
           </div>
         </div>
