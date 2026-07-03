@@ -1029,7 +1029,7 @@ export default function Messaging() {
 
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowForm(false); setEditingId(null); reset() }}>
-            <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+            <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
               <div className="sticky top-0 border-b px-6 py-4 flex items-center justify-between rounded-t-2xl" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{editingId ? 'Edit Template' : 'New Template'}</h2>
                 <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
