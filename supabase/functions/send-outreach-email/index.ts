@@ -45,7 +45,7 @@ serve(async (req) => {
 
     if (inReplyTo) {
       mailOptions.inReplyTo = inReplyTo
-      mailOptions.references = inReplyTo
+      mailOptions.references = [inReplyTo]
     }
 
     const info = await transporter.sendMail(mailOptions)
