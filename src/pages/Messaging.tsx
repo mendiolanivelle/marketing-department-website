@@ -251,6 +251,7 @@ export default function Messaging() {
 
   const [showAdd, setShowAdd] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
+  const [showEmailSuccess, setShowEmailSuccess] = useState(false)
   const [selectedLead, setSelectedLead] = useState<OutreachLead | null>(null)
   const [selectedDetailLead, setSelectedDetailLead] = useState<OutreachLead | null>(null)
   const [detailNotes, setDetailNotes] = useState('')
@@ -429,7 +430,7 @@ export default function Messaging() {
     setEmailSubject('')
     setEmailBody('')
     setSelectedLead(null)
-    addNotification(`Email sent to ${selectedLead.email}`, 'success')
+    setShowEmailSuccess(true)
     logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
   }
 
@@ -1197,6 +1198,30 @@ export default function Messaging() {
               }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={confirmMeetingBooking} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Confirm Booking</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Sent Success Popup */}
+      {showEmailSuccess && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowEmailSuccess(false)}>
+          <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#F0FDF4' }}>
+              <svg className="w-8 h-8" style={{ color: '#16A34A' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Email Sent!</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              Your email has been sent successfully.
+            </p>
+            <button
+              onClick={() => setShowEmailSuccess(false)}
+              className="px-6 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}
