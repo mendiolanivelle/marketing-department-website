@@ -26,6 +26,7 @@ export default function Home() {
   })
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
+  const [showReadAnnouncements, setShowReadAnnouncements] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
   const [tasks, setTasks] = useState(() => {
     const saved = localStorage.getItem('exodia-tasks')
@@ -353,7 +354,16 @@ export default function Home() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Announcements</h2>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{calendarItems.length} updates</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+                      {calendarItems.filter(a => !readAnnouncementIds.includes(a.id)).length} unread
+                      <button
+                        onClick={() => setShowReadAnnouncements(!showReadAnnouncements)}
+                        className="ml-2 underline"
+                        style={{ color: 'var(--accent)' }}
+                      >
+                        {showReadAnnouncements ? 'Hide read' : 'Show read'}
+                      </button>
+                    </p>
                   </div>
                 </div>
                 <button
@@ -368,7 +378,9 @@ export default function Home() {
                 </button>
               </div>
               <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 space-y-3 sm:space-y-4">
-                {calendarItems.map((item) => {
+                {calendarItems
+                  .filter(item => showReadAnnouncements || !readAnnouncementIds.includes(item.id))
+                  .map((item) => {
                   const tag = tagFromType(item.type)
                   const tagColors: Record<string, { bg: string; text: string }> = {
                     Meeting: { bg: '#EBF5FF', text: '#2563EB' },
@@ -376,13 +388,14 @@ export default function Home() {
                     Event: { bg: '#F0FDF4', text: '#16A34A' },
                     Deadline: { bg: '#FEF2F2', text: '#DC2626' },
                   }
+                  const isRead = readAnnouncementIds.includes(item.id)
                   const tc = tagColors[tag] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
                   return (
                     <div
                       key={item.id}
                       onClick={() => setSelectedAnnouncement(item)}
                       className="group rounded-xl p-4 sm:p-5 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer theme-transition"
-                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)' }}
+                      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-secondary)', opacity: isRead && showReadAnnouncements ? 0.5 : 1 }}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="px-2 py-0.5 rounded-md text-[11px] font-medium" style={{ backgroundColor: tc.bg, color: tc.text }}>
@@ -390,7 +403,7 @@ export default function Home() {
                         </span>
                         <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{formatCalendarDate(item.date)}</span>
                       </div>
-                      <p className="text-sm font-medium mb-2" style={{ color: readAnnouncementIds.includes(item.id) ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: readAnnouncementIds.includes(item.id) ? 400 : 600 }}>
+                      <p className="text-sm font-medium mb-2" style={{ color: isRead ? 'var(--text-muted)' : 'var(--text-primary)', fontWeight: isRead ? 400 : 600 }}>
                         {item.title}
                       </p>
                       <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
