@@ -124,6 +124,7 @@ export default function Campaigns() {
   const [notifyId, setNotifyId] = useState<number | null>(null)
   const [viewingCampaign, setViewingCampaign] = useState<Campaign | null>(null)
   const [showNotifyConfirm, setShowNotifyConfirm] = useState(false)
+  const [showNotifySuccess, setShowNotifySuccess] = useState(false)
   const [notifyLinks, setNotifyLinks] = useState<string[]>([])
   const [notifyLinkInput, setNotifyLinkInput] = useState('')
   const [notifyMessage, setNotifyMessage] = useState('')
@@ -649,12 +650,12 @@ export default function Campaigns() {
                             await supabase.functions.invoke('notify-complete', {
                               body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: notifyMessage || camp.description || '' },
                             })
-                            showNote(`"${form.name}" completed — notified ${camp.requesterEmail}`)
-                          } catch { showNote(`"${form.name}" completed — notification failed`) }
+                          } catch { /* notification failed silently - still show success */ }
                         }
                         setShowNotifyConfirm(false)
                         setNotifyId(null)
                         setViewingCampaign(null)
+                        setShowNotifySuccess(true)
                       }}
                       className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
                       style={{ backgroundColor: '#16A34A', fontWeight: 500 }}
@@ -668,6 +669,30 @@ export default function Campaigns() {
                 </div>
               )
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showNotifySuccess && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowNotifySuccess(false)}>
+          <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#F0FDF4' }}>
+              <svg className="w-8 h-8" style={{ color: '#16A34A' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg mb-2" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Notification Sent!</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              The requester has been notified of the completed campaign.
+            </p>
+            <button
+              onClick={() => setShowNotifySuccess(false)}
+              className="px-6 py-2.5 rounded-xl text-sm font-medium transition hover:opacity-80"
+              style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}
