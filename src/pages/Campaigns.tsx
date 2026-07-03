@@ -31,6 +31,8 @@ function addToCalendar(campaign: Campaign) {
   const key = 'exodia-calendar-items'
   const saved = localStorage.getItem(key)
   const items = saved ? JSON.parse(saved) : []
+  const desc = [`Requested by ${campaign.requesterName || '—'}`, `Dept: ${campaign.dept}`, `Priority: ${campaign.priority || '—'}`, `Due: ${campaign.due}`].filter(Boolean).join(' · ')
+  const notes = [`Status: ${campaign.status}`, campaign.description ? `Description: ${campaign.description}` : '', campaign.requestType?.length ? `Type: ${campaign.requestType.join(', ')}` : ''].filter(Boolean).join('\n')
   const newItem = {
     id: crypto.randomUUID(),
     title: campaign.name,
@@ -38,11 +40,11 @@ function addToCalendar(campaign: Campaign) {
     date: parseCampaignDate(campaign.due),
     start_time: null,
     end_time: null,
-    description: `Campaign for ${campaign.dept}`,
+    description: desc,
     location: null,
     color: '#1a73e8',
     assignees: [],
-    notes: `Status: ${campaign.status}`,
+    notes: notes,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }
@@ -76,13 +78,17 @@ function updateInCalendar(oldName: string, campaign: Campaign) {
   const items = JSON.parse(saved).map((i: any) => {
     if (i.title === oldName || i.title === campaign.name) {
       matchedItem = i
-      return { ...i, title: campaign.name, date: parseCampaignDate(campaign.due), description: `Campaign for ${campaign.dept}`, notes: `Status: ${campaign.status}`, updated_at: new Date().toISOString() }
+      const desc = [`Requested by ${campaign.requesterName || '—'}`, `Dept: ${campaign.dept}`, `Priority: ${campaign.priority || '—'}`, `Due: ${campaign.due}`].filter(Boolean).join(' · ')
+      const notes = [`Status: ${campaign.status}`, campaign.description ? `Description: ${campaign.description}` : '', campaign.requestType?.length ? `Type: ${campaign.requestType.join(', ')}` : ''].filter(Boolean).join('\n')
+      return { ...i, title: campaign.name, date: parseCampaignDate(campaign.due), description: desc, notes: notes, updated_at: new Date().toISOString() }
     }
     return i
   })
   localStorage.setItem(key, JSON.stringify(items))
   if (matchedItem && isSupabaseConfigured && supabase) {
-    supabase.from('calendar_items').update({ title: campaign.name, date: parseCampaignDate(campaign.due), description: `Campaign for ${campaign.dept}`, notes: `Status: ${campaign.status}`, updated_at: new Date().toISOString() }).eq('id', matchedItem.id).maybeSingle()
+    const notesStr = [`Status: ${campaign.status}`, campaign.description ? `Description: ${campaign.description}` : '', campaign.requestType?.length ? `Type: ${campaign.requestType.join(', ')}` : ''].filter(Boolean).join('\n')
+    const descStr = [`Requested by ${campaign.requesterName || '—'}`, `Dept: ${campaign.dept}`, `Priority: ${campaign.priority || '—'}`, `Due: ${campaign.due}`].filter(Boolean).join(' · ')
+    supabase.from('calendar_items').update({ title: campaign.name, date: parseCampaignDate(campaign.due), description: descStr, notes: notesStr, updated_at: new Date().toISOString() }).eq('id', matchedItem.id).maybeSingle()
   }
   window.dispatchEvent(new CustomEvent('calendar-updated'))
 }
