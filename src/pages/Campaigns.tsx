@@ -134,6 +134,26 @@ export default function Campaigns() {
   const [note, setNote] = useState('')
 
   useEffect(() => {
+    // Backfill missing fields on old campaigns
+    const saved = localStorage.getItem('exodia-campaigns')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      let changed = false
+      const migrated = parsed.map((c: any) => {
+        const updated = { ...c }
+        if (updated.requesterName === undefined) { updated.requesterName = ''; changed = true }
+        if (updated.requesterEmail === undefined) { updated.requesterEmail = ''; changed = true }
+        if (updated.priority === undefined) { updated.priority = ''; changed = true }
+        if (updated.requestType === undefined) { updated.requestType = []; changed = true }
+        if (updated.description === undefined) { updated.description = ''; changed = true }
+        if (updated.tracking_id === undefined) { updated.tracking_id = null; changed = true }
+        return updated
+      })
+      if (changed) {
+        localStorage.setItem('exodia-campaigns', JSON.stringify(migrated))
+        setCampaigns(migrated)
+      }
+    }
     const refresh = () => {
       const saved = localStorage.getItem('exodia-campaigns')
       if (saved) setCampaigns(JSON.parse(saved))
