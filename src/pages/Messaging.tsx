@@ -665,14 +665,6 @@ export default function Messaging() {
             </p>
           </div>
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); setSelectedLead(lead); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
-              className="p-1.5 rounded transition hover:scale-105"
-              style={{ color: 'var(--accent)' }}
-              title="Send Email"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            </button>
             <select
               value={lead.status}
               onClick={(e) => e.stopPropagation()}
@@ -946,8 +938,8 @@ export default function Messaging() {
                   </div>
                 </div>
                 {/* Right: Editable Notes */}
-                <div className="sm:w-1/2 p-6 flex flex-col">
-                  <label className="text-sm mb-3" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Notes</label>
+                <div className="sm:w-1/2 p-6">
+                  <label className="text-sm mb-2" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Notes</label>
                   <textarea
                     value={detailNotes}
                     onChange={(e) => {
@@ -955,8 +947,8 @@ export default function Messaging() {
                       setLeads(prev => prev.map(l => l.id === selectedDetailLead.id ? { ...l, notes: e.target.value } : l))
                     }}
                     placeholder="Write notes about this lead..."
-                    rows={12}
-                    className="w-full flex-1 px-4 py-3 border rounded-xl outline-none resize-none text-sm leading-relaxed"
+                    rows={5}
+                    className="w-full px-4 py-3 border rounded-xl outline-none resize-none text-sm leading-relaxed"
                     style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
                   />
                   <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Changes are saved automatically.</p>
