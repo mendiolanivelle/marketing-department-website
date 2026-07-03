@@ -300,7 +300,7 @@ export default function Campaigns() {
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sc.text }}></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept}{camp.requesterName ? ` &middot; ${camp.requesterName}` : ''} &middot; Due: {displayDate(camp.due)}</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.tracking_id && <span style={{ color: '#FF5900' }}>{camp.tracking_id} &middot; </span>}{camp.dept}{camp.requesterName ? ` &middot; ${camp.requesterName}` : ''} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
                       <button onClick={() => deleteCampaign(camp.id)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: 'var(--accent)' }}>
@@ -387,6 +387,9 @@ export default function Campaigns() {
             <div className="px-10 py-8">
               <div className="text-center mb-8 pb-6 border-b" style={{ borderColor: '#E5E7EB' }}>
                 <h2 className="text-2xl font-bold mb-2" style={{ color: '#1B1A1C' }}>{viewingCampaign.name}</h2>
+                {viewingCampaign.tracking_id && (
+                  <p className="text-sm font-mono mb-3" style={{ color: '#FF5900' }}>{viewingCampaign.tracking_id}</p>
+                )}
                 <select
                   value={viewingCampaign.status}
                   onChange={(e) => {
