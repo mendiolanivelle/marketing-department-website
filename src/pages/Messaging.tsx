@@ -165,8 +165,9 @@ export default function Messaging() {
 
       for (const file of leadFiles) {
         const cols = (file.columns as string[]) || []
+        const nonCompanyCols = cols.filter(c => !/company|organization|studio|client/i.test(c))
         const nameCol = cols.find(c => /name|contact person|full name/i.test(c)) || ''
-        const emailCol = cols.find(c => /email|e-mail|mail/i.test(c)) || ''
+        const emailCol = nonCompanyCols.find(c => /email|e-mail|mail/i.test(c)) || ''
         const companyCol = cols.find(c => /company|organization|studio|client/i.test(c)) || ''
         const roleCol = cols.find(c => /role|position|title|designation/i.test(c)) || ''
 
