@@ -134,8 +134,9 @@ export default function Campaigns() {
   const [note, setNote] = useState('')
 
   useEffect(() => {
-    // Backfill missing fields on old campaigns
-    const saved = localStorage.getItem('exodia-campaigns')
+    // Backfill missing fields on old campaigns, including tracking IDs from matching requests
+    const campaignKey = 'exodia-campaigns'
+    const saved = localStorage.getItem(campaignKey)
     if (saved) {
       const parsed = JSON.parse(saved)
       let changed = false
@@ -146,12 +147,49 @@ export default function Campaigns() {
         if (updated.priority === undefined) { updated.priority = ''; changed = true }
         if (updated.requestType === undefined) { updated.requestType = []; changed = true }
         if (updated.description === undefined) { updated.description = ''; changed = true }
-        if (updated.tracking_id === undefined) { updated.tracking_id = null; changed = true }
+        // Try to find tracking_id from matching marketing request
+        if (updated.tracking_id === undefined || updated.tracking_id === null) {
+          const mrSaved = localStorage.getItem('exodia-marketing-requests')
+          if (mrSaved) {
+            const requests = JSON.parse(mrSaved)
+            const match = requests.find((r: any) => r.title === updated.name)
+            if (match?.tracking_id) {
+              updated.tracking_id = match.tracking_id
+            } else {
+              updated.tracking_id = null
+            }
+          } else {
+            updated.tracking_id = null
+          }
+          changed = true
+        }
         return updated
       })
       if (changed) {
-        localStorage.setItem('exodia-campaigns', JSON.stringify(migrated))
+        localStorage.setItem(campaignKey, JSON.stringify(migrated))
         setCampaigns(migrated)
+        // Also try to fetch tracking IDs from Supabase for unmatched campaigns
+        if (isSupabaseConfigured && supabase) {
+          const unmatched = migrated.filter((c: any) => !c.tracking_id)
+          if (unmatched.length > 0) {
+            supabase.from('marketing_requests').select('title, tracking_id').then(({ data }) => {
+              if (data) {
+                let updatedAgain = false
+                const refreshed = migrated.map((c: any) => {
+                  if (!c.tracking_id) {
+                    const match = data.find((r: any) => r.title === c.name)
+                    if (match?.tracking_id) { updatedAgain = true; return { ...c, tracking_id: match.tracking_id } }
+                  }
+                  return c
+                })
+                if (updatedAgain) {
+                  localStorage.setItem(campaignKey, JSON.stringify(refreshed))
+                  setCampaigns(refreshed)
+                }
+              }
+            })
+          }
+        }
       }
     }
     const refresh = () => {
