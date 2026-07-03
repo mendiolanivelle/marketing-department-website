@@ -7,5 +7,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.notify-complete]
 verify_jwt = false
+[functions.send-outreach-email]
+verify_jwt = false
 [functions.get-public-form]
 verify_jwt = false

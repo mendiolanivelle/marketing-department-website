@@ -417,8 +417,8 @@ export default function Messaging() {
     if (!selectedLead || !emailSubject.trim()) return
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.functions.invoke('send-edit-link', {
-          body: { to: selectedLead.email, name: selectedLead.name, title: emailSubject, editLink: window.location.origin, links: [] },
+        await supabase.functions.invoke('send-outreach-email', {
+          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody },
         })
       } catch (err) {
         console.error('Email send failed:', err)
