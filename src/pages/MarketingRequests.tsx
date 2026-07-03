@@ -228,31 +228,72 @@ export default function MarketingRequests() {
                 <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No requests submitted yet</p>
               </div>
             ) : (
-              <div className="space-y-1">
-                {filtered.map((req, index) => (
-                  <div key={index} className="border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
-                    <div
-                      className="flex items-center gap-3 py-2.5 px-1 cursor-pointer transition hover:opacity-80"
-                      onClick={() => setViewingRequest(req)}
-                    >
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-                        <span className="text-[10px] font-bold" style={{ color: 'var(--accent)' }}>{req.name.charAt(0)}</span>
-                      </div>
-                      <span className="text-xs font-semibold truncate min-w-0 flex-1" style={{ color: 'var(--text-primary)' }}>{req.title}</span>
-                      {req.tracking_id && (
-                        <span className="text-[11px] shrink-0" style={{ color: 'var(--text-muted)' }}>{req.tracking_id}</span>
-                      )}
-                      <span className="text-[11px] shrink-0 hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>{req.name}</span>
-                      <span className="text-[11px] shrink-0 hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>{req.department}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: `${priorityColors[req.priority] || '#6B7280'}15`, color: priorityColors[req.priority] || '#6B7280' }}>
-                        {req.priority}
-                      </span>
-                      <svg className="w-3 h-3 shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Title</th>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Tracking ID</th>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Requester</th>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Department</th>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Priority</th>
+                      <th className="p-3 text-left text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Date Needed</th>
+                      <th className="p-3 w-10"></th>
+                      <th className="p-3 w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((req, index) => (
+                      <tr
+                        key={index}
+                        onClick={() => setViewingRequest(req)}
+                        className="cursor-pointer transition hover:opacity-80"
+                        style={{ borderTop: '2px solid var(--border-secondary)' }}
+                      >
+                        <td className="p-3">
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{req.title}</span>
+                        </td>
+                        <td className="p-3">
+                          {req.tracking_id ? (
+                            <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>{req.tracking_id}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>—</span>
+                          )}
+                        </td>
+                        <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{req.name}</td>
+                        <td className="p-3" style={{ color: 'var(--text-secondary)' }}>{req.department}</td>
+                        <td className="p-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium" style={{ backgroundColor: `${priorityColors[req.priority] || '#6B7280'}15`, color: priorityColors[req.priority] || '#6B7280' }}>
+                            {req.priority}
+                          </span>
+                        </td>
+                        <td className="p-3 text-xs" style={{ color: 'var(--text-muted)' }}>{req.dateNeeded || '—'}</td>
+                        <td className="p-3">
+                          <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </td>
+                        <td className="p-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const idx = submitted.findIndex(r => r === req)
+                              if (idx !== -1) deleteRequest(idx, req)
+                            }}
+                            disabled={deleting !== null}
+                            className="p-1.5 rounded-lg transition hover:opacity-70"
+                            style={{ color: '#FF5900' }}
+                            title="Delete"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
