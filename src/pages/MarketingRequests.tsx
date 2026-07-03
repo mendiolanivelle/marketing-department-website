@@ -156,6 +156,8 @@ export default function MarketingRequests() {
                 Open Submission Form
               </a>
             </div>
+          </div>
+        </div>
 
         {/* Submitted Requests */}
         <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
