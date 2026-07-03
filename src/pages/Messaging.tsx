@@ -131,7 +131,7 @@ export default function Messaging() {
   const reSyncAll = useRef(false)
 
   useEffect(() => {
-    const syncLeadFiles = () => {
+    const syncLeadFiles = async () => {
       const savedFiles = localStorage.getItem('exodia-lead-files')
       if (!savedFiles) return
       let leadFiles: any[]
@@ -163,19 +163,29 @@ export default function Messaging() {
       const newlySynced: string[] = []
       let maxId = currentLeads.length > 0 ? Math.max(...currentLeads.map(l => l.id)) : 0
 
-      for (const file of leadFiles) {
-        const cols = (file.columns as string[]) || []
-        const nonCompanyCols = cols.filter(c => !/company|organization|studio|client/i.test(c))
-        const nameCol = cols.find(c => /name|contact person|full name/i.test(c)) || ''
-        const emailCol = nonCompanyCols.find(c => /email|e-mail|mail/i.test(c)) || ''
-        const companyCol = cols.find(c => /company|organization|studio|client/i.test(c)) || ''
-        const roleCol = cols.find(c => /role|position|title|designation/i.test(c)) || ''
+      const fetchRows = async (fileId: string) => {
+          const local = localStorage.getItem(`exodia-lead-rows-${fileId}`)
+          if (local) return JSON.parse(local)
+          if (isSupabaseConfigured && supabase) {
+            const { data } = await supabase.from('lead_rows').select('*').eq('file_id', fileId)
+            if (data && data.length > 0) {
+              localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data))
+              return data
+            }
+          }
+          return null
+        }
 
-        const savedRows = localStorage.getItem(`exodia-lead-rows-${file.id}`)
-        if (!savedRows) continue
+        for (const file of leadFiles) {
+          const cols = (file.columns as string[]) || []
+          const nonCompanyCols = cols.filter(c => !/company|organization|studio|client/i.test(c))
+          const nameCol = cols.find(c => /name|contact person|full name/i.test(c)) || ''
+          const emailCol = nonCompanyCols.find(c => /email|e-mail|mail/i.test(c)) || ''
+          const companyCol = cols.find(c => /company|organization|studio|client/i.test(c)) || ''
+          const roleCol = cols.find(c => /role|position|title|designation/i.test(c)) || ''
 
-        let rows: any[]
-        try { rows = JSON.parse(savedRows) } catch { continue }
+          const rows = await fetchRows(file.id)
+          if (!rows) continue
 
         for (const row of rows) {
           const data = row.data as Record<string, string> || {}
