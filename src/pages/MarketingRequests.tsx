@@ -194,52 +194,42 @@ export default function MarketingRequests() {
                 <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No requests submitted yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {submitted.map((req, index) => (
-                  <div key={index} className="rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                  <div key={index} className="border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
                     <div
-                      className="p-4 cursor-pointer transition hover:opacity-80"
+                      className="flex items-center gap-3 py-2.5 px-1 cursor-pointer transition hover:opacity-80"
                       onClick={() => setExpanded(expanded === index ? null : index)}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
-                            <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>{req.name.charAt(0)}</span>
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{req.title}</h3>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
-                              {req.tracking_id && <span style={{ color: 'var(--accent)' }}>{req.tracking_id} · </span>}{req.name} · {req.department} · {new Date(req.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${priorityColors[req.priority] || '#6B7280'}15`, color: priorityColors[req.priority] || '#6B7280' }}>
-                            {req.priority}
-                          </span>
-                          <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded === index ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
+                        <span className="text-[10px] font-bold" style={{ color: 'var(--accent)' }}>{req.name.charAt(0)}</span>
                       </div>
+                      <span className="text-xs font-semibold truncate min-w-0 flex-1" style={{ color: 'var(--text-primary)' }}>{req.title}</span>
+                      {req.tracking_id && (
+                        <span className="text-[11px] shrink-0" style={{ color: 'var(--text-muted)' }}>{req.tracking_id}</span>
+                      )}
+                      <span className="text-[11px] shrink-0 hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>{req.name}</span>
+                      <span className="text-[11px] shrink-0 hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>{req.department}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: `${priorityColors[req.priority] || '#6B7280'}15`, color: priorityColors[req.priority] || '#6B7280' }}>
+                        {req.priority}
+                      </span>
+                      <svg className={`w-3 h-3 shrink-0 transition-transform duration-200 ${expanded === index ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
 
                     {expanded === index && (
-                      <div className="px-4 pb-4 border-t" style={{ borderColor: 'var(--border-primary)' }}>
-                        <div className="pt-4 space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                      <div className="pb-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                        <div className="pt-3 space-y-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
                             {[
-                              { label: 'Tracking ID', value: req.tracking_id || '—' },
-                              { label: 'Requester', value: req.name },
-                              { label: 'Department', value: req.department },
                               { label: 'Email', value: req.email },
-                              { label: 'Tracking ID', value: req.tracking_id || '—' },
                               { label: 'Date Needed', value: req.dateNeeded },
                               { label: 'Management Approval', value: req.managementApproval },
                             ].map((item, i) => (
                               <div key={i}>
-                                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.label}</span>
-                                <p className="mt-0.5 text-sm" style={{ color: 'var(--text-primary)' }}>{item.value || '—'}</p>
+                                <span className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.label}</span>
+                                <p className="mt-0.5" style={{ color: 'var(--text-primary)' }}>{item.value || '—'}</p>
                               </div>
                             ))}
                           </div>
