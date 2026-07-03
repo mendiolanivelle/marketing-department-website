@@ -292,11 +292,6 @@ export default function Campaigns() {
                         <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.dept} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
-                      <button onClick={(e) => { e.stopPropagation(); editCampaign(camp) }} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: '#9CA3AF' }}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
                       <button onClick={() => deleteCampaign(camp.id)} className="p-1.5 rounded-lg transition opacity-0 group-hover:opacity-100" style={{ color: 'var(--accent)' }}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -381,7 +376,23 @@ export default function Campaigns() {
             <div className="px-10 py-8">
               <div className="text-center mb-8 pb-6 border-b" style={{ borderColor: '#E5E7EB' }}>
                 <h2 className="text-2xl font-bold mb-2" style={{ color: '#1B1A1C' }}>{viewingCampaign.name}</h2>
-                <span className="text-sm px-3 py-1 rounded-full font-medium" style={{ backgroundColor: statusColors[viewingCampaign.status]?.bg || '#F3F4F6', color: statusColors[viewingCampaign.status]?.text || '#6B7280' }}>{viewingCampaign.status}</span>
+                <select
+                  value={viewingCampaign.status}
+                  onChange={(e) => {
+                    const newStatus = e.target.value
+                    const updated = campaigns.map(c => c.id === viewingCampaign.id ? { ...c, status: newStatus } : c)
+                    setCampaigns(updated)
+                    localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                    updateInCalendar(viewingCampaign.name, { ...viewingCampaign, status: newStatus })
+                    setViewingCampaign({ ...viewingCampaign, status: newStatus })
+                  }}
+                  className="text-sm px-3 py-1 rounded-full font-medium outline-none cursor-pointer border-0"
+                  style={{ backgroundColor: statusColors[viewingCampaign.status]?.bg || '#F3F4F6', color: statusColors[viewingCampaign.status]?.text || '#6B7280' }}
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Ongoing">Ongoing</option>
+                  <option value="Done">Done</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-x-8 gap-y-5 mb-8">
