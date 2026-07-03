@@ -736,14 +736,17 @@ if (supabase) {
   }
 
   const deleteFile = async (fileId: string) => {
-    if (!confirm('Delete this file and all its data?') || !supabase) return
+    if (!confirm('Delete this file and all its data?')) return
     const file = files.find(f => f.id === fileId)
-    const { error } = await supabase.from('lead_files').delete().eq('id', fileId)
-    if (!error) {
-      setFiles(prev => prev.filter(f => f.id !== fileId))
-      if (selectedFile?.id === fileId) closeFile()
-      if (file) logActivity('LeadGen', `Deleted "${file.name}"`)
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('lead_files').delete().eq('id', fileId)
     }
+    // Clean up localStorage
+    localStorage.removeItem(`exodia-lead-rows-${fileId}`)
+    setFiles(prev => prev.filter(f => f.id !== fileId))
+    if (selectedFile?.id === fileId) closeFile()
+    if (file) logActivity('LeadGen', `Deleted "${file.name}"`)
+    window.dispatchEvent(new CustomEvent('lead-file-deleted', { detail: fileId }))
   }
 
   const exportCSV = () => {

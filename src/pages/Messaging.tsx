@@ -16,6 +16,7 @@ interface OutreachLead {
   notes: string
   photoUrl?: string
   rawData?: Record<string, string>
+  sourceFileId?: string
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -146,6 +147,17 @@ export default function Messaging() {
       } catch {}
       reSyncAll.current = false
 
+      // Build set of currently existing file IDs
+      const existingFileIds = new Set(leadFiles.map((f: any) => f.id))
+
+      // Remove leads that came from a file that no longer exists
+      const deletedFileIds = syncedFileIds.filter(id => !existingFileIds.has(id))
+      if (deletedFileIds.length > 0) {
+        currentLeads = currentLeads.filter(l => !deletedFileIds.includes(l.sourceFileId || ''))
+        // Remove deleted file IDs from synced tracker
+        syncedFileIds = syncedFileIds.filter(id => existingFileIds.has(id))
+      }
+
       let newLeads: OutreachLead[] = []
       let updatedCount = 0
       const newlySynced: string[] = []
@@ -199,6 +211,7 @@ export default function Messaging() {
               lastContacted: '',
               notes: '',
               rawData: data,
+              sourceFileId: file.id,
             })
           }
         }
@@ -206,13 +219,13 @@ export default function Messaging() {
         newlySynced.push(file.id)
       }
 
-      if (updatedCount > 0) {
+      if (updatedCount > 0 || deletedFileIds.length > 0) {
         setLeads([...currentLeads])
       }
       if (newLeads.length > 0) {
         setLeads(prev => [...newLeads, ...prev])
       }
-      if (newlySynced.length > 0) {
+      if (newlySynced.length > 0 || deletedFileIds.length > 0) {
         const allSynced = [...new Set([...syncedFileIds, ...newlySynced])]
         localStorage.setItem('exodia-synced-lead-files', JSON.stringify(allSynced))
       }
@@ -220,7 +233,13 @@ export default function Messaging() {
 
     syncLeadFiles()
     const interval = setInterval(syncLeadFiles, 3000)
-    return () => clearInterval(interval)
+    // Listen for file deletions
+    const handleFileDelete = () => syncLeadFiles()
+    window.addEventListener('lead-file-deleted', handleFileDelete)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('lead-file-deleted', handleFileDelete)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [showAdd, setShowAdd] = useState(false)
