@@ -25,7 +25,7 @@ interface SubmittedRequest {
 export default function MarketingRequests() {
   const [submitted, setSubmitted] = useState<SubmittedRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState<number | null>(null)
+  const [viewingRequest, setViewingRequest] = useState<SubmittedRequest | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [filterPriority, setFilterPriority] = useState<string | null>(null)
 
@@ -233,7 +233,7 @@ export default function MarketingRequests() {
                   <div key={index} className="border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
                     <div
                       className="flex items-center gap-3 py-2.5 px-1 cursor-pointer transition hover:opacity-80"
-                      onClick={() => setExpanded(expanded === index ? null : index)}
+                      onClick={() => setViewingRequest(req)}
                     >
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-light)' }}>
                         <span className="text-[10px] font-bold" style={{ color: 'var(--accent)' }}>{req.name.charAt(0)}</span>
@@ -247,80 +247,10 @@ export default function MarketingRequests() {
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0" style={{ backgroundColor: `${priorityColors[req.priority] || '#6B7280'}15`, color: priorityColors[req.priority] || '#6B7280' }}>
                         {req.priority}
                       </span>
-                      <svg className={`w-3 h-3 shrink-0 transition-transform duration-200 ${expanded === index ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      <svg className="w-3 h-3 shrink-0" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-
-                    {expanded === index && (
-                      <div className="pb-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
-                        <div className="pt-3 space-y-2">
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs">
-                            {[
-                              { label: 'Email', value: req.email },
-                              { label: 'Date Needed', value: req.dateNeeded },
-                              { label: 'Management Approval', value: req.managementApproval },
-                            ].map((item, i) => (
-                              <div key={i}>
-                                <span className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{item.label}</span>
-                                <p className="mt-0.5" style={{ color: 'var(--text-primary)' }}>{item.value || '—'}</p>
-                              </div>
-                            ))}
-                          </div>
-                          {req.description && (
-                            <div>
-                              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Description</span>
-                              <p className="mt-0.5 text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{req.description}</p>
-                            </div>
-                          )}
-                          {req.requestType && req.requestType.length > 0 && (
-                            <div>
-                              <span className="text-[10px] font-medium uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Request Type</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {req.requestType.map((t, i) => (
-                                  <span key={i} className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>{t}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {req.platforms && (
-                            <div>
-                              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Platforms / Sizes</span>
-                              <p className="mt-0.5 text-sm" style={{ color: 'var(--text-primary)' }}>{req.platforms}</p>
-                            </div>
-                          )}
-                          {req.audience && (
-                            <div>
-                              <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Target Audience</span>
-                              <p className="mt-0.5 text-sm" style={{ color: 'var(--text-primary)' }}>{req.audience}</p>
-                            </div>
-                          )}
-                          {req.resourceLinks && req.resourceLinks.length > 0 && req.resourceLinks.some(l => l.trim()) && (
-                            <div>
-                              <span className="text-[10px] font-medium uppercase tracking-wider mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Resource Links</span>
-                              <div className="space-y-1">
-                                {req.resourceLinks.filter(l => l.trim()).map((link, i) => (
-                                  <p key={i} className="text-sm truncate" style={{ color: 'var(--accent)' }}>{link}</p>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-end pt-2">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); deleteRequest(index, req) }}
-                              disabled={deleting === index}
-                              className="p-1.5 rounded-lg transition hover:bg-red-50 hover:text-red-600"
-                              style={{ color: 'var(--text-muted)' }}
-                              title="Delete request"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -329,6 +259,141 @@ export default function MarketingRequests() {
         </div>
       </div>
 
+      {/* PDF-style document modal */}
+      {viewingRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setViewingRequest(null)}>
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-none shadow-2xl" style={{ backgroundColor: '#FFFFFF' }} onClick={(e) => e.stopPropagation()}>
+            {/* Document header bar */}
+            <div className="flex items-center justify-between px-8 py-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#2D2B2E' }}>
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm font-medium" style={{ color: '#FFFFFF' }}>Marketing Request Document</span>
+              </div>
+              <button onClick={() => setViewingRequest(null)} className="p-1.5 rounded-lg transition hover:opacity-70" style={{ color: '#9CA3AF' }}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Document body */}
+            <div className="px-10 py-8">
+              {/* Title + Tracking */}
+              <div className="text-center mb-8 pb-6 border-b" style={{ borderColor: '#E5E7EB' }}>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: '#1B1A1C' }}>{viewingRequest.title}</h2>
+                {viewingRequest.tracking_id && (
+                  <span className="text-sm font-mono" style={{ color: '#FF5900' }}>{viewingRequest.tracking_id}</span>
+                )}
+              </div>
+
+              {/* Two-column info */}
+              <div className="grid grid-cols-2 gap-x-8 gap-y-5 mb-8">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Requester</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Department</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.department}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Email</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.email}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Date Needed</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.dateNeeded}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Priority</p>
+                  <p className="text-sm font-semibold" style={{ color: priorityColors[viewingRequest.priority] || '#6B7280' }}>{viewingRequest.priority}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Management Approval</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.managementApproval}</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              {viewingRequest.description && (
+                <div className="mb-8">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>Description</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#1B1A1C', lineHeight: 1.7 }}>{viewingRequest.description}</p>
+                </div>
+              )}
+
+              {/* Request Type */}
+              {viewingRequest.requestType && viewingRequest.requestType.length > 0 && (
+                <div className="mb-8">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>Request Type</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingRequest.requestType.map((t, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-md font-medium" style={{ backgroundColor: '#FFF7ED', color: '#FF5900' }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Platforms */}
+              {viewingRequest.platforms && (
+                <div className="mb-8">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Platforms / Sizes</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.platforms}</p>
+                </div>
+              )}
+
+              {/* Target Audience */}
+              {viewingRequest.audience && (
+                <div className="mb-8">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Target Audience</p>
+                  <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingRequest.audience}</p>
+                </div>
+              )}
+
+              {/* Resource Links */}
+              {viewingRequest.resourceLinks && viewingRequest.resourceLinks.length > 0 && viewingRequest.resourceLinks.some(l => l.trim()) && (
+                <div className="mb-8">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#9CA3AF' }}>Resource Links</p>
+                  <ul className="space-y-1">
+                    {viewingRequest.resourceLinks.filter(l => l.trim()).map((link, i) => (
+                      <li key={i} className="text-sm" style={{ color: '#FF5900' }}>{link}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="pt-6 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
+                <p className="text-[10px]" style={{ color: '#9CA3AF' }}>Exodia Game Development &middot; Marketing Department</p>
+              </div>
+            </div>
+
+            {/* Document actions */}
+            <div className="flex items-center justify-between px-8 py-4 border-t" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' }}>
+              <button
+                onClick={() => {
+                  const idx = submitted.findIndex(r => r === viewingRequest)
+                  if (idx !== -1) deleteRequest(idx, viewingRequest)
+                  setViewingRequest(null)
+                }}
+                disabled={deleting !== null}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition hover:bg-red-50"
+                style={{ color: '#DC2626' }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+              <button onClick={() => setViewingRequest(null)} className="px-4 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80" style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
   )
 }
