@@ -897,16 +897,6 @@ export default function Messaging() {
                       <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Last Contacted</label>
                       <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{selectedDetailLead.lastContacted || 'Not yet contacted'}</p>
                     </div>
-                    {/* Detected fields from CSV/Spreadsheet */}
-                    {selectedDetailLead.rawData && Object.entries(selectedDetailLead.rawData)
-                      .filter(([key]) => !/name|email|company|organization|role|position|title|designation|studio|client|contact/i.test(key))
-                      .map(([key, val]) => val?.trim() ? (
-                        <div key={key}>
-                          <label className="text-xs block mb-0.5" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{key}</label>
-                          <p className="text-sm" style={{ color: 'var(--text-primary)', fontWeight: 400 }}>{val}</p>
-                        </div>
-                      ) : null
-                    )}
                     <div>
                       <button
                         onClick={() => { const s = selectedDetailLead; setSelectedDetailLead(null); setDetailNotes(''); setSelectedLead(s); setShowEmail(true); setEmailSubject(''); setEmailBody('') }}
