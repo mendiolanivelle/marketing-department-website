@@ -117,6 +117,9 @@ export default function Campaigns() {
   const [notifyLinks, setNotifyLinks] = useState<string[]>([])
   const [notifyLinkInput, setNotifyLinkInput] = useState('')
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO() })
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+
+  const displayedCampaigns = filterStatus ? campaigns.filter(c => c.status === filterStatus) : campaigns
   const [note, setNote] = useState('')
 
   useEffect(() => {
@@ -242,52 +245,44 @@ export default function Campaigns() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Campaign Overview</h2>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{campaigns.length} total campaigns</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{displayedCampaigns.length} campaign{displayedCampaigns.length !== 1 ? 's' : ''}{filterStatus ? ` (${filterStatus})` : ''}</p>
                   </div>
                 </div>
               </div>
               {/* Full-width status bars */}
               <div className="flex gap-3 mb-6">
-                <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Total</span>
-                    <span className="text-lg font-bold" style={{ color: '#FF5900' }}>{campaigns.length}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#FFF0E6' }}>
-                    <div className="h-1.5 rounded-full transition-all" style={{ width: '100%', backgroundColor: '#FF5900' }}></div>
-                  </div>
-                </div>
-                <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Pending</span>
-                    <span className="text-lg font-bold" style={{ color: '#1B1A1C' }}>{statusCounts.pending}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
-                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${campaigns.length > 0 ? (statusCounts.pending / campaigns.length) * 100 : 0}%`, backgroundColor: '#EA580C' }}></div>
-                  </div>
-                </div>
-                <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Ongoing</span>
-                    <span className="text-lg font-bold" style={{ color: '#3E4048' }}>{statusCounts.ongoing}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#EBF5FF' }}>
-                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${campaigns.length > 0 ? (statusCounts.ongoing / campaigns.length) * 100 : 0}%`, backgroundColor: '#2563EB' }}></div>
-                  </div>
-                </div>
-                <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Done (This Month)</span>
-                    <span className="text-lg font-bold" style={{ color: '#FF5900' }}>{statusCounts.done}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#F0FDF4' }}>
-                    <div className="h-1.5 rounded-full transition-all" style={{ width: `${campaigns.length > 0 ? (statusCounts.done / campaigns.length) * 100 : 0}%`, backgroundColor: '#16A34A' }}></div>
-                  </div>
-                </div>
+                {[
+                  { label: 'Total', key: null, count: campaigns.length, color: '#FF5900', bg: '#FFF0E6', barColor: '#FF5900' },
+                  { label: 'Pending', key: 'Pending', count: statusCounts.pending, color: '#EA580C', bg: '#FFF7ED', barColor: '#EA580C' },
+                  { label: 'Ongoing', key: 'Ongoing', count: statusCounts.ongoing, color: '#2563EB', bg: '#EBF5FF', barColor: '#2563EB' },
+                  { label: 'Done', key: 'Done', count: statusCounts.done, color: '#16A34A', bg: '#F0FDF4', barColor: '#16A34A' },
+                ].map((stat) => {
+                  const isActive = stat.key === null ? filterStatus === null : filterStatus === stat.key
+                  return (
+                    <button
+                      key={stat.label}
+                      onClick={() => setFilterStatus(stat.key === null ? null : filterStatus === stat.key ? null : stat.key)}
+                      className="flex-1 p-4 rounded-xl border text-left transition-all duration-200 hover:-translate-y-0.5"
+                      style={{
+                        backgroundColor: isActive ? stat.bg : 'var(--bg-secondary)',
+                        borderColor: isActive ? stat.color : 'var(--border-secondary)',
+                        boxShadow: isActive ? `0 0 0 1.5px ${stat.color}` : 'none',
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</span>
+                        <span className="text-lg font-bold" style={{ color: stat.color }}>{stat.count}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full" style={{ backgroundColor: stat.bg }}>
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${campaigns.length > 0 ? (stat.count / campaigns.length) * 100 : 0}%`, backgroundColor: stat.barColor }}></div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
               {/* All campaigns list */}
               <div className="space-y-2">
-                {[...campaigns].reverse().map((camp) => {
+                {[...displayedCampaigns].reverse().map((camp) => {
                   const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
                   return (
                     <div key={camp.id} className="group flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition hover:opacity-80 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }} onClick={() => setViewingCampaign(camp)}>
