@@ -125,7 +125,8 @@ export default function Messaging() {
   // === Reach Out State ===
   const [leads, setLeads] = useState<OutreachLead[]>(() => {
     const saved = localStorage.getItem('exodia-outreach-leads')
-    return saved ? JSON.parse(saved) : defaultLeads
+    const parsed = saved ? JSON.parse(saved) : defaultLeads
+    return parsed.map((l: OutreachLead) => ({ ...l, emailHistory: l.emailHistory || [] }))
   })
 
   useEffect(() => {
@@ -719,7 +720,7 @@ export default function Messaging() {
             <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="Delete">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
-            {lead.emailHistory.length > 0 && (
+            {lead.emailHistory?.length > 0 && (
               <button onClick={(e) => { e.stopPropagation(); setThreadLead(lead); setShowThread(true) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="View thread">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
               </button>
@@ -907,7 +908,7 @@ export default function Messaging() {
               <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
               <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email} ({selectedLead.name})</p>
 
-              {selectedLead.emailHistory.length > 0 && (
+              {selectedLead.emailHistory?.length > 0 && (
                 <div className="mb-4 rounded-xl border" style={{ borderColor: 'var(--border-secondary)', backgroundColor: 'var(--bg-secondary)' }}>
                   <div className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-secondary)' }}>Previous conversation</div>
                   <div className="max-h-48 overflow-y-auto divide-y" style={{ borderColor: 'var(--border-secondary)' }}>
@@ -988,7 +989,7 @@ export default function Messaging() {
                 </button>
               </div>
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 -mr-1">
-                {threadLead.emailHistory.length === 0 ? (
+                {threadLead.emailHistory?.length === 0 ? (
                   <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No emails sent yet.</p>
                 ) : (
                   [...threadLead.emailHistory].reverse().map((email) => (
