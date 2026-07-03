@@ -412,16 +412,24 @@ export default function Messaging() {
     logActivity('Lead', `Edited "${editingLead.name}"`)
   }
 
-  const sendEmail = () => {
+  const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    window.open(gmailUrl, '_blank')
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.functions.invoke('send-edit-link', {
+          body: { to: selectedLead.email, name: selectedLead.name, title: emailSubject, editLink: window.location.origin, links: [] },
+        })
+      } catch (err) {
+        console.error('Email send failed:', err)
+      }
+    }
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? { ...l, status: 'sent', lastContacted: today } : l)))
     setShowEmail(false)
     setEmailSubject('')
     setEmailBody('')
     setSelectedLead(null)
+    addNotification(`Email sent to ${selectedLead.email}`, 'success')
     logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
   }
 
