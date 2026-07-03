@@ -408,6 +408,7 @@ export default function AcceptanceCriteria() {
         </div>
       ) : (
         <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+          <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
