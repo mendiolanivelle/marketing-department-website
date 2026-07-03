@@ -311,7 +311,6 @@ export default function Campaigns() {
             </div>
           </div>
         </div>
-        </div>
       </div>
 
       {/* Add Campaign Modal */}
