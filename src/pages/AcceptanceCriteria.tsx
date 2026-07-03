@@ -429,7 +429,7 @@ export default function AcceptanceCriteria() {
                 {filteredSubmissions.map((sub) => (
                   <tr
                     key={sub.id}
-                    onClick={() => setSelectedSubmission(sub)}
+                    onClick={async () => { if (isSupabaseConfigured && supabase && sub.id) { await supabase.from('acceptance_forms').update({ is_read: true }).eq('id', sub.id) }; setSelectedSubmission(sub) }}
                     className="cursor-pointer transition hover:opacity-80"
                     style={{ borderTop: '2px solid var(--border-secondary)' }}
                   >

@@ -37,6 +37,7 @@ export default function Sidebar() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [acUnreadCount, setAcUnreadCount] = useState(0)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     const saved = localStorage.getItem('user-avatar')
     return saved || null
@@ -47,19 +48,22 @@ export default function Sidebar() {
 
   const isActive = (path: string) => location.pathname === path
 
-  // Fetch unread count
+  // Fetch unread counts
   const fetchUnread = async () => {
     if (isSupabaseConfigured && supabase) {
-      const { count } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
-      setUnreadCount(count ?? 0)
+      const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
+      setUnreadCount(mr ?? 0)
+      const { count: ac } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
+      setAcUnreadCount(ac ?? 0)
     }
   }
 
   useEffect(() => {
     fetchUnread()
     if (isSupabaseConfigured && supabase) {
-      const channel = supabase.channel('sidebar-mr-count')
+      const channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { fetchUnread() })
         .subscribe()
       return () => { supabase.removeChannel(channel) }
     }
@@ -324,6 +328,11 @@ export default function Sidebar() {
                         {!isCollapsed && item.path === '/requests' && unreadCount > 0 && (
                           <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
                             {unreadCount}
+                          </span>
+                        )}
+                        {!isCollapsed && item.path === '/acceptance-criteria' && acUnreadCount > 0 && (
+                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
+                            {acUnreadCount}
                           </span>
                         )}
                         {active && isCollapsed && (
