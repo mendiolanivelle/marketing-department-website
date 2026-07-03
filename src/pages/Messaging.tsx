@@ -416,12 +416,12 @@ export default function Messaging() {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
-    let newMessageId = `<${crypto.randomUUID()}@exodiagamedev.com>`
+    let newMessageId: string | undefined
     const prevMsgId = selectedLead.lastMessageId || leads.find(l => l.email === selectedLead.email && l.lastMessageId)?.lastMessageId || null
     if (isSupabaseConfigured && supabase) {
       try {
         const { data } = await supabase.functions.invoke('send-outreach-email', {
-          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody, customMessageId: newMessageId, inReplyTo: prevMsgId },
+          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody, inReplyTo: prevMsgId },
         })
         if (data?.messageId) newMessageId = data.messageId
       } catch (err) {
