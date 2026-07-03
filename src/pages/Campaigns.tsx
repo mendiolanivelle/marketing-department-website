@@ -125,7 +125,7 @@ export default function Campaigns() {
   const [showNotifyConfirm, setShowNotifyConfirm] = useState(false)
   const [notifyLinks, setNotifyLinks] = useState<string[]>([])
   const [notifyLinkInput, setNotifyLinkInput] = useState('')
-  const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO() })
+  const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [] as string[], description: '' })
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
   const displayedCampaigns = filterStatus ? campaigns.filter(c => c.status === filterStatus) : campaigns
@@ -159,11 +159,11 @@ export default function Campaigns() {
     addToCalendar(campaign)
     showNote(`Campaign "${campaign.name}" created — added to Calendar`)
     setShowAdd(false)
-    setForm({ name: '', dept: '', status: 'Pending', due: todayISO() })
+    setForm({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [], description: '' })
   }
 
   const editCampaign = (camp: Campaign) => {
-    setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: parseCampaignDate(camp.due) })
+    setForm({ name: camp.name, dept: camp.dept, status: camp.status, due: parseCampaignDate(camp.due), requesterName: camp.requesterName || '', requesterEmail: camp.requesterEmail || '', priority: camp.priority || '', requestType: camp.requestType || [], description: camp.description || '' })
     setEditId(camp.id)
     setEditOldName(camp.name)
   }
@@ -177,7 +177,7 @@ export default function Campaigns() {
     showNote(`Campaign "${form.name}" updated — Calendar synced`)
     setEditId(null)
     setEditOldName('')
-    setForm({ name: '', dept: '', status: 'Pending', due: todayISO() })
+    setForm({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [], description: '' })
   }
 
   const deleteCampaign = (id: number) => {
@@ -261,7 +261,7 @@ export default function Campaigns() {
               {/* Full-width status bars */}
               <div className="flex gap-3 mb-6">
                 {[
-                  { label: 'Total', key: null, count: campaigns.length, color: '#FF5900', bg: '#FFF0E6', barColor: '#FF5900' },
+                  { label: 'Total', key: null, count: campaigns.length, color: '#CACDD7', bg: '#F3F4F6', barColor: '#CACDD7' },
                   { label: 'Pending', key: 'Pending', count: statusCounts.pending, color: '#EA580C', bg: '#FFF7ED', barColor: '#EA580C' },
                   { label: 'Ongoing', key: 'Ongoing', count: statusCounts.ongoing, color: '#2563EB', bg: '#EBF5FF', barColor: '#2563EB' },
                   { label: 'Done', key: 'Done', count: statusCounts.done, color: '#16A34A', bg: '#F0FDF4', barColor: '#16A34A' },
@@ -342,7 +342,7 @@ export default function Campaigns() {
       {/* Edit Campaign Modal */}
       {editId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} />
+          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [], description: '' }) }} />
           <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Edit Campaign</h3>
             <div className="space-y-3">
@@ -356,7 +356,7 @@ export default function Campaigns() {
               <input type="date" value={form.due} onChange={(e) => setForm({ ...form, due: e.target.value })} className="w-full px-3 py-2.5 border rounded-lg outline-none" style={{ borderColor: 'var(--border-primary)' }} />
             </div>
             <div className="flex gap-3 justify-end mt-4">
-              <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO() }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={() => { setEditId(null); setForm({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [], description: '' }) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
               <button onClick={saveEdit} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Save</button>
             </div>
           </div>
@@ -442,13 +442,10 @@ export default function Campaigns() {
             </div>
 
             <div className="flex items-center justify-between px-8 py-4 border-t" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' }}>
-              <button onClick={() => setViewingCampaign(null)} className="px-4 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80" style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}>
-                Close
-              </button>
               {viewingCampaign.status === 'Done' && viewingCampaign.requesterEmail && (
                 <button
                   onClick={() => {
-                    setForm({ name: viewingCampaign.name, dept: viewingCampaign.dept, status: 'Done', due: parseCampaignDate(viewingCampaign.due) })
+                    setForm({ name: viewingCampaign.name, dept: viewingCampaign.dept, status: 'Done', due: parseCampaignDate(viewingCampaign.due), requesterName: viewingCampaign.requesterName || '', requesterEmail: viewingCampaign.requesterEmail || '', priority: viewingCampaign.priority || '', requestType: viewingCampaign.requestType || [], description: viewingCampaign.description || '' })
                     setNotifyId(viewingCampaign.id)
                     setNotifyLinks([])
                     setNotifyLinkInput('')
@@ -463,6 +460,9 @@ export default function Campaigns() {
                   Complete & Notify
                 </button>
               )}
+              <button onClick={() => setViewingCampaign(null)} className="px-4 py-1.5 rounded-lg text-xs font-medium transition hover:opacity-80 ml-auto" style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}>
+                Close
+              </button>
             </div>
           </div>
         </div>
