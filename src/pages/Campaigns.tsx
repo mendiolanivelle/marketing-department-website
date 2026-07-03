@@ -245,15 +245,18 @@ export default function Campaigns() {
                     <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{campaigns.length} total campaigns</p>
                   </div>
                 </div>
-                <button onClick={() => setShowAdd(true)} className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Campaign
-                </button>
               </div>
               {/* Full-width status bars */}
               <div className="flex gap-3 mb-6">
+                <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Total</span>
+                    <span className="text-lg font-bold" style={{ color: '#FF5900' }}>{campaigns.length}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full" style={{ backgroundColor: '#FFF0E6' }}>
+                    <div className="h-1.5 rounded-full transition-all" style={{ width: '100%', backgroundColor: '#FF5900' }}></div>
+                  </div>
+                </div>
                 <div className="flex-1 p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Pending</span>
