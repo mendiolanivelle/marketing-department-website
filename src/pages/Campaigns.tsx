@@ -311,7 +311,8 @@ export default function Campaigns() {
             </div>
           </div>
         </div>
-      </section>
+        </div>
+      </div>
 
       {/* Add Campaign Modal */}
       {showAdd && (
