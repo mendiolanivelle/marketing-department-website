@@ -246,7 +246,7 @@ export default function MarketingRequests() {
                     {filtered.map((req, index) => (
                       <tr
                         key={index}
-                        onClick={() => setViewingRequest(req)}
+                        onClick={async () => { if (isSupabaseConfigured && supabase && req.id) { await supabase.from('marketing_requests').update({ is_read: true }).eq('id', req.id) }; setViewingRequest(req) }}
                         className="cursor-pointer transition hover:opacity-80"
                         style={{ borderTop: '2px solid var(--border-secondary)' }}
                       >

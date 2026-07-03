@@ -55,14 +55,6 @@ export default function Sidebar() {
     }
   }
 
-  // Mark all as read
-  const markAsRead = async () => {
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from('marketing_requests').update({ is_read: true }).eq('is_read', false)
-      setUnreadCount(0)
-    }
-  }
-
   useEffect(() => {
     fetchUnread()
     if (isSupabaseConfigured && supabase) {
@@ -72,10 +64,6 @@ export default function Sidebar() {
       return () => { supabase.removeChannel(channel) }
     }
   }, [])
-
-  useEffect(() => {
-    if (location.pathname === '/requests') markAsRead()
-  }, [location.pathname])
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
