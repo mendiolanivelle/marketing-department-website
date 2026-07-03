@@ -474,6 +474,8 @@ export default function Messaging() {
   // === Message Templates Functions ===
   const fetchTemplates = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
+      const saved = localStorage.getItem('exodia-message-templates')
+      if (saved) { try { setTemplates(JSON.parse(saved)) } catch {} }
       setLoading(false)
       return
     }
@@ -483,9 +485,11 @@ export default function Messaging() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) throw error
-      if (data) setTemplates(data)
+      if (data) { setTemplates(data); localStorage.setItem('exodia-message-templates', JSON.stringify(data)) }
     } catch (err) {
       console.error('Error fetching templates:', err)
+      const saved = localStorage.getItem('exodia-message-templates')
+      if (saved) { try { setTemplates(JSON.parse(saved)) } catch {} }
     } finally {
       setLoading(false)
     }
@@ -513,7 +517,24 @@ export default function Messaging() {
     setSuccessMessage(null)
 
     if (!isSupabaseConfigured || !supabase) {
-      setErrorMessage('Supabase is not configured. Please check your environment variables.')
+      const saved = localStorage.getItem('exodia-message-templates')
+      const existing = saved ? JSON.parse(saved) : []
+      if (editingId) {
+        const updated = existing.map((t: MessageTemplate) => t.id === editingId ? { ...t, ...data, updated_at: new Date().toISOString() } : t)
+        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
+        setTemplates(updated)
+        setSuccessMessage('Template updated successfully!')
+      } else {
+        const newTemplate: MessageTemplate = { id: crypto.randomUUID(), ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+        const updated = [newTemplate, ...existing]
+        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
+        setTemplates(updated)
+        setSuccessMessage('Template created successfully!')
+      }
+      reset()
+      setShowForm(false)
+      setEditingId(null)
+      setTimeout(() => setSuccessMessage(null), 3000)
       return
     }
 
@@ -563,7 +584,16 @@ export default function Messaging() {
     const template = templates.find(t => t.id === id)
 
     if (!isSupabaseConfigured || !supabase) {
-      setErrorMessage('Supabase is not configured. Please check your environment variables.')
+      const saved = localStorage.getItem('exodia-message-templates')
+      if (saved) {
+        const updated = JSON.parse(saved).filter((t: MessageTemplate) => t.id !== id)
+        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
+        setTemplates(updated)
+        setSuccessMessage('Template deleted successfully!')
+        if (template) logActivity('Template', `Deleted "${template.title}"`)
+        setTimeout(() => setSuccessMessage(null), 3000)
+      }
+      setDeleteConfirmId(null)
       return
     }
 
