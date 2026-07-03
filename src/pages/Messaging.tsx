@@ -417,11 +417,10 @@ export default function Messaging() {
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
     let newMessageId: string | undefined
-    const isReply = /^Re:/i.test(emailSubject.trim())
     if (isSupabaseConfigured && supabase) {
       try {
         const { data } = await supabase.functions.invoke('send-outreach-email', {
-          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody, inReplyTo: isReply ? (selectedLead.lastMessageId || null) : null },
+          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody, inReplyTo: selectedLead.lastMessageId || null },
         })
         newMessageId = data?.messageId
       } catch (err) {
