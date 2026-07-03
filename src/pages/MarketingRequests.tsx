@@ -27,6 +27,9 @@ export default function MarketingRequests() {
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
+  const [filterPriority, setFilterPriority] = useState<string | null>(null)
+
+  const filtered = filterPriority ? submitted.filter(r => r.priority === filterPriority) : submitted
 
   useEffect(() => {
     loadSubmissions()
@@ -159,6 +162,38 @@ export default function MarketingRequests() {
           </div>
         </div>
 
+        {/* Stats Summary */}
+        <div className="grid grid-cols-5 gap-3 mb-6">
+          {[
+            { label: 'Total Requests', key: null, color: 'var(--text-primary)', bg: '#F3F4F6', count: submitted.length, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { label: 'Rush', key: 'Rush', color: '#DC2626', bg: '#FEF2F2', count: submitted.filter(r => r.priority === 'Rush').length, icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z' },
+            { label: 'High', key: 'High', color: '#FF5900', bg: '#FFF7ED', count: submitted.filter(r => r.priority === 'High').length, icon: 'M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { label: 'Standard', key: 'Standard', color: '#2563EB', bg: '#EFF6FF', count: submitted.filter(r => r.priority === 'Standard').length, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { label: 'Low', key: 'Low', color: '#16A34A', bg: '#F0FDF4', count: submitted.filter(r => r.priority === 'Low').length, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+          ].map((card) => (
+            <button
+              key={card.label}
+              onClick={() => setFilterPriority(filterPriority === card.key ? null : card.key)}
+              className="rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
+              style={{
+                backgroundColor: filterPriority === card.key ? card.bg : 'var(--bg-card)',
+                borderColor: filterPriority === card.key ? card.color : 'var(--border-primary)',
+                boxShadow: filterPriority === card.key ? `0 0 0 1.5px ${card.color}` : 'none',
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: card.bg }}>
+                  <svg className="w-3 h-3" style={{ color: card.color }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
+                  </svg>
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{card.label}</span>
+              </div>
+              <span className="text-xl font-bold" style={{ color: card.color }}>{card.count}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Submitted Requests */}
         <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
           <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33, #FFB366)' }}></div>
@@ -172,7 +207,7 @@ export default function MarketingRequests() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Submitted Requests</h2>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{submitted.length} request{submitted.length !== 1 ? 's' : ''}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{filtered.length} request{filtered.length !== 1 ? 's' : ''}{filterPriority ? ` (${filterPriority})` : ''}</p>
                 </div>
               </div>
               <button onClick={loadSubmissions} className="p-2 rounded-lg transition hover:opacity-70 flex-shrink-0" style={{ color: 'var(--accent)' }} title="Refresh">
@@ -184,7 +219,7 @@ export default function MarketingRequests() {
 
             {loading ? (
               <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-7 w-7 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
-            ) : submitted.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-card)' }}>
                   <svg className="w-6 h-6" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -195,7 +230,7 @@ export default function MarketingRequests() {
               </div>
             ) : (
               <div className="space-y-1">
-                {submitted.map((req, index) => (
+                {filtered.map((req, index) => (
                   <div key={index} className="border-b theme-transition" style={{ borderColor: 'var(--border-primary)' }}>
                     <div
                       className="flex items-center gap-3 py-2.5 px-1 cursor-pointer transition hover:opacity-80"
