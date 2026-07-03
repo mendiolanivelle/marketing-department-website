@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, subject, body, inReplyTo } = await req.json()
+    const { to, name, subject, body } = await req.json()
     if (!to || !subject) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
@@ -39,14 +39,9 @@ serve(async (req) => {
       html: body ? body.replace(/\n/g, '<br>') : '',
     }
 
-    if (inReplyTo) {
-      mailOptions.inReplyTo = inReplyTo
-      mailOptions.references = [inReplyTo]
-    }
-
     const info = await transporter.sendMail(mailOptions)
 
-    return new Response(JSON.stringify({ success: true, messageId: info.messageId }), { status: 200, headers: corsHeaders })
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders })
   } catch (err) {
     console.error(err)
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })

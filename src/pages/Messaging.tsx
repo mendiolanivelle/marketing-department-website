@@ -17,7 +17,6 @@ interface OutreachLead {
   photoUrl?: string
   rawData?: Record<string, string>
   sourceFileId?: string
-  lastMessageId?: string
 }
 
 const defaultLeads: OutreachLead[] = [
@@ -416,20 +415,17 @@ export default function Messaging() {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
-    let newMessageId: string | undefined
-    const prevMsgId = selectedLead.lastMessageId || leads.find(l => l.email === selectedLead.email && l.lastMessageId)?.lastMessageId || null
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data } = await supabase.functions.invoke('send-outreach-email', {
-          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody, inReplyTo: prevMsgId },
+        await supabase.functions.invoke('send-outreach-email', {
+          body: { to: selectedLead.email, name: selectedLead.name, subject: emailSubject, body: emailBody },
         })
-        if (data?.messageId) newMessageId = data.messageId
       } catch (err) {
         console.error('Email send failed:', err)
       }
     }
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? { ...l, status: 'sent', lastContacted: today, lastMessageId: newMessageId || l.lastMessageId } : l)))
+    setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? { ...l, status: 'sent', lastContacted: today } : l)))
     setShowEmail(false)
     setEmailSubject('')
     setEmailBody('')
