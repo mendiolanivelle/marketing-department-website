@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const categories = [
   {
@@ -35,6 +36,7 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const [showAvatarModal, setShowAvatarModal] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     const saved = localStorage.getItem('user-avatar')
     return saved || null
@@ -44,6 +46,36 @@ export default function Sidebar() {
   const { user, signOut } = useAuth()
 
   const isActive = (path: string) => location.pathname === path
+
+  // Fetch unread count
+  const fetchUnread = async () => {
+    if (isSupabaseConfigured && supabase) {
+      const { count } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
+      setUnreadCount(count ?? 0)
+    }
+  }
+
+  // Mark all as read
+  const markAsRead = async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from('marketing_requests').update({ is_read: true }).eq('is_read', false)
+      setUnreadCount(0)
+    }
+  }
+
+  useEffect(() => {
+    fetchUnread()
+    if (isSupabaseConfigured && supabase) {
+      const channel = supabase.channel('sidebar-mr-count')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
+        .subscribe()
+      return () => { supabase.removeChannel(channel) }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (location.pathname === '/requests') markAsRead()
+  }, [location.pathname])
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -300,6 +332,11 @@ export default function Sidebar() {
                         </svg>
                         {!isCollapsed && (
                           <span className="text-xs truncate">{item.label}</span>
+                        )}
+                        {!isCollapsed && item.path === '/requests' && unreadCount > 0 && (
+                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
+                            {unreadCount}
+                          </span>
                         )}
                         {active && isCollapsed && (
                           <span
