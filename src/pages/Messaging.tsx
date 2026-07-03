@@ -61,6 +61,7 @@ const defaultCategories = [
   'Client Onboarding Process Email',
   'Decline Email',
   'Accept Email',
+  'Meeting Invitation Email',
 ]
 
 const fallbackTemplates: MessageTemplate[] = [
@@ -97,6 +98,15 @@ const fallbackTemplates: MessageTemplate[] = [
     category: 'Accept Email',
     subject: 'Project Accepted - {{company_name}}',
     body: `Hi {{contact_name}},\n\nGreat news! We're pleased to accept your project and look forward to working with you.\n\nOur team will begin preparing the project scope and timeline. You'll hear from {{sales_rep_name}} shortly with the next steps.\n\nIf you have any questions in the meantime, feel free to reach out.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
+    created_at: '2026-06-01',
+    updated_at: '2026-06-01',
+  },
+  {
+    id: '5',
+    title: 'Meeting Invitation',
+    category: 'Meeting Invitation Email',
+    subject: 'Meeting Invitation - {{company_name}}',
+    body: `Hi {{contact_name}},\n\nWe'd like to invite you to a meeting to discuss {{project_name}}.\n\nProposed Date: {{proposed_date}}\nDuration: 1 hour\n\nPlease let us know if this works for you or suggest an alternative time.\n\nLooking forward to speaking with you.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
     created_at: '2026-06-01',
     updated_at: '2026-06-01',
   },
