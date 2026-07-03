@@ -104,6 +104,7 @@ interface Campaign {
   priority?: string
   requestType?: string[]
   description?: string
+  tracking_id?: string | null
 }
 
 export default function Campaigns() {
@@ -488,19 +489,37 @@ export default function Campaigns() {
                         <p className="text-[10px]" style={{ color: '#9CA3AF' }}>to {camp?.requesterEmail || '—'}</p>
                       </div>
                     </div>
-                    <p className="text-xs font-medium mb-2" style={{ color: '#1B1A1C' }}>Subject: Campaign Completed — {form.name}</p>
+                    <p className="text-xs font-medium mb-2" style={{ color: '#1B1A1C' }}>Subject: [Completed] {camp?.tracking_id || ''}: {form.name}</p>
                     <div className="text-xs leading-relaxed" style={{ color: '#4B5563', lineHeight: 1.6 }}>
                       <p>Hi {camp?.requesterName || 'there'},</p>
-                      <p className="mt-2">Your marketing request for <strong>"{form.name}"</strong> has been completed by the Marketing Department.</p>
-                      {notifyLinks.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-xs font-medium mb-1" style={{ color: '#1B1A1C' }}>Attached Resources:</p>
-                          {notifyLinks.map((link, i) => (
-                            <p key={i} className="text-xs" style={{ color: '#FF5900' }}>{link}</p>
-                          ))}
-                        </div>
-                      )}
-                      <p className="mt-2">Thank you for your request.</p>
+                      <p className="mt-2">Great news! The Marketing team has completed your request.</p>
+                      {/* Summary Box */}
+                      <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: '#F3F4F6' }}>
+                        <p className="text-xs font-bold mb-2" style={{ color: '#1B1A1C' }}>📋 Request Summary</p>
+                        <p className="text-xs" style={{ color: '#4B5563' }}>Tracking ID: <span style={{ color: '#FF5900', fontWeight: 600 }}>{camp?.tracking_id || '—'}</span></p>
+                        <p className="text-xs mt-1" style={{ color: '#4B5563' }}>Project Name: {form.name}</p>
+                        <p className="text-xs mt-1" style={{ color: '#4B5563' }}>Original Priority: {camp?.priority || '—'}</p>
+                      </div>
+                      {/* Final Deliverables */}
+                      <div className="mt-3">
+                        <p className="text-xs font-bold mb-1" style={{ color: '#1B1A1C' }}>Final Deliverables</p>
+                        <p className="text-xs" style={{ color: '#4B5563' }}>Please find your completed assets at the links below:</p>
+                        {notifyLinks.length > 0 ? (
+                          <ul className="mt-1 space-y-0.5 list-disc pl-4">
+                            {notifyLinks.map((link, i) => (
+                              <li key={i} className="text-xs" style={{ color: '#FF5900' }}>{link}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs mt-1 italic" style={{ color: '#9CA3AF' }}>(No file links attached)</p>
+                        )}
+                      </div>
+                      {/* Delivery Notes */}
+                      <div className="mt-3">
+                        <p className="text-xs font-bold mb-1" style={{ color: '#1B1A1C' }}>📝 Delivery Notes from the Team</p>
+                        <p className="text-xs" style={{ color: '#4B5563' }}>{camp?.description || 'Your request has been completed.'}</p>
+                      </div>
+                      <p className="mt-3 text-xs" style={{ color: '#4B5563' }}>If you need any minor tweaks, just reply to this email or message us on the internal portal.</p>
                       <p className="mt-4" style={{ color: '#9CA3AF' }}>Exodia Game Development &middot; Marketing Department</p>
                     </div>
                   </div>
@@ -553,7 +572,7 @@ export default function Campaigns() {
                         if (isSupabaseConfigured && supabase && camp.requesterEmail) {
                           try {
                             await supabase.functions.invoke('send-edit-link', {
-                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, editLink: window.location.origin + '/#/requests', links: notifyLinks },
+                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, editLink: window.location.origin + '/#/requests', links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: camp.description || '' },
                             })
                             showNote(`"${form.name}" completed — notified ${camp.requesterEmail}`)
                           } catch { showNote(`"${form.name}" completed — notification failed`) }

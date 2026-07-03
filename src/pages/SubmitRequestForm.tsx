@@ -242,7 +242,7 @@ export default function SubmitRequestForm() {
       const savedCampaigns = localStorage.getItem(campaignsKey)
       const campaigns = savedCampaigns ? JSON.parse(savedCampaigns) : []
       const newId = campaigns.length > 0 ? Math.max(...campaigns.map((c: any) => c.id)) + 1 : 1
-      const campaign = { id: newId, name: form.title, dept: form.department, status: 'Pending', due: form.dateNeeded, requesterName: form.name, requesterEmail: form.email, priority: form.priority, requestType: form.requestType, description: form.description }
+      const campaign = { id: newId, name: form.title, dept: form.department, status: 'Pending', due: form.dateNeeded, requesterName: form.name, requesterEmail: form.email, priority: form.priority, requestType: form.requestType, description: form.description, tracking_id: tid || null }
       campaigns.push(campaign)
       localStorage.setItem(campaignsKey, JSON.stringify(campaigns))
 

@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, editLink, title, links } = await req.json()
+    const { to, name, editLink, title, links, tracking_id, priority, description } = await req.json()
     if (!to || !editLink) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
@@ -32,16 +32,16 @@ serve(async (req) => {
     })
 
     const linksHtml = links && links.length > 0
-      ? `<div style="margin-top:12px"><p style="font-size:13px;font-weight:600;color:#1B1A1C;margin:0 0 6px">Attached Resources:</p>${links.map((l: string) => `<p style="font-size:13px;color:#FF5900;margin:2px 0"><a href="${l}" style="color:#FF5900">${l}</a></p>`).join('')}</div>`
-      : ''
+      ? `<ul style="margin:4px 0 0;padding-left:20px">${links.map((l: string) => `<li style="font-size:13px;color:#FF5900;margin:2px 0">${l}</li>`).join('')}</ul>`
+      : '<p style="font-size:13px;color:#9CA3AF;font-style:italic;margin:4px 0 0">(No file links attached)</p>'
 
-    const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:0;background:#f4f4f5}.container{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}.header{background:#FF5900;padding:24px 32px;text-align:center}.header h1{color:#fff;margin:0;font-size:18px;font-weight:700}.body{padding:32px;text-align:center}.title{font-size:16px;font-weight:600;color:#1B1A1C;margin:8px 0 16px}.btn{display:inline-block;background:#FF5900;color:#fff;text-decoration:none;padding:12px 32px;border-radius:12px;font-size:14px;font-weight:600;margin:8px 0}.footer{padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6}.footer p{color:#9ca3af;font-size:11px;margin:0}.note{font-size:12px;color:#6b7280;margin:16px 0 0}</style></head><body><div class="container"><div class="header"><h1>Exodia Game Development</h1></div><div class="body"><p style="color:#6b7280;font-size:14px;margin:0">Hi ${name},</p><p style="color:#6b7280;font-size:14px">Your marketing request has been received.</p><div class="title">${title || 'Marketing Request'}</div><a href="${editLink}" class="btn">Edit Your Request</a>${linksHtml}<p class="note">Save this email or bookmark the link to make changes later.</p></div><div class="footer"><p>Exodia Game Development &middot; Marketing Department</p></div></div></body></html>`
+    const htmlBody = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;padding:0;background:#f4f4f5}.container{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}.header{background:#FF5900;padding:24px 32px;text-align:center}.header h1{color:#fff;margin:0;font-size:18px;font-weight:700}.body{padding:32px}.summary{background:#F3F4F6;padding:16px;border-radius:8px;margin:12px 0}.summary p{margin:4px 0;font-size:13px;color:#4B5563}.section-title{font-size:14px;font-weight:700;color:#1B1A1C;margin:16px 0 4px}.footer{padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6}.footer p{color:#9ca3af;font-size:11px;margin:0}</style></head><body><div class="container"><div class="header"><h1>Exodia Game Development</h1></div><div class="body"><p style="font-size:14px;color:#4B5563;margin:0">Hi ${name},</p><p style="font-size:14px;color:#4B5563;margin:12px 0 0">Great news! The Marketing team has completed your request.</p><div class="summary"><p style="font-weight:700;margin:0 0 8px;font-size:13px;color:#1B1A1C">📋 Request Summary</p><p style="font-size:13px;color:#4B5563;margin:4px 0">Tracking ID: <span style="color:#FF5900;font-weight:600">${tracking_id || '—'}</span></p><p style="font-size:13px;color:#4B5563;margin:4px 0">Project Name: ${title}</p><p style="font-size:13px;color:#4B5563;margin:4px 0">Original Priority: ${priority || '—'}</p></div><p class="section-title">Final Deliverables</p><p style="font-size:13px;color:#4B5563;margin:0">Please find your completed assets at the links below:</p>${linksHtml}<p class="section-title">📝 Delivery Notes from the Team</p><p style="font-size:13px;color:#4B5563;margin:4px 0">${description || 'Your request has been completed.'}</p><p style="font-size:13px;color:#4B5563;margin:12px 0 0">If you need any minor tweaks, just reply to this email or message us on the internal portal.</p></div><div class="footer"><p>Exodia Game Development &middot; Marketing Department</p></div></div></body></html>`
 
     await transporter.sendMail({
       from: fromEmail,
       to: to,
-      subject: `Marketing Request Received - ${title || 'Untitled'}`,
-      text: `Hi ${name},\n\nYour marketing request has been received.\n\nEdit link: ${editLink}\n\nExodia Game Development - Marketing Department`,
+      subject: `[Completed] ${tracking_id || ''}: ${title || 'Untitled'}`,
+      text: `Hi ${name},\n\nGreat news! The Marketing team has completed your request.\n\n📋 Request Summary\nTracking ID: ${tracking_id || '—'}\nProject Name: ${title}\nOriginal Priority: ${priority || '—'}\n\nFinal Deliverables\nPlease find your completed assets at the links below:\n${links && links.length > 0 ? links.map((l: string) => `- ${l}`).join('\n') : '(No file links attached)'}\n\n📝 Delivery Notes from the Team\n${description || 'Your request has been completed.'}\n\nIf you need any minor tweaks, just reply to this email or message us on the internal portal.\n\nExodia Game Development - Marketing Department`,
       html: htmlBody,
     })
 
