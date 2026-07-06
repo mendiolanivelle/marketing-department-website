@@ -22,7 +22,10 @@ const contentTypes = {
 
 function cleanEnv(value = '') {
   const trimmed = String(value).trim()
-  return trimmed.replace(/^['"]|['"]$/g, '').trim()
+  return trimmed
+    .replace(/^['"`]|['"`]$/g, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
 }
 
 function getEnv(...names) {
@@ -61,6 +64,10 @@ function validateLead(lead) {
   }, {})
 }
 
+function getOpenRouterMessage(errorPayload) {
+  return errorPayload?.error?.message || errorPayload?.message || 'OpenRouter extraction failed'
+}
+
 function extractJson(content = '') {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const source = fenced?.[1] || content
@@ -68,6 +75,41 @@ function extractJson(content = '') {
   const end = source.lastIndexOf('}')
   if (start >= 0 && end > start) return source.slice(start, end + 1)
   return source
+}
+
+async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseUrl, image, strictJson }) {
+  const requestBody = {
+    model,
+    temperature: 0,
+    max_tokens: 1200,
+    ...(strictJson ? { response_format: { type: 'json_object' } } : {}),
+    messages: [
+      {
+        role: 'system',
+        content: 'Extract business card lead details from the image. Return only valid JSON with exactly these string keys: name, company, role, email, contact_number, address, notes, raw_text. Use empty strings for missing fields. Do not guess names, phone numbers, emails, companies, or addresses. raw_text should contain the visible text you can read from the card.',
+      },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Read this calling card and return only the JSON object.' },
+          { type: 'image_url', image_url: { url: image } },
+        ],
+      },
+    ],
+  }
+
+  const response = await fetch(`${openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      ...(siteUrl ? { 'HTTP-Referer': siteUrl } : {}),
+      'X-Title': appName,
+    },
+    body: JSON.stringify(requestBody),
+  })
+  const payload = await response.json()
+  return { response, payload }
 }
 
 async function extractCallingCard(req, res) {
@@ -79,44 +121,46 @@ async function extractCallingCard(req, res) {
     if (!body.image || typeof body.image !== 'string' || !body.image.startsWith('data:image/')) {
       return sendJson(res, 400, { error: 'Missing image data URL' })
     }
+    if (!/^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(body.image)) {
+      return sendJson(res, 400, { error: 'Image must be a PNG, JPEG, WebP, or GIF base64 data URL' })
+    }
 
     const model = getEnv('OPENROUTER_MODEL', 'OPENROUTER_MODEL_NAME') || 'openai/gpt-4o-mini'
     const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')
     const appName = getEnv('OPENROUTER_APP_NAME') || 'Marketing Department Website'
     const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
-    const response = await fetch(`${openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...(siteUrl ? { 'HTTP-Referer': siteUrl } : {}),
-        'X-Title': appName,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        max_tokens: 1200,
-        response_format: { type: 'json_object' },
-        plugins: [{ id: 'response-healing' }],
-        messages: [
-          {
-            role: 'system',
-            content: 'Extract business card lead details from the image. Return only valid JSON with exactly these string keys: name, company, role, email, contact_number, address, notes, raw_text. Use empty strings for missing fields. Do not guess names, phone numbers, emails, companies, or addresses. raw_text should contain the visible text you can read from the card.',
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Read this calling card and return only the JSON object.' },
-              { type: 'image_url', image_url: { url: body.image } },
-            ],
-          },
-        ],
-      }),
+    let { response, payload } = await callOpenRouter({
+      apiKey,
+      model,
+      siteUrl,
+      appName,
+      openRouterBaseUrl,
+      image: body.image,
+      strictJson: true,
     })
 
-    const payload = await response.json()
     if (!response.ok) {
-      return sendJson(res, response.status, { error: payload.error?.message || 'OpenRouter extraction failed' })
+      const message = getOpenRouterMessage(payload)
+      if (/pattern|response_format|json_object|schema/i.test(message)) {
+        ;({ response, payload } = await callOpenRouter({
+          apiKey,
+          model,
+          siteUrl,
+          appName,
+          openRouterBaseUrl,
+          image: body.image,
+          strictJson: false,
+        }))
+      }
+      if (!response.ok) {
+        return sendJson(res, response.status, {
+          error: getOpenRouterMessage(payload),
+          code: payload.error?.code,
+          param: payload.error?.param,
+          type: payload.error?.type,
+          model,
+        })
+      }
     }
 
     const content = payload.choices?.[0]?.message?.content || ''

@@ -117,7 +117,7 @@ const prepareImageForAi = async (file: File): Promise<string> => {
   canvas.width = Math.max(1, Math.round(image.width * scale))
   canvas.height = Math.max(1, Math.round(image.height * scale))
   const ctx = canvas.getContext('2d')
-  if (!ctx) return originalDataUrl
+  if (!ctx || !image.width || !image.height) throw new Error('Unable to prepare image for AI extraction')
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
