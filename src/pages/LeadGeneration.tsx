@@ -124,6 +124,23 @@ const prepareImageForAi = async (file: File): Promise<string> => {
   return canvas.toDataURL('image/jpeg', 0.9)
 }
 
+const fetchJsonWithTimeout = async (url: string, options: RequestInit, timeoutMs = 60000) => {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    const data = await response.json()
+    return { response, data }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`AI extraction timed out after ${Math.round(timeoutMs / 1000)} seconds. Please try a clearer photo or a smaller image.`)
+    }
+    throw err
+  } finally {
+    window.clearTimeout(timeout)
+  }
+}
+
 const mapAiLeadToRow = (lead: Record<string, string>): Record<string, string> => ({
   Name: lead.name || '',
   Company: lead.company || '',
@@ -594,12 +611,11 @@ export default function LeadGeneration() {
     setCallingCardUploading(true)
     try {
       const aiImageDataUrl = await prepareImageForAi(file)
-      const response = await fetch('/api/extract-calling-card', {
+      const { response, data } = await fetchJsonWithTimeout('/api/extract-calling-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: aiImageDataUrl }),
       })
-      const data = await response.json()
       if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
       const parsedLead = mapAiLeadToRow(data.lead || {})
       const now = new Date().toISOString()

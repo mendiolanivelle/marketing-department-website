@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const distDir = join(rootDir, 'dist')
 const port = Number(process.env.PORT || 3000)
+const openRouterTimeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 45000)
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -78,6 +79,8 @@ function extractJson(content = '') {
 }
 
 async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseUrl, image, strictJson }) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), openRouterTimeoutMs)
   const requestBody = {
     model,
     temperature: 0,
@@ -98,18 +101,28 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
     ],
   }
 
-  const response = await fetch(`${openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...(siteUrl ? { 'HTTP-Referer': siteUrl } : {}),
-      'X-Title': appName,
-    },
-    body: JSON.stringify(requestBody),
-  })
-  const payload = await response.json()
-  return { response, payload }
+  try {
+    const response = await fetch(`${openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        ...(siteUrl ? { 'HTTP-Referer': siteUrl } : {}),
+        'X-Title': appName,
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    })
+    const payload = await response.json()
+    return { response, payload }
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`OpenRouter extraction timed out after ${Math.round(openRouterTimeoutMs / 1000)} seconds`)
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function extractCallingCard(req, res) {
