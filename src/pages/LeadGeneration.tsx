@@ -37,6 +37,7 @@ interface CellFormat {
 }
 
 const CALLING_CARD_COLUMNS = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address', 'Notes', 'Raw OCR Text']
+const CALLING_CARD_FILE_NAME = 'Calling Card Leads'
 
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter(line => line.trim())
@@ -188,6 +189,9 @@ export default function LeadGeneration() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const callingCardInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const filesRef = useRef<LeadFile[]>([])
+  const callingCardQueueRef = useRef<{ file: File; sourceLabel: 'upload' | 'camera' }[]>([])
+  const processingCallingCardQueueRef = useRef(false)
   const [duplicateModal, setDuplicateModal] = useState<{
     type: 'upload' | 'cell-edit' | 'in-file'
     count?: number
@@ -201,6 +205,8 @@ export default function LeadGeneration() {
   const historyRef = useRef<{ rows: LeadRow[]; columns: string[]; cellFormats: Record<string, CellFormat> }[]>([])
   const historyIndexRef = useRef(-1)
   const skipHistoryRef = useRef(false)
+
+  useEffect(() => { filesRef.current = files }, [files])
 
   // Auto-push to history on every rows change
   useEffect(() => {
@@ -609,85 +615,106 @@ export default function LeadGeneration() {
     } finally { setUploading(false) }
   }
 
-  const handleCallingCardPhoto = async (e: React.ChangeEvent<HTMLInputElement>, sourceLabel: 'upload' | 'camera') => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const appendCallingCardLead = async (file: File, sourceLabel: 'upload' | 'camera') => {
     if (!file.type.startsWith('image/')) {
       setCallingCardMessage({ type: 'error', text: 'Please choose an image file.' })
       return
     }
 
-    setCallingCardUploading(true)
-    setCallingCardMessage(null)
-    try {
-      const aiImageDataUrl = await prepareImageForAi(file)
-      const { response, data } = await fetchJsonWithTimeout('/api/extract-calling-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: aiImageDataUrl }),
-      })
-      if (!response.ok || data?.error) throw new Error(formatExtractionError(data))
-      const parsedLead = mapAiLeadToRow(data.lead || {})
-      const usefulFields = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address']
-      if (!usefulFields.some(field => parsedLead[field]?.trim())) {
-        throw new Error('AI could not read usable lead details from this calling card. Please try a clearer, closer photo.')
-      }
-      const now = new Date().toISOString()
-      const fileId = crypto.randomUUID()
-      const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
-      const name = sourceLabel === 'camera'
-        ? `Calling Card Lead - ${new Date().toLocaleDateString()}`
-        : `Calling Card - ${baseName || new Date().toLocaleDateString()}`
-      const newFile: LeadFile = { id: fileId, name, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet', created_at: now, updated_at: now }
-      const rowData = CALLING_CARD_COLUMNS.reduce((acc, col) => {
-        acc[col] = parsedLead[col] || ''
-        return acc
-      }, {} as Record<string, string>)
-      let newRow: LeadRow = {
-        id: crypto.randomUUID(),
-        file_id: fileId,
-        row_index: 0,
-        data: rowData,
-        created_at: now,
-        updated_at: now,
-      }
+    const aiImageDataUrl = await prepareImageForAi(file)
+    const { response, data } = await fetchJsonWithTimeout('/api/extract-calling-card', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: aiImageDataUrl }),
+    })
+    if (!response.ok || data?.error) throw new Error(formatExtractionError(data))
+    const parsedLead = mapAiLeadToRow(data.lead || {})
+    const usefulFields = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address']
+    if (!usefulFields.some(field => parsedLead[field]?.trim())) {
+      throw new Error('AI could not read usable lead details from this calling card. Please try a clearer, closer photo.')
+    }
 
+    const now = new Date().toISOString()
+    let targetFile = filesRef.current.find(file => file.name === CALLING_CARD_FILE_NAME && file.source === 'spreadsheet')
+    if (!targetFile) {
+      const fileId = crypto.randomUUID()
+      targetFile = { id: fileId, name: CALLING_CARD_FILE_NAME, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet', created_at: now, updated_at: now }
       if (isSupabaseConfigured && supabase) {
         const { data: fileData, error: fileError } = await supabase
           .from('lead_files')
-          .insert([{ name, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet' }])
+          .insert([{ name: CALLING_CARD_FILE_NAME, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet' }])
           .select()
           .single()
         if (fileError) throw fileError
-        newFile.id = fileData.id
-
-        const { data: rowResult, error: rowError } = await supabase
-          .from('lead_rows')
-          .insert([{ file_id: newFile.id, row_index: 0, data: rowData }])
-          .select()
-          .single()
-        if (rowError) throw rowError
-        if (rowResult) newRow = rowResult
-      } else {
-        newRow = { ...newRow, file_id: newFile.id }
-        localStorage.setItem(`exodia-lead-rows-${newFile.id}`, JSON.stringify([newRow]))
+        targetFile = fileData
       }
+      filesRef.current = [targetFile, ...filesRef.current]
+      setFiles(prev => [targetFile!, ...prev])
+      localStorage.setItem(`exodia-lead-rows-${targetFile.id}`, JSON.stringify([]))
+    }
 
-      setFiles(prev => [newFile, ...prev])
-      setSelectedFile(newFile)
-      setRows([newRow])
-      setEditingCell(null)
-      setEditingHeader(null)
-      setCallingCardMessage({ type: 'success', text: 'Calling card extracted and opened as a lead sheet.' })
-      logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead "${newFile.name}"`)
+    const existingRows = await fetchRows(targetFile.id)
+    const rowIndex = existingRows.length > 0 ? Math.max(...existingRows.map(row => row.row_index)) + 1 : 0
+    const rowData = CALLING_CARD_COLUMNS.reduce((acc, col) => {
+      acc[col] = parsedLead[col] || ''
+      return acc
+    }, {} as Record<string, string>)
+    let newRow: LeadRow = {
+      id: crypto.randomUUID(),
+      file_id: targetFile.id,
+      row_index: rowIndex,
+      data: rowData,
+      created_at: now,
+      updated_at: now,
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: rowResult, error: rowError } = await supabase
+        .from('lead_rows')
+        .insert([{ file_id: targetFile.id, row_index: rowIndex, data: rowData }])
+        .select()
+        .single()
+      if (rowError) throw rowError
+      if (rowResult) newRow = rowResult
+    }
+
+    const nextRows = [...existingRows, newRow]
+    localStorage.setItem(`exodia-lead-rows-${targetFile.id}`, JSON.stringify(nextRows))
+    setSelectedFile(targetFile)
+    setRows(nextRows)
+    setEditingCell(null)
+    setEditingHeader(null)
+    setCallingCardMessage({ type: 'success', text: `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card added to "${CALLING_CARD_FILE_NAME}".` })
+    logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
+  }
+
+  const processCallingCardQueue = async () => {
+    if (processingCallingCardQueueRef.current) return
+    processingCallingCardQueueRef.current = true
+    setCallingCardUploading(true)
+    setCallingCardMessage(null)
+    try {
+      while (callingCardQueueRef.current.length > 0) {
+        const next = callingCardQueueRef.current.shift()!
+        setCallingCardMessage({ type: 'success', text: `Processing ${callingCardQueueRef.current.length + 1} calling card photo${callingCardQueueRef.current.length === 0 ? '' : 's'}...` })
+        await appendCallingCardLead(next.file, next.sourceLabel)
+      }
     } catch (err) {
       console.error('Error adding calling card photo:', err)
       setCallingCardMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to parse calling card photo.' })
     } finally {
+      processingCallingCardQueueRef.current = false
       setCallingCardUploading(false)
-      if (callingCardInputRef.current) callingCardInputRef.current.value = ''
-      if (cameraInputRef.current) cameraInputRef.current.value = ''
     }
+  }
+
+  const handleCallingCardPhoto = (e: React.ChangeEvent<HTMLInputElement>, sourceLabel: 'upload' | 'camera') => {
+    const selectedFiles = Array.from(e.target.files || [])
+    if (selectedFiles.length === 0) return
+    callingCardQueueRef.current.push(...selectedFiles.map(file => ({ file, sourceLabel })))
+    setCallingCardMessage({ type: 'success', text: `${selectedFiles.length} photo${selectedFiles.length === 1 ? '' : 's'} queued.` })
+    e.target.value = ''
+    processCallingCardQueue()
   }
 
   const createSpreadsheet = async () => {
@@ -1471,7 +1498,7 @@ if (supabase) {
           className="rounded-2xl p-8 sm:p-10 text-center transition-all duration-300 hover:-translate-y-0.5 theme-transition"
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}
         >
-          <input ref={callingCardInputRef} type="file" accept="image/*" onChange={(e) => handleCallingCardPhoto(e, 'upload')} className="hidden" />
+          <input ref={callingCardInputRef} type="file" accept="image/*" multiple onChange={(e) => handleCallingCardPhoto(e, 'upload')} className="hidden" />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleCallingCardPhoto(e, 'camera')} className="hidden" />
           {callingCardUploading ? (
             <div className="flex flex-col items-center gap-3">
