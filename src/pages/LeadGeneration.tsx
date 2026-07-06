@@ -124,127 +124,6 @@ const prepareImageForAi = async (file: File): Promise<string> => {
   return canvas.toDataURL('image/jpeg', 0.9)
 }
 
-const preprocessImageForOcr = async (file: File): Promise<string> => {
-  const originalDataUrl = await fileToDataUrl(file)
-  const image = new Image()
-  image.src = originalDataUrl
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve()
-    image.onerror = () => reject(new Error('Unable to read image'))
-  })
-
-  const targetDimension = 2200
-  const scale = Math.min(3, Math.max(1, targetDimension / Math.max(image.width, image.height)))
-  const border = 80
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(image.width * scale)) + border * 2
-  canvas.height = Math.max(1, Math.round(image.height * scale)) + border * 2
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return originalDataUrl
-  ctx.fillStyle = '#FFFFFF'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.drawImage(image, border, border, canvas.width - border * 2, canvas.height - border * 2)
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-  const data = imageData.data
-  for (let i = 0; i < data.length; i += 4) {
-    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
-    const contrasted = Math.min(255, Math.max(0, (gray - 128) * 1.35 + 128))
-    const value = contrasted > 178 ? 255 : contrasted < 118 ? 0 : contrasted
-    data[i] = value
-    data[i + 1] = value
-    data[i + 2] = value
-  }
-  ctx.putImageData(imageData, 0, 0)
-  return canvas.toDataURL('image/png')
-}
-
-const normalizeOcrLine = (line: string) => line.replace(/\s+/g, ' ').trim()
-
-const parseCallingCardText = (text: string): Record<string, string> => {
-  const lines = text
-    .split(/\r?\n/)
-    .map(normalizeOcrLine)
-    .filter(Boolean)
-  const rawText = lines.join('\n')
-  const email = rawText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
-  const phone = rawText.match(/(?:\+?\d[\d\s().-]{7,}\d)/)?.[0]?.replace(/\s{2,}/g, ' ').trim() || ''
-  const websiteLineIndex = lines.findIndex(line => /(?:www\.|https?:\/\/|\.com|\.net|\.org|\.io|\.ph)\b/i.test(line))
-  const emailLineIndex = lines.findIndex(line => line.includes(email))
-  const phoneLineIndex = lines.findIndex(line => line.includes(phone))
-  const addressMarkers = /\b(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|lane|ln\.?|suite|floor|building|bldg\.?|city|province|zip|postal|philippines)\b/i
-  const address = lines.find(line => addressMarkers.test(line)) || ''
-  const roleMarkers = /\b(?:manager|director|officer|specialist|coordinator|consultant|founder|owner|partner|president|ceo|cto|cfo|sales|marketing|engineer|developer|designer|associate|assistant|lead|head|representative|executive|supervisor|administrator)\b/i
-  const companyMarkers = /\b(?:inc|inc\.|corp|corporation|co\.|company|llc|ltd|limited|group|solutions|services|agency|studio|digital|marketing|department|enterprises|trading|store|clinic|restaurant)\b/i
-  const fieldMarkers = /\b(?:email|e-mail|mail|phone|mobile|tel|telephone|contact|fax|website|site|address)\b/i
-  const ignoredIndexes = new Set([websiteLineIndex, emailLineIndex, phoneLineIndex].filter(index => index >= 0))
-  const candidateLines = lines.filter((line, index) =>
-    !ignoredIndexes.has(index) &&
-    line !== address &&
-    !fieldMarkers.test(line) &&
-    !/@|\d{4,}|www\.|https?:\/\/|\.com|\.net|\.org|\.io|\.ph/i.test(line)
-  )
-  const scoreNameLine = (line: string, index: number) => {
-    const cleaned = line.replace(/[^A-Za-z.' -]/g, '').trim()
-    const words = cleaned.split(/\s+/).filter(Boolean)
-    if (cleaned.length < 3 || words.length < 2 || words.length > 5) return -100
-    if (roleMarkers.test(cleaned) || companyMarkers.test(cleaned)) return -80
-    let score = 40 - index * 4
-    if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z.'-]+)+$/.test(cleaned)) score += 22
-    if (/^[A-Z\s.'-]+$/.test(cleaned) && cleaned.length <= 32) score += 12
-    if (words.every(word => word.length > 1 || /^[A-Z]\.?$/.test(word))) score += 8
-    if (line !== cleaned) score -= 8
-    return score
-  }
-  const sortedNameCandidates = candidateLines
-    .map((line, index) => ({ line: line.replace(/[^A-Za-z.' -]/g, '').trim(), score: scoreNameLine(line, index) }))
-    .filter(candidate => candidate.score > 0)
-    .sort((a, b) => b.score - a.score)
-  const name = sortedNameCandidates[0]?.line || ''
-  const role = candidateLines.find(line =>
-    line !== name &&
-    roleMarkers.test(line)
-  ) || ''
-  const company = candidateLines.find(line =>
-    line !== name &&
-    line !== role &&
-    (companyMarkers.test(line) || line === line.toUpperCase() || candidateLines.indexOf(line) <= 2)
-  ) || candidateLines.find(line => line !== name && line !== role) || ''
-
-  return {
-    Name: name,
-    Company: company,
-    'Role / Position': role,
-    Email: email,
-    'Contact Number': phone,
-    Address: address,
-    Notes: '',
-    'Raw OCR Text': rawText,
-  }
-}
-
-const extractTextFromImage = async (imageDataUrl: string): Promise<string> => {
-  const { createWorker, PSM } = await import('tesseract.js')
-  const worker = await createWorker('eng')
-  try {
-    const results: string[] = []
-    for (const pageSegMode of [PSM.SPARSE_TEXT, PSM.SINGLE_BLOCK, PSM.AUTO]) {
-      await worker.setParameters({ tessedit_pageseg_mode: pageSegMode })
-      const { data } = await worker.recognize(imageDataUrl)
-      if (data.text) results.push(data.text)
-    }
-    const uniqueLines = new Set<string>()
-    results
-      .flatMap(result => result.split(/\r?\n/))
-      .map(normalizeOcrLine)
-      .filter(Boolean)
-      .forEach(line => uniqueLines.add(line))
-    return Array.from(uniqueLines).join('\n')
-  } finally {
-    await worker.terminate()
-  }
-}
-
 const mapAiLeadToRow = (lead: Record<string, string>): Record<string, string> => ({
   Name: lead.name || '',
   Company: lead.company || '',
@@ -715,33 +594,14 @@ export default function LeadGeneration() {
     setCallingCardUploading(true)
     try {
       const aiImageDataUrl = await prepareImageForAi(file)
-      let parsedLead: Record<string, string>
-      try {
-        const response = await fetch('/api/extract-calling-card', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: aiImageDataUrl }),
-        })
-        const data = await response.json()
-        if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
-        parsedLead = mapAiLeadToRow(data.lead || {})
-      } catch (aiErr) {
-        try {
-          if (!isSupabaseConfigured || !supabase) throw aiErr
-          const { data, error } = await supabase.functions.invoke('extract-calling-card', {
-            body: { image: aiImageDataUrl },
-          })
-          if (error) throw error
-          if (data?.error) throw new Error(data.error)
-          parsedLead = mapAiLeadToRow(data.lead || {})
-        } catch (fallbackErr) {
-          console.warn('AI calling card extraction unavailable, falling back to local OCR:', fallbackErr)
-          const ocrImageDataUrl = await preprocessImageForOcr(file)
-          const extractedText = await extractTextFromImage(ocrImageDataUrl)
-          parsedLead = parseCallingCardText(extractedText)
-          parsedLead.Notes = [parsedLead.Notes, 'AI extraction unavailable; used local OCR fallback.'].filter(Boolean).join(' ')
-        }
-      }
+      const response = await fetch('/api/extract-calling-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: aiImageDataUrl }),
+      })
+      const data = await response.json()
+      if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
+      const parsedLead = mapAiLeadToRow(data.lead || {})
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()
       const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
@@ -791,7 +651,7 @@ export default function LeadGeneration() {
       logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead "${newFile.name}"`)
     } catch (err) {
       console.error('Error adding calling card photo:', err)
-      alert('Failed to parse calling card photo')
+      alert(err instanceof Error ? err.message : 'Failed to parse calling card photo')
     } finally {
       setCallingCardUploading(false)
       if (callingCardInputRef.current) callingCardInputRef.current.value = ''
