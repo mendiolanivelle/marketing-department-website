@@ -102,7 +102,29 @@ const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, rej
   reader.readAsDataURL(file)
 })
 
-const compressImageFile = async (file: File): Promise<string> => {
+const prepareImageForAi = async (file: File): Promise<string> => {
+  const originalDataUrl = await fileToDataUrl(file)
+  const image = new Image()
+  image.src = originalDataUrl
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Unable to read image'))
+  })
+
+  const maxDimension = 2048
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.width * scale))
+  canvas.height = Math.max(1, Math.round(image.height * scale))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return originalDataUrl
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.9)
+}
+
+const preprocessImageForOcr = async (file: File): Promise<string> => {
   const originalDataUrl = await fileToDataUrl(file)
   const image = new Image()
   image.src = originalDataUrl
@@ -222,6 +244,17 @@ const extractTextFromImage = async (imageDataUrl: string): Promise<string> => {
     await worker.terminate()
   }
 }
+
+const mapAiLeadToRow = (lead: Record<string, string>): Record<string, string> => ({
+  Name: lead.name || '',
+  Company: lead.company || '',
+  'Role / Position': lead.role || '',
+  Email: lead.email || '',
+  'Contact Number': lead.contact_number || '',
+  Address: lead.address || '',
+  Notes: lead.notes || '',
+  'Raw OCR Text': lead.raw_text || '',
+})
 
 export default function LeadGeneration() {
   const [files, setFiles] = useState<LeadFile[]>([])
@@ -681,9 +714,23 @@ export default function LeadGeneration() {
 
     setCallingCardUploading(true)
     try {
-      const imageDataUrl = await compressImageFile(file)
-      const extractedText = await extractTextFromImage(imageDataUrl)
-      const parsedLead = parseCallingCardText(extractedText)
+      const aiImageDataUrl = await prepareImageForAi(file)
+      let parsedLead: Record<string, string>
+      try {
+        if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured')
+        const { data, error } = await supabase.functions.invoke('extract-calling-card', {
+          body: { image: aiImageDataUrl },
+        })
+        if (error) throw error
+        if (data?.error) throw new Error(data.error)
+        parsedLead = mapAiLeadToRow(data.lead || {})
+      } catch (aiErr) {
+        console.warn('AI calling card extraction unavailable, falling back to local OCR:', aiErr)
+        const ocrImageDataUrl = await preprocessImageForOcr(file)
+        const extractedText = await extractTextFromImage(ocrImageDataUrl)
+        parsedLead = parseCallingCardText(extractedText)
+        parsedLead.Notes = [parsedLead.Notes, 'AI extraction unavailable; used local OCR fallback.'].filter(Boolean).join(' ')
+      }
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()
       const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
@@ -1469,7 +1516,7 @@ if (supabase) {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Generation</h1>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files, create sheets, or parse calling cards</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files, create sheets, or extract calling cards with AI</p>
               </div>
             </div>
           </div>
@@ -1513,7 +1560,7 @@ if (supabase) {
           {callingCardUploading ? (
             <div className="flex flex-col items-center gap-3">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#0B8043' }}></div>
-              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Reading card text...</p>
+              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Extracting with AI...</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
@@ -1524,7 +1571,7 @@ if (supabase) {
                 </svg>
               </div>
               <div>
-                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Parse Calling Card</p>
+                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>AI Calling Card</p>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Extract lead details from a picture</p>
               </div>
               <div className="grid grid-cols-2 gap-2 w-full">
