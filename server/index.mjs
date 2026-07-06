@@ -7,6 +7,8 @@ const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const distDir = join(rootDir, 'dist')
 const port = Number(process.env.PORT || 3000)
 const openRouterTimeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 45000)
+const imageStore = new Map()
+const imageTtlMs = Number(process.env.CALLING_CARD_IMAGE_TTL_MS || 10 * 60 * 1000)
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -42,6 +44,14 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function getRequestOrigin(req) {
+  const configuredUrl = getEnv('PUBLIC_SITE_URL', 'OPENROUTER_SITE_URL')
+  if (configuredUrl) return configuredUrl.replace(/\/$/, '')
+  const proto = req.headers['x-forwarded-proto'] || 'http'
+  const host = req.headers['x-forwarded-host'] || req.headers.host
+  return `${proto}://${host}`
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = ''
@@ -63,6 +73,40 @@ function validateLead(lead) {
     acc[field] = typeof lead?.[field] === 'string' ? lead[field] : ''
     return acc
   }, {})
+}
+
+function storeImage(dataUrl) {
+  const match = dataUrl.match(/^data:(image\/(?:png|jpe?g|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/i)
+  if (!match) throw new Error('Image must be a PNG, JPEG, WebP, or GIF base64 data URL')
+  const id = crypto.randomUUID()
+  const contentType = match[1].toLowerCase().replace('image/jpg', 'image/jpeg')
+  const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64')
+  const timeout = setTimeout(() => imageStore.delete(id), imageTtlMs)
+  imageStore.set(id, { buffer, contentType, timeout })
+  return id
+}
+
+function cleanupImage(id) {
+  const entry = imageStore.get(id)
+  if (!entry) return
+  clearTimeout(entry.timeout)
+  imageStore.delete(id)
+}
+
+function serveStoredImage(req, res) {
+  const id = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname.replace('/api/calling-card-image/', ''))
+  const entry = imageStore.get(id)
+  if (!entry) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('Image not found')
+    return
+  }
+  res.writeHead(200, {
+    'Content-Type': entry.contentType,
+    'Content-Length': entry.buffer.length,
+    'Cache-Control': 'no-store',
+  })
+  res.end(entry.buffer)
 }
 
 function getOpenRouterMessage(errorPayload) {
@@ -125,6 +169,7 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
 }
 
 async function extractCallingCard(req, res) {
+  let imageId = ''
   try {
     const apiKey = getEnv('OPENROUTER_API_KEY', 'OPENROUTER_KEY')
     if (!apiKey) return sendJson(res, 500, { error: 'OPENROUTER_API_KEY is not set' })
@@ -136,6 +181,8 @@ async function extractCallingCard(req, res) {
     if (!/^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(body.image)) {
       return sendJson(res, 400, { error: 'Image must be a PNG, JPEG, WebP, or GIF base64 data URL' })
     }
+    imageId = storeImage(body.image)
+    const imageUrl = `${getRequestOrigin(req)}/api/calling-card-image/${imageId}`
 
     const model = getEnv('OPENROUTER_MODEL', 'OPENROUTER_MODEL_NAME') || 'openai/gpt-4o-mini'
     const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')
@@ -147,7 +194,7 @@ async function extractCallingCard(req, res) {
       siteUrl,
       appName,
       openRouterBaseUrl,
-      image: body.image,
+      image: imageUrl,
     })
 
     if (!response.ok) {
@@ -168,6 +215,8 @@ async function extractCallingCard(req, res) {
     return sendJson(res, 200, { lead, model })
   } catch (err) {
     return sendJson(res, 500, { error: err.message || 'Failed to extract calling card' })
+  } finally {
+    if (imageId) setTimeout(() => cleanupImage(imageId), 60_000)
   }
 }
 
@@ -187,6 +236,10 @@ function serveStatic(req, res) {
 createServer(async (req, res) => {
   if (req.method === 'POST' && req.url === '/api/extract-calling-card') {
     return extractCallingCard(req, res)
+  }
+
+  if (req.method === 'GET' && req.url?.startsWith('/api/calling-card-image/')) {
+    return serveStoredImage(req, res)
   }
 
   if (req.method === 'GET' || req.method === 'HEAD') {
