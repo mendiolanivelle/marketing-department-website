@@ -148,7 +148,7 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
         role: 'user',
         content: [
           { type: 'text', text: 'Read this calling card and return only the JSON object.' },
-          { type: 'image_url', image_url: { url: image } },
+          { type: 'image_url', image_url: image },
         ],
       },
     ],

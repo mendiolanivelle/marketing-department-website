@@ -142,7 +142,7 @@ const fetchJsonWithTimeout = async (url: string, options: RequestInit, timeoutMs
 }
 
 const formatExtractionError = (data: Record<string, string>) => {
-  const details = [data.param && `param: ${data.param}`, data.code && `code: ${data.code}`, data.type && `type: ${data.type}`, data.model && `model: ${data.model}`].filter(Boolean)
+  const details = [data.param && `param: ${data.param}`, data.code && `code: ${data.code}`, data.type && `type: ${data.type}`, data.model && `model: ${data.model}`, data.imageUrl && `image: ${data.imageUrl}`].filter(Boolean)
   return `${data.error || 'AI extraction failed'}${details.length ? ` (${details.join(', ')})` : ''}`
 }
 
