@@ -268,6 +268,15 @@ export default function LeadGeneration() {
     }
   }, [fetchFiles, selectedFile, fetchRows])
 
+  // Polling fallback for cross-device / cross-browser sync
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchFiles()
+      if (selectedFile) fetchRows(selectedFile.id)
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [fetchFiles, selectedFile, fetchRows])
+
   // Listen for cross-tab localStorage changes and custom events
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
