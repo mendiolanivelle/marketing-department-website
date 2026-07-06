@@ -7,22 +7,6 @@ const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const distDir = join(rootDir, 'dist')
 const port = Number(process.env.PORT || 3000)
 
-const callingCardSchema = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    name: { type: 'string' },
-    company: { type: 'string' },
-    role: { type: 'string' },
-    email: { type: 'string' },
-    contact_number: { type: 'string' },
-    address: { type: 'string' },
-    notes: { type: 'string' },
-    raw_text: { type: 'string' },
-  },
-  required: ['name', 'company', 'role', 'email', 'contact_number', 'address', 'notes', 'raw_text'],
-}
-
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -34,6 +18,19 @@ const contentTypes = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
+}
+
+function cleanEnv(value = '') {
+  const trimmed = String(value).trim()
+  return trimmed.replace(/^['"]|['"]$/g, '').trim()
+}
+
+function getEnv(...names) {
+  for (const name of names) {
+    const value = cleanEnv(process.env[name])
+    if (value) return value
+  }
+  return ''
 }
 
 function sendJson(res, status, payload) {
@@ -56,6 +53,14 @@ function readBody(req) {
   })
 }
 
+function validateLead(lead) {
+  const fields = ['name', 'company', 'role', 'email', 'contact_number', 'address', 'notes', 'raw_text']
+  return fields.reduce((acc, field) => {
+    acc[field] = typeof lead?.[field] === 'string' ? lead[field] : ''
+    return acc
+  }, {})
+}
+
 function extractJson(content = '') {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const source = fenced?.[1] || content
@@ -67,7 +72,7 @@ function extractJson(content = '') {
 
 async function extractCallingCard(req, res) {
   try {
-    const apiKey = process.env.OPENROUTER_API_KEY
+    const apiKey = getEnv('OPENROUTER_API_KEY', 'OPENROUTER_KEY')
     if (!apiKey) return sendJson(res, 500, { error: 'OPENROUTER_API_KEY is not set' })
 
     const body = JSON.parse(await readBody(req))
@@ -75,10 +80,11 @@ async function extractCallingCard(req, res) {
       return sendJson(res, 400, { error: 'Missing image data URL' })
     }
 
-    const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
-    const siteUrl = process.env.OPENROUTER_SITE_URL || process.env.PUBLIC_SITE_URL || ''
-    const appName = process.env.OPENROUTER_APP_NAME || 'Marketing Department Website'
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const model = getEnv('OPENROUTER_MODEL', 'OPENROUTER_MODEL_NAME') || 'openai/gpt-4o-mini'
+    const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')
+    const appName = getEnv('OPENROUTER_APP_NAME') || 'Marketing Department Website'
+    const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
+    const response = await fetch(`${openRouterBaseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -89,24 +95,18 @@ async function extractCallingCard(req, res) {
       body: JSON.stringify({
         model,
         temperature: 0,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'calling_card_lead',
-            strict: true,
-            schema: callingCardSchema,
-          },
-        },
+        max_tokens: 1200,
+        response_format: { type: 'json_object' },
         plugins: [{ id: 'response-healing' }],
         messages: [
           {
             role: 'system',
-            content: 'Extract business card lead details from the image. Return only visible information. Use empty strings for missing fields. Do not guess names, phone numbers, emails, companies, or addresses.',
+            content: 'Extract business card lead details from the image. Return only valid JSON with exactly these string keys: name, company, role, email, contact_number, address, notes, raw_text. Use empty strings for missing fields. Do not guess names, phone numbers, emails, companies, or addresses. raw_text should contain the visible text you can read from the card.',
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: 'Read this calling card and return the contact fields as JSON.' },
+              { type: 'text', text: 'Read this calling card and return only the JSON object.' },
               { type: 'image_url', image_url: { url: body.image } },
             ],
           },
@@ -120,8 +120,8 @@ async function extractCallingCard(req, res) {
     }
 
     const content = payload.choices?.[0]?.message?.content || ''
-    const lead = JSON.parse(extractJson(content))
-    return sendJson(res, 200, { lead })
+    const lead = validateLead(JSON.parse(extractJson(content)))
+    return sendJson(res, 200, { lead, model })
   } catch (err) {
     return sendJson(res, 500, { error: err.message || 'Failed to extract calling card' })
   }
