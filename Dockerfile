@@ -13,13 +13,15 @@ RUN npm install --no-audit --no-fund && rm -rf /root/.npm
 COPY . .
 RUN npm run build
 
-FROM caddy:2-alpine
+FROM node:22.14.0-alpine3.21
 
-WORKDIR /srv
+WORKDIR /app
+ENV NODE_ENV=production
 
-COPY Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /app/dist ./
+COPY package.json ./
+COPY server ./server
+COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+CMD ["node", "server/index.mjs"]

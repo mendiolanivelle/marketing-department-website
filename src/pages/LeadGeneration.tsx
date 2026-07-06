@@ -129,7 +129,10 @@ const fetchJsonWithTimeout = async (url: string, options: RequestInit, timeoutMs
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(url, { ...options, signal: controller.signal })
-    const data = await response.json()
+    const text = await response.text()
+    const data = text && response.headers.get('content-type')?.includes('application/json')
+      ? JSON.parse(text)
+      : { error: `Request failed with status ${response.status}` }
     return { response, data }
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
