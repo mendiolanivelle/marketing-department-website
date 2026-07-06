@@ -717,19 +717,30 @@ export default function LeadGeneration() {
       const aiImageDataUrl = await prepareImageForAi(file)
       let parsedLead: Record<string, string>
       try {
-        if (!isSupabaseConfigured || !supabase) throw new Error('Supabase is not configured')
-        const { data, error } = await supabase.functions.invoke('extract-calling-card', {
-          body: { image: aiImageDataUrl },
+        const response = await fetch('/api/extract-calling-card', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: aiImageDataUrl }),
         })
-        if (error) throw error
-        if (data?.error) throw new Error(data.error)
+        const data = await response.json()
+        if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
         parsedLead = mapAiLeadToRow(data.lead || {})
       } catch (aiErr) {
-        console.warn('AI calling card extraction unavailable, falling back to local OCR:', aiErr)
-        const ocrImageDataUrl = await preprocessImageForOcr(file)
-        const extractedText = await extractTextFromImage(ocrImageDataUrl)
-        parsedLead = parseCallingCardText(extractedText)
-        parsedLead.Notes = [parsedLead.Notes, 'AI extraction unavailable; used local OCR fallback.'].filter(Boolean).join(' ')
+        try {
+          if (!isSupabaseConfigured || !supabase) throw aiErr
+          const { data, error } = await supabase.functions.invoke('extract-calling-card', {
+            body: { image: aiImageDataUrl },
+          })
+          if (error) throw error
+          if (data?.error) throw new Error(data.error)
+          parsedLead = mapAiLeadToRow(data.lead || {})
+        } catch (fallbackErr) {
+          console.warn('AI calling card extraction unavailable, falling back to local OCR:', fallbackErr)
+          const ocrImageDataUrl = await preprocessImageForOcr(file)
+          const extractedText = await extractTextFromImage(ocrImageDataUrl)
+          parsedLead = parseCallingCardText(extractedText)
+          parsedLead.Notes = [parsedLead.Notes, 'AI extraction unavailable; used local OCR fallback.'].filter(Boolean).join(' ')
+        }
       }
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()

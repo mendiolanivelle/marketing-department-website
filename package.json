@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start": "node server/index.mjs",
     "ai:push": "powershell -ExecutionPolicy Bypass -File scripts/ai-push.ps1",
     "watch:leads": "node scripts/file-watcher.mjs"
   },
