@@ -178,6 +178,9 @@ async function extractCallingCard(req, res) {
 
     const content = payload.choices?.[0]?.message?.content || ''
     const lead = validateLead(JSON.parse(extractJson(content)))
+    if (!['name', 'company', 'role', 'email', 'contact_number', 'address'].some(field => lead[field].trim())) {
+      return sendJson(res, 422, { error: 'AI could not read usable lead details from this calling card. Please try a clearer, closer photo.', model })
+    }
     return sendJson(res, 200, { lead, model })
   } catch (err) {
     return sendJson(res, 500, { error: err.message || 'Failed to extract calling card' })

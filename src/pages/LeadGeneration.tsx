@@ -160,6 +160,7 @@ export default function LeadGeneration() {
   const [rowsLoading, setRowsLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [callingCardUploading, setCallingCardUploading] = useState(false)
+  const [callingCardMessage, setCallingCardMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editingCell, setEditingCell] = useState<{ rowId: string; col: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editingHeader, setEditingHeader] = useState<number | null>(null)
@@ -604,11 +605,12 @@ export default function LeadGeneration() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      alert('Please choose an image file')
+      setCallingCardMessage({ type: 'error', text: 'Please choose an image file.' })
       return
     }
 
     setCallingCardUploading(true)
+    setCallingCardMessage(null)
     try {
       const aiImageDataUrl = await prepareImageForAi(file)
       const { response, data } = await fetchJsonWithTimeout('/api/extract-calling-card', {
@@ -618,6 +620,10 @@ export default function LeadGeneration() {
       })
       if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
       const parsedLead = mapAiLeadToRow(data.lead || {})
+      const usefulFields = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address']
+      if (!usefulFields.some(field => parsedLead[field]?.trim())) {
+        throw new Error('AI could not read usable lead details from this calling card. Please try a clearer, closer photo.')
+      }
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()
       const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
@@ -664,10 +670,11 @@ export default function LeadGeneration() {
       setRows([newRow])
       setEditingCell(null)
       setEditingHeader(null)
+      setCallingCardMessage({ type: 'success', text: 'Calling card extracted and opened as a lead sheet.' })
       logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead "${newFile.name}"`)
     } catch (err) {
       console.error('Error adding calling card photo:', err)
-      alert(err instanceof Error ? err.message : 'Failed to parse calling card photo')
+      setCallingCardMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to parse calling card photo.' })
     } finally {
       setCallingCardUploading(false)
       if (callingCardInputRef.current) callingCardInputRef.current.value = ''
@@ -1434,6 +1441,20 @@ if (supabase) {
                 <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
               </div>
+            </div>
+          )}
+          {callingCardMessage && (
+            <div
+              className="mt-4 rounded-lg px-3 py-2 text-xs text-left"
+              style={{
+                backgroundColor: callingCardMessage.type === 'success' ? 'rgba(11,128,67,0.1)' : 'rgba(220,38,38,0.08)',
+                color: callingCardMessage.type === 'success' ? '#0B8043' : '#B91C1C',
+                border: `1px solid ${callingCardMessage.type === 'success' ? 'rgba(11,128,67,0.25)' : 'rgba(220,38,38,0.2)'}`,
+                fontWeight: 500,
+              }}
+              role="status"
+            >
+              {callingCardMessage.text}
             </div>
           )}
         </div>
