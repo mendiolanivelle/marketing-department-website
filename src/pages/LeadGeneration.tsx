@@ -36,6 +36,8 @@ interface CellFormat {
   border?: string
 }
 
+const CALLING_CARD_COLUMNS = ['Calling Card Image', 'Name', 'Company', 'Role / Position', 'Email', 'Phone', 'Notes']
+
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter(line => line.trim())
   if (lines.length === 0) return { headers: [], rows: [] }
@@ -93,6 +95,35 @@ const letterToCol = (letter: string): number => {
   return col - 1
 }
 
+const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.onerror = () => reject(reader.error)
+  reader.readAsDataURL(file)
+})
+
+const compressImageFile = async (file: File): Promise<string> => {
+  const originalDataUrl = await fileToDataUrl(file)
+  const image = new Image()
+  image.src = originalDataUrl
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('Unable to read image'))
+  })
+
+  const maxDimension = 1600
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(image.width * scale))
+  canvas.height = Math.max(1, Math.round(image.height * scale))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return originalDataUrl
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', 0.82)
+}
+
+const isImageDataUrl = (value?: string) => Boolean(value?.startsWith('data:image/'))
+
 export default function LeadGeneration() {
   const [files, setFiles] = useState<LeadFile[]>([])
   const [loading, setLoading] = useState(true)
@@ -100,6 +131,7 @@ export default function LeadGeneration() {
   const [rows, setRows] = useState<LeadRow[]>([])
   const [rowsLoading, setRowsLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [callingCardUploading, setCallingCardUploading] = useState(false)
   const [editingCell, setEditingCell] = useState<{ rowId: string; col: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editingHeader, setEditingHeader] = useState<number | null>(null)
@@ -117,6 +149,8 @@ export default function LeadGeneration() {
   const [selectedRange, setSelectedRange] = useState<{ startRow: number; startCol: number; endRow: number; endCol: number } | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const callingCardInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [duplicateModal, setDuplicateModal] = useState<{
     type: 'upload' | 'cell-edit' | 'in-file'
     count?: number
@@ -489,6 +523,74 @@ export default function LeadGeneration() {
       console.error('Error uploading CSV:', err)
       alert('Failed to upload CSV file')
     } finally { setUploading(false) }
+  }
+
+  const handleCallingCardPhoto = async (e: React.ChangeEvent<HTMLInputElement>, sourceLabel: 'upload' | 'camera') => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      alert('Please choose an image file')
+      return
+    }
+
+    setCallingCardUploading(true)
+    try {
+      const imageDataUrl = await compressImageFile(file)
+      const now = new Date().toISOString()
+      const fileId = crypto.randomUUID()
+      const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
+      const name = sourceLabel === 'camera'
+        ? `Calling Card Photo - ${new Date().toLocaleDateString()}`
+        : `Calling Card - ${baseName || new Date().toLocaleDateString()}`
+      const newFile: LeadFile = { id: fileId, name, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet', created_at: now, updated_at: now }
+      const rowData = CALLING_CARD_COLUMNS.reduce((acc, col) => {
+        acc[col] = col === 'Calling Card Image' ? imageDataUrl : ''
+        return acc
+      }, {} as Record<string, string>)
+      let newRow: LeadRow = {
+        id: crypto.randomUUID(),
+        file_id: fileId,
+        row_index: 0,
+        data: rowData,
+        created_at: now,
+        updated_at: now,
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        const { data: fileData, error: fileError } = await supabase
+          .from('lead_files')
+          .insert([{ name, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet' }])
+          .select()
+          .single()
+        if (fileError) throw fileError
+        newFile.id = fileData.id
+
+        const { data: rowResult, error: rowError } = await supabase
+          .from('lead_rows')
+          .insert([{ file_id: newFile.id, row_index: 0, data: rowData }])
+          .select()
+          .single()
+        if (rowError) throw rowError
+        if (rowResult) newRow = rowResult
+      } else {
+        newRow = { ...newRow, file_id: newFile.id }
+        localStorage.setItem(`exodia-lead-rows-${newFile.id}`, JSON.stringify([newRow]))
+      }
+
+      setFiles(prev => [newFile, ...prev])
+      setSelectedFile(newFile)
+      setRows([newRow])
+      setEditingCell(null)
+      setEditingHeader(null)
+      logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card photo "${newFile.name}"`)
+    } catch (err) {
+      console.error('Error adding calling card photo:', err)
+      alert('Failed to add calling card photo')
+    } finally {
+      setCallingCardUploading(false)
+      if (callingCardInputRef.current) callingCardInputRef.current.value = ''
+      if (cameraInputRef.current) cameraInputRef.current.value = ''
+    }
   }
 
   const createSpreadsheet = async () => {
@@ -1121,6 +1223,7 @@ if (supabase) {
                       {selectedFile.columns.map((col) => {
                         const cellKey = `${row.id}-${col}`
                         const format = cellFormats[cellKey] || {}
+                        const cellValue = row.data[col] || ''
                         return (
                           <td
                             key={col}
@@ -1149,7 +1252,11 @@ if (supabase) {
                               />
                             ) : (
                               <div className="px-2 py-1 text-sm text-[#3E4048] min-h-[28px] hover:bg-white hover:border hover:border-[#CACDD7] rounded">
-                                {row.data[col] || ''}
+                                {isImageDataUrl(cellValue) ? (
+                                  <img src={cellValue} alt="Calling card" className="h-24 w-36 object-cover rounded border border-[#CACDD7]" />
+                                ) : (
+                                  cellValue
+                                )}
                               </div>
                             )}
                           </td>
@@ -1215,7 +1322,7 @@ if (supabase) {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Generation</h1>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files or create spreadsheets to manage your leads</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files, create sheets, or capture calling cards</p>
               </div>
             </div>
           </div>
@@ -1223,7 +1330,7 @@ if (supabase) {
       </div>
 
       {/* Upload / Create */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-6 sm:mb-8">
         <div
           onClick={() => fileInputRef.current?.click()}
           className="rounded-2xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-300 hover:-translate-y-0.5 theme-transition"
@@ -1245,6 +1352,51 @@ if (supabase) {
               <div>
                 <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
                 <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div
+          className="rounded-2xl p-8 sm:p-10 text-center transition-all duration-300 hover:-translate-y-0.5 theme-transition"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}
+        >
+          <input ref={callingCardInputRef} type="file" accept="image/*" onChange={(e) => handleCallingCardPhoto(e, 'upload')} className="hidden" />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleCallingCardPhoto(e, 'camera')} className="hidden" />
+          {callingCardUploading ? (
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#0B8043' }}></div>
+              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Adding calling card...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300" style={{ backgroundColor: 'rgba(11,128,67,0.1)' }}>
+                <svg className="w-8 h-8" style={{ color: '#0B8043' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25A2.25 2.25 0 015.25 6h13.5A2.25 2.25 0 0121 8.25v7.5A2.25 2.25 0 0118.75 18H5.25A2.25 2.25 0 013 15.75v-7.5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 10.5h4.5M7.5 13.5h7.5M17.25 10.5h.01" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Calling Card Photo</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Upload or take a picture</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => callingCardInputRef.current?.click()}
+                  className="px-3 py-2 text-sm rounded-lg transition"
+                  style={{ backgroundColor: 'rgba(11,128,67,0.1)', color: '#0B8043', fontWeight: 600 }}
+                >
+                  Upload
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="px-3 py-2 text-sm rounded-lg transition"
+                  style={{ backgroundColor: '#0B8043', color: '#FFFFFF', fontWeight: 600 }}
+                >
+                  Camera
+                </button>
               </div>
             </div>
           )}
