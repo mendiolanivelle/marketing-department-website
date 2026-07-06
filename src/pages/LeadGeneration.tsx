@@ -111,15 +111,30 @@ const compressImageFile = async (file: File): Promise<string> => {
     image.onerror = () => reject(new Error('Unable to read image'))
   })
 
-  const maxDimension = 1600
-  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+  const targetDimension = 2200
+  const scale = Math.min(3, Math.max(1, targetDimension / Math.max(image.width, image.height)))
+  const border = 80
   const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(image.width * scale))
-  canvas.height = Math.max(1, Math.round(image.height * scale))
+  canvas.width = Math.max(1, Math.round(image.width * scale)) + border * 2
+  canvas.height = Math.max(1, Math.round(image.height * scale)) + border * 2
   const ctx = canvas.getContext('2d')
   if (!ctx) return originalDataUrl
-  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-  return canvas.toDataURL('image/jpeg', 0.82)
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(image, border, border, canvas.width - border * 2, canvas.height - border * 2)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+    const contrasted = Math.min(255, Math.max(0, (gray - 128) * 1.35 + 128))
+    const value = contrasted > 178 ? 255 : contrasted < 118 ? 0 : contrasted
+    data[i] = value
+    data[i + 1] = value
+    data[i + 2] = value
+  }
+  ctx.putImageData(imageData, 0, 0)
+  return canvas.toDataURL('image/png')
 }
 
 const normalizeOcrLine = (line: string) => line.replace(/\s+/g, ' ').trim()
@@ -137,22 +152,42 @@ const parseCallingCardText = (text: string): Record<string, string> => {
   const phoneLineIndex = lines.findIndex(line => line.includes(phone))
   const addressMarkers = /\b(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|lane|ln\.?|suite|floor|building|bldg\.?|city|province|zip|postal|philippines)\b/i
   const address = lines.find(line => addressMarkers.test(line)) || ''
+  const roleMarkers = /\b(?:manager|director|officer|specialist|coordinator|consultant|founder|owner|partner|president|ceo|cto|cfo|sales|marketing|engineer|developer|designer|associate|assistant|lead|head|representative|executive|supervisor|administrator)\b/i
+  const companyMarkers = /\b(?:inc|inc\.|corp|corporation|co\.|company|llc|ltd|limited|group|solutions|services|agency|studio|digital|marketing|department|enterprises|trading|store|clinic|restaurant)\b/i
+  const fieldMarkers = /\b(?:email|e-mail|mail|phone|mobile|tel|telephone|contact|fax|website|site|address)\b/i
   const ignoredIndexes = new Set([websiteLineIndex, emailLineIndex, phoneLineIndex].filter(index => index >= 0))
-  const candidateLines = lines.filter((line, index) => !ignoredIndexes.has(index) && line !== address)
-  const name = candidateLines.find(line =>
-    /^[A-Za-z][A-Za-z.,' -]{2,}$/.test(line) &&
-    !/@|\d|www\.|\.com|\.net|\.org|\.io|\.ph/i.test(line) &&
-    line.split(' ').length <= 5
-  ) || ''
+  const candidateLines = lines.filter((line, index) =>
+    !ignoredIndexes.has(index) &&
+    line !== address &&
+    !fieldMarkers.test(line) &&
+    !/@|\d{4,}|www\.|https?:\/\/|\.com|\.net|\.org|\.io|\.ph/i.test(line)
+  )
+  const scoreNameLine = (line: string, index: number) => {
+    const cleaned = line.replace(/[^A-Za-z.' -]/g, '').trim()
+    const words = cleaned.split(/\s+/).filter(Boolean)
+    if (cleaned.length < 3 || words.length < 2 || words.length > 5) return -100
+    if (roleMarkers.test(cleaned) || companyMarkers.test(cleaned)) return -80
+    let score = 40 - index * 4
+    if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z.'-]+)+$/.test(cleaned)) score += 22
+    if (/^[A-Z\s.'-]+$/.test(cleaned) && cleaned.length <= 32) score += 12
+    if (words.every(word => word.length > 1 || /^[A-Z]\.?$/.test(word))) score += 8
+    if (line !== cleaned) score -= 8
+    return score
+  }
+  const sortedNameCandidates = candidateLines
+    .map((line, index) => ({ line: line.replace(/[^A-Za-z.' -]/g, '').trim(), score: scoreNameLine(line, index) }))
+    .filter(candidate => candidate.score > 0)
+    .sort((a, b) => b.score - a.score)
+  const name = sortedNameCandidates[0]?.line || ''
   const role = candidateLines.find(line =>
     line !== name &&
-    /\b(?:manager|director|officer|specialist|coordinator|consultant|founder|owner|partner|president|ceo|cto|cfo|sales|marketing|engineer|developer|designer|associate|assistant|lead|head)\b/i.test(line)
+    roleMarkers.test(line)
   ) || ''
   const company = candidateLines.find(line =>
     line !== name &&
     line !== role &&
-    !/@|\d{3,}|www\.|\.com|\.net|\.org|\.io|\.ph/i.test(line)
-  ) || ''
+    (companyMarkers.test(line) || line === line.toUpperCase() || candidateLines.indexOf(line) <= 2)
+  ) || candidateLines.find(line => line !== name && line !== role) || ''
 
   return {
     Name: name,
@@ -167,11 +202,22 @@ const parseCallingCardText = (text: string): Record<string, string> => {
 }
 
 const extractTextFromImage = async (imageDataUrl: string): Promise<string> => {
-  const { createWorker } = await import('tesseract.js')
+  const { createWorker, PSM } = await import('tesseract.js')
   const worker = await createWorker('eng')
   try {
-    const { data } = await worker.recognize(imageDataUrl)
-    return data.text || ''
+    const results: string[] = []
+    for (const pageSegMode of [PSM.SPARSE_TEXT, PSM.SINGLE_BLOCK, PSM.AUTO]) {
+      await worker.setParameters({ tessedit_pageseg_mode: pageSegMode })
+      const { data } = await worker.recognize(imageDataUrl)
+      if (data.text) results.push(data.text)
+    }
+    const uniqueLines = new Set<string>()
+    results
+      .flatMap(result => result.split(/\r?\n/))
+      .map(normalizeOcrLine)
+      .filter(Boolean)
+      .forEach(line => uniqueLines.add(line))
+    return Array.from(uniqueLines).join('\n')
   } finally {
     await worker.terminate()
   }
@@ -282,14 +328,18 @@ export default function LeadGeneration() {
   }, [])
 
   const fetchRows = useCallback(async (fileId: string): Promise<LeadRow[]> => {
-    if (!isSupabaseConfigured || !supabase) {
-      const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
-      if (saved) { try { const data = JSON.parse(saved); setRows(data); return data } catch {} }
-      setRowsLoading(false)
-      return []
-    }
     setRowsLoading(true)
     try {
+      if (!isSupabaseConfigured || !supabase) {
+        const saved = localStorage.getItem(`exodia-lead-rows-${fileId}`)
+        if (saved) {
+          const data = JSON.parse(saved)
+          setRows(data)
+          return data
+        }
+        setRows([])
+        return []
+      }
       const { data, error } = await supabase
         .from('lead_rows')
         .select('*')
@@ -345,18 +395,23 @@ export default function LeadGeneration() {
       fetchFiles()
       if (selectedFile) fetchRows(selectedFile.id)
     }
+    const handleLeadGenerationDataChanged = (event: Event) => {
+      const source = (event as CustomEvent<{ source?: string }>).detail?.source
+      if (source === 'lead-generation') return
+      handleDataChanged()
+    }
     window.addEventListener('storage', handleStorage)
-    window.addEventListener('lead-data-changed', handleDataChanged)
+    window.addEventListener('lead-data-changed', handleLeadGenerationDataChanged)
     return () => {
       window.removeEventListener('storage', handleStorage)
-      window.removeEventListener('lead-data-changed', handleDataChanged)
+      window.removeEventListener('lead-data-changed', handleLeadGenerationDataChanged)
     }
   }, [fetchFiles, selectedFile, fetchRows])
 
   // Notify other components when files or rows change
-  useEffect(() => { window.dispatchEvent(new CustomEvent('lead-data-changed')) }, [files])
+  useEffect(() => { window.dispatchEvent(new CustomEvent('lead-data-changed', { detail: { source: 'lead-generation' } })) }, [files])
   useEffect(() => {
-    if (selectedFile) window.dispatchEvent(new CustomEvent('lead-data-changed'))
+    if (selectedFile) window.dispatchEvent(new CustomEvent('lead-data-changed', { detail: { source: 'lead-generation' } }))
   }, [rows, selectedFile])
 
   // Persist files to localStorage on every change
@@ -712,12 +767,16 @@ export default function LeadGeneration() {
         if (fileError) throw fileError
         newFile.id = fileData.id
 
-        const dbRows = emptyRows.map(r => ({ file_id: r.file_id, row_index: r.row_index, data: r.data }))
-        const { error: rowsError } = await supabase.from('lead_rows').insert(dbRows)
+        const dbRows = emptyRows.map(r => ({ file_id: newFile.id, row_index: r.row_index, data: r.data }))
+        const { data: insertedRows, error: rowsError } = await supabase.from('lead_rows').insert(dbRows).select()
         if (rowsError) throw rowsError
+        if (insertedRows) {
+          emptyRows.splice(0, emptyRows.length, ...insertedRows)
+        }
       }
 
       setFiles(prev => [newFile, ...prev])
+      localStorage.setItem(`exodia-lead-rows-${newFile.id}`, JSON.stringify(emptyRows))
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
       logActivity('LeadGen', `Created spreadsheet "${name}"`)
