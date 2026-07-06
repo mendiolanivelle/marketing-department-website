@@ -268,6 +268,35 @@ export default function LeadGeneration() {
     }
   }, [fetchFiles, selectedFile, fetchRows])
 
+  // Listen for cross-tab localStorage changes and custom events
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'exodia-lead-files') {
+        fetchFiles()
+      } else if (e.key?.startsWith('exodia-lead-rows-')) {
+        if (selectedFile && e.key === `exodia-lead-rows-${selectedFile.id}`) {
+          fetchRows(selectedFile.id)
+        }
+      }
+    }
+    const handleDataChanged = () => {
+      fetchFiles()
+      if (selectedFile) fetchRows(selectedFile.id)
+    }
+    window.addEventListener('storage', handleStorage)
+    window.addEventListener('lead-data-changed', handleDataChanged)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('lead-data-changed', handleDataChanged)
+    }
+  }, [fetchFiles, selectedFile, fetchRows])
+
+  // Notify other components when files or rows change
+  useEffect(() => { window.dispatchEvent(new CustomEvent('lead-data-changed')) }, [files])
+  useEffect(() => {
+    if (selectedFile) window.dispatchEvent(new CustomEvent('lead-data-changed'))
+  }, [rows, selectedFile])
+
   // Persist files to localStorage on every change
   useEffect(() => { localStorage.setItem('exodia-lead-files', JSON.stringify(files)) }, [files])
 
