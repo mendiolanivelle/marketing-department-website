@@ -44,9 +44,16 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload))
 }
 
+function normalizePublicUrl(value) {
+  const clean = cleanEnv(value)
+  if (!clean) return ''
+  const withScheme = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`
+  return withScheme.replace(/\/$/, '')
+}
+
 function getRequestOrigin(req) {
-  const configuredUrl = getEnv('PUBLIC_SITE_URL', 'OPENROUTER_SITE_URL')
-  if (configuredUrl) return configuredUrl.replace(/\/$/, '')
+  const configuredUrl = normalizePublicUrl(process.env.PUBLIC_SITE_URL)
+  if (configuredUrl) return configuredUrl
   const proto = req.headers['x-forwarded-proto'] || 'http'
   const host = req.headers['x-forwarded-host'] || req.headers.host
   return `${proto}://${host}`
@@ -110,7 +117,10 @@ function serveStoredImage(req, res) {
 }
 
 function getOpenRouterMessage(errorPayload) {
-  return errorPayload?.error?.message || errorPayload?.message || 'OpenRouter extraction failed'
+  const message = errorPayload?.error?.message || errorPayload?.message || 'OpenRouter extraction failed'
+  const param = errorPayload?.error?.param ? ` (${errorPayload.error.param})` : ''
+  const code = errorPayload?.error?.code ? ` [${errorPayload.error.code}]` : ''
+  return `${message}${param}${code}`
 }
 
 function extractJson(content = '') {
@@ -183,6 +193,12 @@ async function extractCallingCard(req, res) {
     }
     imageId = storeImage(body.image)
     const imageUrl = `${getRequestOrigin(req)}/api/calling-card-image/${imageId}`
+    if (!/^https:\/\//i.test(imageUrl) && !/^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])/i.test(imageUrl)) {
+      return sendJson(res, 500, {
+        error: 'PUBLIC_SITE_URL must be set to your public HTTPS app URL in Coolify so OpenRouter can fetch the calling card image.',
+        imageUrl,
+      })
+    }
 
     const model = getEnv('OPENROUTER_MODEL', 'OPENROUTER_MODEL_NAME') || 'openai/gpt-4o-mini'
     const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')

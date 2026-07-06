@@ -141,6 +141,11 @@ const fetchJsonWithTimeout = async (url: string, options: RequestInit, timeoutMs
   }
 }
 
+const formatExtractionError = (data: Record<string, string>) => {
+  const details = [data.param && `param: ${data.param}`, data.code && `code: ${data.code}`, data.type && `type: ${data.type}`, data.model && `model: ${data.model}`].filter(Boolean)
+  return `${data.error || 'AI extraction failed'}${details.length ? ` (${details.join(', ')})` : ''}`
+}
+
 const mapAiLeadToRow = (lead: Record<string, string>): Record<string, string> => ({
   Name: lead.name || '',
   Company: lead.company || '',
@@ -618,7 +623,7 @@ export default function LeadGeneration() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: aiImageDataUrl }),
       })
-      if (!response.ok || data?.error) throw new Error(data?.error || 'AI extraction failed')
+      if (!response.ok || data?.error) throw new Error(formatExtractionError(data))
       const parsedLead = mapAiLeadToRow(data.lead || {})
       const usefulFields = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address']
       if (!usefulFields.some(field => parsedLead[field]?.trim())) {
