@@ -11,6 +11,7 @@ const categories = [
       { path: '/team', label: 'Team & Directory', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
       { path: '/calendar', label: 'Calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { path: '/files', label: 'File Tracker', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+      { path: '/website-requests', label: 'Requests', icon: 'M7.5 8.25h9m-9 3.75h6M5.25 5.25h13.5v10.5H8.25L5.25 18.75V5.25z' },
     ],
   },
   {
@@ -38,6 +39,7 @@ export default function Sidebar() {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [acUnreadCount, setAcUnreadCount] = useState(0)
+  const [websiteRequestCount, setWebsiteRequestCount] = useState(0)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     const saved = localStorage.getItem('user-avatar')
     return saved || null
@@ -55,6 +57,8 @@ export default function Sidebar() {
       setUnreadCount(mr ?? 0)
       const { count: ac } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
       setAcUnreadCount(ac ?? 0)
+      const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).in('status', ['Open', 'Reviewing'])
+      setWebsiteRequestCount(wr ?? 0)
     }
   }
 
@@ -64,6 +68,7 @@ export default function Sidebar() {
       const channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { fetchUnread() })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { fetchUnread() })
         .subscribe()
       return () => { supabase.removeChannel(channel) }
     }
@@ -333,6 +338,11 @@ export default function Sidebar() {
                         {!isCollapsed && item.path === '/acceptance-criteria' && acUnreadCount > 0 && (
                           <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
                             {acUnreadCount}
+                          </span>
+                        )}
+                        {!isCollapsed && item.path === '/website-requests' && websiteRequestCount > 0 && (
+                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
+                            {websiteRequestCount}
                           </span>
                         )}
                         {active && isCollapsed && (
