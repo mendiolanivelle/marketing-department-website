@@ -111,7 +111,7 @@ const prepareImageForAi = async (file: File): Promise<string> => {
     image.onerror = () => reject(new Error('Unable to read image'))
   })
 
-  const maxDimension = 2048
+  const maxDimension = 1280
   const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(1, Math.round(image.width * scale))
@@ -121,7 +121,7 @@ const prepareImageForAi = async (file: File): Promise<string> => {
   ctx.fillStyle = '#FFFFFF'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-  return canvas.toDataURL('image/jpeg', 0.9)
+  return canvas.toDataURL('image/jpeg', 0.82)
 }
 
 const fetchJsonWithTimeout = async (url: string, options: RequestInit, timeoutMs = 60000) => {

@@ -78,14 +78,13 @@ function extractJson(content = '') {
   return source
 }
 
-async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseUrl, image, strictJson }) {
+async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseUrl, image }) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), openRouterTimeoutMs)
   const requestBody = {
     model,
     temperature: 0,
-    max_tokens: 1200,
-    ...(strictJson ? { response_format: { type: 'json_object' } } : {}),
+    max_tokens: 700,
     messages: [
       {
         role: 'system',
@@ -142,38 +141,23 @@ async function extractCallingCard(req, res) {
     const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')
     const appName = getEnv('OPENROUTER_APP_NAME') || 'Marketing Department Website'
     const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
-    let { response, payload } = await callOpenRouter({
+    const { response, payload } = await callOpenRouter({
       apiKey,
       model,
       siteUrl,
       appName,
       openRouterBaseUrl,
       image: body.image,
-      strictJson: true,
     })
 
     if (!response.ok) {
-      const message = getOpenRouterMessage(payload)
-      if (/pattern|response_format|json_object|schema/i.test(message)) {
-        ;({ response, payload } = await callOpenRouter({
-          apiKey,
-          model,
-          siteUrl,
-          appName,
-          openRouterBaseUrl,
-          image: body.image,
-          strictJson: false,
-        }))
-      }
-      if (!response.ok) {
-        return sendJson(res, response.status, {
-          error: getOpenRouterMessage(payload),
-          code: payload.error?.code,
-          param: payload.error?.param,
-          type: payload.error?.type,
-          model,
-        })
-      }
+      return sendJson(res, response.status, {
+        error: getOpenRouterMessage(payload),
+        code: payload.error?.code,
+        param: payload.error?.param,
+        type: payload.error?.type,
+        model,
+      })
     }
 
     const content = payload.choices?.[0]?.message?.content || ''
