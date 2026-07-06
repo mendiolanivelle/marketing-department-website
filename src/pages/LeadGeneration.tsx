@@ -36,7 +36,7 @@ interface CellFormat {
   border?: string
 }
 
-const CALLING_CARD_COLUMNS = ['Calling Card Image', 'Name', 'Company', 'Role / Position', 'Email', 'Phone', 'Notes']
+const CALLING_CARD_COLUMNS = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address', 'Notes', 'Raw OCR Text']
 
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter(line => line.trim())
@@ -122,7 +122,60 @@ const compressImageFile = async (file: File): Promise<string> => {
   return canvas.toDataURL('image/jpeg', 0.82)
 }
 
-const isImageDataUrl = (value?: string) => Boolean(value?.startsWith('data:image/'))
+const normalizeOcrLine = (line: string) => line.replace(/\s+/g, ' ').trim()
+
+const parseCallingCardText = (text: string): Record<string, string> => {
+  const lines = text
+    .split(/\r?\n/)
+    .map(normalizeOcrLine)
+    .filter(Boolean)
+  const rawText = lines.join('\n')
+  const email = rawText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || ''
+  const phone = rawText.match(/(?:\+?\d[\d\s().-]{7,}\d)/)?.[0]?.replace(/\s{2,}/g, ' ').trim() || ''
+  const websiteLineIndex = lines.findIndex(line => /(?:www\.|https?:\/\/|\.com|\.net|\.org|\.io|\.ph)\b/i.test(line))
+  const emailLineIndex = lines.findIndex(line => line.includes(email))
+  const phoneLineIndex = lines.findIndex(line => line.includes(phone))
+  const addressMarkers = /\b(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|lane|ln\.?|suite|floor|building|bldg\.?|city|province|zip|postal|philippines)\b/i
+  const address = lines.find(line => addressMarkers.test(line)) || ''
+  const ignoredIndexes = new Set([websiteLineIndex, emailLineIndex, phoneLineIndex].filter(index => index >= 0))
+  const candidateLines = lines.filter((line, index) => !ignoredIndexes.has(index) && line !== address)
+  const name = candidateLines.find(line =>
+    /^[A-Za-z][A-Za-z.,' -]{2,}$/.test(line) &&
+    !/@|\d|www\.|\.com|\.net|\.org|\.io|\.ph/i.test(line) &&
+    line.split(' ').length <= 5
+  ) || ''
+  const role = candidateLines.find(line =>
+    line !== name &&
+    /\b(?:manager|director|officer|specialist|coordinator|consultant|founder|owner|partner|president|ceo|cto|cfo|sales|marketing|engineer|developer|designer|associate|assistant|lead|head)\b/i.test(line)
+  ) || ''
+  const company = candidateLines.find(line =>
+    line !== name &&
+    line !== role &&
+    !/@|\d{3,}|www\.|\.com|\.net|\.org|\.io|\.ph/i.test(line)
+  ) || ''
+
+  return {
+    Name: name,
+    Company: company,
+    'Role / Position': role,
+    Email: email,
+    'Contact Number': phone,
+    Address: address,
+    Notes: '',
+    'Raw OCR Text': rawText,
+  }
+}
+
+const extractTextFromImage = async (imageDataUrl: string): Promise<string> => {
+  const { createWorker } = await import('tesseract.js')
+  const worker = await createWorker('eng')
+  try {
+    const { data } = await worker.recognize(imageDataUrl)
+    return data.text || ''
+  } finally {
+    await worker.terminate()
+  }
+}
 
 export default function LeadGeneration() {
   const [files, setFiles] = useState<LeadFile[]>([])
@@ -574,15 +627,17 @@ export default function LeadGeneration() {
     setCallingCardUploading(true)
     try {
       const imageDataUrl = await compressImageFile(file)
+      const extractedText = await extractTextFromImage(imageDataUrl)
+      const parsedLead = parseCallingCardText(extractedText)
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()
       const baseName = file.name.replace(/\.[^/.]+$/, '').trim()
       const name = sourceLabel === 'camera'
-        ? `Calling Card Photo - ${new Date().toLocaleDateString()}`
+        ? `Calling Card Lead - ${new Date().toLocaleDateString()}`
         : `Calling Card - ${baseName || new Date().toLocaleDateString()}`
       const newFile: LeadFile = { id: fileId, name, columns: CALLING_CARD_COLUMNS, source: 'spreadsheet', created_at: now, updated_at: now }
       const rowData = CALLING_CARD_COLUMNS.reduce((acc, col) => {
-        acc[col] = col === 'Calling Card Image' ? imageDataUrl : ''
+        acc[col] = parsedLead[col] || ''
         return acc
       }, {} as Record<string, string>)
       let newRow: LeadRow = {
@@ -620,10 +675,10 @@ export default function LeadGeneration() {
       setRows([newRow])
       setEditingCell(null)
       setEditingHeader(null)
-      logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card photo "${newFile.name}"`)
+      logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead "${newFile.name}"`)
     } catch (err) {
       console.error('Error adding calling card photo:', err)
-      alert('Failed to add calling card photo')
+      alert('Failed to parse calling card photo')
     } finally {
       setCallingCardUploading(false)
       if (callingCardInputRef.current) callingCardInputRef.current.value = ''
@@ -1261,7 +1316,6 @@ if (supabase) {
                       {selectedFile.columns.map((col) => {
                         const cellKey = `${row.id}-${col}`
                         const format = cellFormats[cellKey] || {}
-                        const cellValue = row.data[col] || ''
                         return (
                           <td
                             key={col}
@@ -1290,11 +1344,7 @@ if (supabase) {
                               />
                             ) : (
                               <div className="px-2 py-1 text-sm text-[#3E4048] min-h-[28px] hover:bg-white hover:border hover:border-[#CACDD7] rounded">
-                                {isImageDataUrl(cellValue) ? (
-                                  <img src={cellValue} alt="Calling card" className="h-24 w-36 object-cover rounded border border-[#CACDD7]" />
-                                ) : (
-                                  cellValue
-                                )}
+                                {row.data[col] || ''}
                               </div>
                             )}
                           </td>
@@ -1360,7 +1410,7 @@ if (supabase) {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Lead Generation</h1>
-                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files, create sheets, or capture calling cards</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Upload CSV files, create sheets, or parse calling cards</p>
               </div>
             </div>
           </div>
@@ -1404,7 +1454,7 @@ if (supabase) {
           {callingCardUploading ? (
             <div className="flex flex-col items-center gap-3">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#0B8043' }}></div>
-              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Adding calling card...</p>
+              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Reading card text...</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
@@ -1415,8 +1465,8 @@ if (supabase) {
                 </svg>
               </div>
               <div>
-                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Calling Card Photo</p>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Upload or take a picture</p>
+                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Parse Calling Card</p>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Extract lead details from a picture</p>
               </div>
               <div className="grid grid-cols-2 gap-2 w-full">
                 <button
