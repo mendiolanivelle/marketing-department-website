@@ -15,6 +15,12 @@ export default function PublicAcceptanceForm() {
   const [generatedId, setGeneratedId] = useState('')
   const [copied, setCopied] = useState(false)
 
+  const formatDateForInput = (dateStr: string): string => {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return ''
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+  }
+
   const DOC_TYPE = 'AC' // Change to 'REQ' or 'RPT' as needed
 
   const generateId = async (): Promise<string> => {
@@ -392,11 +398,11 @@ export default function PublicAcceptanceForm() {
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
-                <input type="text" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Aug 01, 2026" />
+                <input type="date" value={form.startDate ? formatDateForInput(form.startDate) : ''} onChange={(e) => setForm({ ...form, startDate: e.target.value ? new Date(e.target.value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
-                <input type="text" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Oct 15, 2026" />
+                <input type="date" value={form.deadline ? formatDateForInput(form.deadline) : ''} onChange={(e) => setForm({ ...form, deadline: e.target.value ? new Date(e.target.value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
