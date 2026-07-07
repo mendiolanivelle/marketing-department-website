@@ -25,6 +25,7 @@ interface WebsiteRequest {
 const requestTypes: RequestType[] = ['Feedback', 'Bug', 'Improvement', 'New Feature', 'Question']
 const priorities: RequestPriority[] = ['Low', 'Medium', 'High', 'Urgent']
 const statuses: RequestStatus[] = ['Open', 'Reviewing', 'Planned', 'Done', 'Closed']
+const WEBSITE_REQUEST_DRAFT_KEY = 'exodia-website-request-draft'
 
 const priorityStyle: Record<RequestPriority, { bg: string; text: string; border: string }> = {
   Low: { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0' },
@@ -51,6 +52,17 @@ function getDisplayName(email?: string | null) {
   return name.replace(/\b\w/g, letter => letter.toUpperCase())
 }
 
+function emptyForm(email?: string | null) {
+  return {
+    title: '',
+    request_type: 'Feedback' as RequestType,
+    priority: 'Medium' as RequestPriority,
+    page_area: '',
+    description: '',
+    requester_name: getDisplayName(email),
+  }
+}
+
 export default function WebsiteRequests() {
   const { user } = useAuth()
   const [requests, setRequests] = useState<WebsiteRequest[]>([])
@@ -58,13 +70,13 @@ export default function WebsiteRequests() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<RequestStatus | 'All'>('All')
-  const [form, setForm] = useState({
-    title: '',
-    request_type: 'Feedback' as RequestType,
-    priority: 'Medium' as RequestPriority,
-    page_area: '',
-    description: '',
-    requester_name: getDisplayName(user?.email),
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WEBSITE_REQUEST_DRAFT_KEY)
+      return saved ? { ...emptyForm(user?.email), ...JSON.parse(saved) } : emptyForm(user?.email)
+    } catch {
+      return emptyForm(user?.email)
+    }
   })
 
   const visibleRequests = useMemo(() => {
@@ -107,6 +119,10 @@ export default function WebsiteRequests() {
     }
   }, [])
 
+  useEffect(() => {
+    localStorage.setItem(WEBSITE_REQUEST_DRAFT_KEY, JSON.stringify(form))
+  }, [form])
+
   const submitRequest = async (event: React.FormEvent) => {
     event.preventDefault()
     setMessage('')
@@ -137,14 +153,8 @@ export default function WebsiteRequests() {
       setMessage(`Could not submit request: ${error.message}`)
     } else {
       setMessage('Request submitted and synced to the database.')
-      setForm({
-        title: '',
-        request_type: 'Feedback',
-        priority: 'Medium',
-        page_area: '',
-        description: '',
-        requester_name: getDisplayName(user?.email),
-      })
+      localStorage.removeItem(WEBSITE_REQUEST_DRAFT_KEY)
+      setForm(emptyForm(user?.email))
       loadRequests()
     }
     setSaving(false)
