@@ -39,6 +39,10 @@ interface CellFormat {
 const CALLING_CARD_COLUMNS = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address', 'Notes', 'Raw OCR Text']
 const CALLING_CARD_FILE_NAME = 'Calling Card Leads'
 
+const emitUploadStatus = (id: string, label: string, status: 'queued' | 'uploading' | 'done' | 'error', progress: number) => {
+  window.dispatchEvent(new CustomEvent('upload-status', { detail: { id, label, status, progress } }))
+}
+
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter(line => line.trim())
   if (lines.length === 0) return { headers: [], rows: [] }
@@ -191,6 +195,9 @@ export default function LeadGeneration() {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const filesRef = useRef<LeadFile[]>([])
   const callingCardQueueRef = useRef<{ file: File; sourceLabel: 'upload' | 'camera' }[]>([])
+  const callingCardUploadIdRef = useRef(`calling-card-${crypto.randomUUID()}`)
+  const callingCardTotalRef = useRef(0)
+  const callingCardDoneRef = useRef(0)
   const processingCallingCardQueueRef = useRef(false)
   const [duplicateModal, setDuplicateModal] = useState<{
     type: 'upload' | 'cell-edit' | 'in-file'
@@ -496,11 +503,18 @@ export default function LeadGeneration() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    const uploadId = `csv-${crypto.randomUUID()}`
+    emitUploadStatus(uploadId, `Uploading ${file.name}`, 'uploading', 10)
     setUploading(true)
     try {
       const text = await file.text()
       const { headers, rows: parsedRows } = parseCSV(text)
-      if (headers.length === 0) { alert('CSV file is empty or invalid'); return }
+      if (headers.length === 0) {
+        emitUploadStatus(uploadId, `Uploading ${file.name}`, 'error', 100)
+        alert('CSV file is empty or invalid')
+        return
+      }
+      emitUploadStatus(uploadId, `Uploading ${file.name}`, 'uploading', 35)
 
       const now = new Date().toISOString()
       const fileId = crypto.randomUUID()
@@ -515,6 +529,7 @@ export default function LeadGeneration() {
         if (fileError) throw fileError
         newFile.id = fileData.id
       }
+      emitUploadStatus(uploadId, `Uploading ${file.name}`, 'uploading', 55)
 
       if (parsedRows.length > 0) {
         const emailCol = headers.find(h => h.toLowerCase().includes('email'))
@@ -599,9 +614,11 @@ export default function LeadGeneration() {
 
       setFiles(prev => [newFile, ...prev])
       if (fileInputRef.current) fileInputRef.current.value = ''
+      emitUploadStatus(uploadId, `Uploaded ${file.name}`, 'done', 100)
       logActivity('LeadGen', `Uploaded "${newFile.name}" (${parsedRows.length} rows)`)
     } catch (err) {
       console.error('Error uploading CSV:', err)
+      emitUploadStatus(uploadId, `Upload failed: ${file.name}`, 'error', 100)
       alert('Failed to upload CSV file')
     } finally { setUploading(false) }
   }
@@ -687,11 +704,21 @@ export default function LeadGeneration() {
     try {
       while (callingCardQueueRef.current.length > 0) {
         const next = callingCardQueueRef.current.shift()!
+        const total = Math.max(callingCardTotalRef.current, 1)
+        emitUploadStatus(callingCardUploadIdRef.current, `Extracting calling cards (${callingCardDoneRef.current + 1}/${total})`, 'uploading', Math.max(5, Math.round((callingCardDoneRef.current / total) * 100)))
         setCallingCardMessage({ type: 'success', text: `Processing ${callingCardQueueRef.current.length + 1} calling card photo${callingCardQueueRef.current.length === 0 ? '' : 's'}...` })
         await appendCallingCardLead(next.file, next.sourceLabel)
+        callingCardDoneRef.current += 1
+        emitUploadStatus(callingCardUploadIdRef.current, `Extracting calling cards (${callingCardDoneRef.current}/${total})`, 'uploading', Math.round((callingCardDoneRef.current / total) * 100))
       }
+      emitUploadStatus(callingCardUploadIdRef.current, 'Calling card upload complete', 'done', 100)
+      callingCardDoneRef.current = 0
+      callingCardTotalRef.current = 0
     } catch (err) {
       console.error('Error adding calling card photo:', err)
+      emitUploadStatus(callingCardUploadIdRef.current, 'Calling card upload failed', 'error', 100)
+      callingCardDoneRef.current = 0
+      callingCardTotalRef.current = 0
       setCallingCardMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to parse calling card photo.' })
     } finally {
       processingCallingCardQueueRef.current = false
@@ -703,6 +730,8 @@ export default function LeadGeneration() {
     const selectedFiles = Array.from(e.target.files || [])
     if (selectedFiles.length === 0) return
     callingCardQueueRef.current.push(...selectedFiles.map(file => ({ file, sourceLabel })))
+    callingCardTotalRef.current += selectedFiles.length
+    emitUploadStatus(callingCardUploadIdRef.current, `${callingCardTotalRef.current - callingCardDoneRef.current} calling card photo${callingCardTotalRef.current - callingCardDoneRef.current === 1 ? '' : 's'} queued`, 'queued', Math.round((callingCardDoneRef.current / Math.max(callingCardTotalRef.current, 1)) * 100))
     setCallingCardMessage({ type: 'success', text: `${selectedFiles.length} photo${selectedFiles.length === 1 ? '' : 's'} queued.` })
     e.target.value = ''
     processCallingCardQueue()
@@ -1451,24 +1480,18 @@ if (supabase) {
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}
         >
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-          {uploading ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
-              <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>Uploading and parsing CSV...</p>
+          {uploading && <p className="mb-3 text-sm font-medium" style={{ color: 'var(--accent)' }}>Upload running...</p>}
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 'var(--accent-light)' }}>
+              <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 'var(--accent-light)' }}>
-                <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
-              </div>
+            <div>
+              <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Upload CSV File</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
             </div>
-          )}
+          </div>
           {callingCardMessage && (
             <div
               className="mt-4 rounded-lg px-3 py-2 text-xs text-left"
@@ -1491,43 +1514,37 @@ if (supabase) {
         >
           <input ref={callingCardInputRef} type="file" accept="image/*" multiple onChange={(e) => handleCallingCardPhoto(e, 'upload')} className="hidden" />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleCallingCardPhoto(e, 'camera')} className="hidden" />
-          {callingCardUploading ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: '#0B8043' }}></div>
-              <p className="text-sm font-medium" style={{ color: '#0B8043' }}>Extracting with AI...</p>
+          {callingCardUploading && <p className="mb-3 text-sm font-medium" style={{ color: '#0B8043' }}>Extracting with AI...</p>}
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300" style={{ backgroundColor: 'rgba(11,128,67,0.1)' }}>
+              <svg className="w-8 h-8" style={{ color: '#0B8043' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25A2.25 2.25 0 015.25 6h13.5A2.25 2.25 0 0121 8.25v7.5A2.25 2.25 0 0118.75 18H5.25A2.25 2.25 0 013 15.75v-7.5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 10.5h4.5M7.5 13.5h7.5M17.25 10.5h.01" />
+              </svg>
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300" style={{ backgroundColor: 'rgba(11,128,67,0.1)' }}>
-                <svg className="w-8 h-8" style={{ color: '#0B8043' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.25A2.25 2.25 0 015.25 6h13.5A2.25 2.25 0 0121 8.25v7.5A2.25 2.25 0 0118.75 18H5.25A2.25 2.25 0 013 15.75v-7.5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 10.5h4.5M7.5 13.5h7.5M17.25 10.5h.01" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>AI Calling Card</p>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Extract lead details from a picture</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <button
-                  type="button"
-                  onClick={() => callingCardInputRef.current?.click()}
-                  className="px-3 py-2 text-sm rounded-lg transition"
-                  style={{ backgroundColor: 'rgba(11,128,67,0.1)', color: '#0B8043', fontWeight: 600 }}
-                >
-                  Upload
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="px-3 py-2 text-sm rounded-lg transition"
-                  style={{ backgroundColor: '#0B8043', color: '#FFFFFF', fontWeight: 600 }}
-                >
-                  Camera
-                </button>
-              </div>
+            <div>
+              <p className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>AI Calling Card</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Extract lead details from a picture</p>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => callingCardInputRef.current?.click()}
+                className="px-3 py-2 text-sm rounded-lg transition"
+                style={{ backgroundColor: 'rgba(11,128,67,0.1)', color: '#0B8043', fontWeight: 600 }}
+              >
+                Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="px-3 py-2 text-sm rounded-lg transition"
+                style={{ backgroundColor: '#0B8043', color: '#FFFFFF', fontWeight: 600 }}
+              >
+                Camera
+              </button>
+            </div>
+          </div>
         </div>
 
         <div

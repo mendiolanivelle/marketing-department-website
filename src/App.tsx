@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -36,6 +36,51 @@ function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
         style={{ borderColor: 'var(--border-secondary)', borderTopColor: 'var(--accent)' }}
       />
       <span className="sr-only">Loading</span>
+    </div>
+  )
+}
+
+type UploadStatus = {
+  id: string
+  label: string
+  status: 'queued' | 'uploading' | 'done' | 'error'
+  progress: number
+}
+
+function UploadStatusPopup() {
+  const [items, setItems] = useState<UploadStatus[]>([])
+
+  useEffect(() => {
+    const handleStatus = (event: Event) => {
+      const item = (event as CustomEvent<UploadStatus>).detail
+      if (!item?.id) return
+      setItems(prev => [item, ...prev.filter(existing => existing.id !== item.id)].slice(0, 4))
+      if (item.status === 'done' || item.status === 'error') {
+        window.setTimeout(() => {
+          setItems(prev => prev.filter(existing => existing.id !== item.id))
+        }, 4500)
+      }
+    }
+
+    window.addEventListener('upload-status', handleStatus)
+    return () => window.removeEventListener('upload-status', handleStatus)
+  }, [])
+
+  if (items.length === 0) return null
+
+  return (
+    <div className="fixed left-4 bottom-4 z-[9999] w-[min(360px,calc(100vw-2rem))] space-y-2" aria-live="polite">
+      {items.map(item => (
+        <div key={item.id} className="rounded-xl border p-3 shadow-lg" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)' }}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.label}</p>
+            <span className="text-xs capitalize" style={{ color: item.status === 'error' ? '#B91C1C' : 'var(--accent)', fontWeight: 500 }}>{item.status}</span>
+          </div>
+          <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--bg-hover)' }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${item.progress}%`, backgroundColor: item.status === 'error' ? '#B91C1C' : 'var(--accent)' }} />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -126,6 +171,7 @@ function App() {
               }
             />
           </Routes>
+          <UploadStatusPopup />
         </HashRouter>
       </AuthProvider>
     </ThemeProvider>
