@@ -144,7 +144,7 @@ export default function Calendar() {
       .subscribe()
 
     return () => {
-      try { supabase.removeChannel(channel) } catch {}
+      try { supabase?.removeChannel(channel) } catch {}
     }
   }, [fetchItems])
 
@@ -370,7 +370,7 @@ export default function Calendar() {
 
   const selectedItems = selectedDate ? itemsByDate[selectedDate] || [] : []
 
-  const rows = []
+  const rows: (typeof calendarDays)[] = []
   for (let i = 0; i < calendarDays.length; i += 7) {
     rows.push(calendarDays.slice(i, i + 7))
   }

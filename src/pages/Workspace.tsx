@@ -12,6 +12,7 @@ interface WorkspaceCard {
   imageUrl?: string
   width?: number
   height?: number
+  zIndex?: number
 }
 
 const STORAGE_KEY = 'exodia-workspace-cards'

@@ -314,8 +314,8 @@ export default function LeadGeneration() {
       })
       .subscribe()
     return () => {
-      try { supabase.removeChannel(fileChannel) } catch {}
-      try { supabase.removeChannel(rowsChannel) } catch {}
+      try { supabase?.removeChannel(fileChannel) } catch {}
+      try { supabase?.removeChannel(rowsChannel) } catch {}
     }
   }, [fetchFiles, selectedFile, fetchRows])
 
@@ -652,9 +652,11 @@ export default function LeadGeneration() {
         if (fileError) throw fileError
         targetFile = fileData
       }
-      filesRef.current = [targetFile, ...filesRef.current]
-      setFiles(prev => [targetFile!, ...prev])
-      localStorage.setItem(`exodia-lead-rows-${targetFile.id}`, JSON.stringify([]))
+      if (!targetFile) throw new Error('Could not create calling card spreadsheet')
+      const createdFile = targetFile
+      filesRef.current = [createdFile, ...filesRef.current]
+      setFiles(prev => [createdFile, ...prev])
+      localStorage.setItem(`exodia-lead-rows-${createdFile.id}`, JSON.stringify([]))
     }
 
     const existingRows = await fetchRows(targetFile.id)
@@ -1703,18 +1705,19 @@ if (supabase) {
                         for (let i = 1; i < d.rows.length; i++) rowsToRemove.push(d.rows[i])
                       }
                       if (rowsToRemove.length === 0) return
+                      const activeFile = filesRef.current.find(file => file.id === rowsToRemove[0]?.file_id) || null
                       for (const row of rowsToRemove) {
                         try {
-                          if (selectedFile) {
-                            await checkAndRouteDuplicates([row.data], selectedFile.id, selectedFile.name, selectedFile.columns)
+                          if (activeFile) {
+                            await checkAndRouteDuplicates([row.data], activeFile.id, activeFile.name, activeFile.columns)
                           }
                           if (supabase) {
                             await supabase.from('lead_rows').delete().eq('id', row.id)
-                          } else if (selectedFile) {
-                            const saved = localStorage.getItem(`exodia-lead-rows-${selectedFile.id}`)
+                          } else if (activeFile) {
+                            const saved = localStorage.getItem(`exodia-lead-rows-${activeFile.id}`)
                             if (saved) {
                               const localRows: LeadRow[] = JSON.parse(saved)
-                              localStorage.setItem(`exodia-lead-rows-${selectedFile.id}`, JSON.stringify(localRows.filter(r => r.id !== row.id)))
+                              localStorage.setItem(`exodia-lead-rows-${activeFile.id}`, JSON.stringify(localRows.filter(r => r.id !== row.id)))
                             }
                           }
                         } catch {}
@@ -1738,15 +1741,16 @@ if (supabase) {
                   <button onClick={() => setDuplicateModal(null)} className="px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
                   <button
                     onClick={async () => {
-                      if (!duplicateModal.rowId || !duplicateModal.fileId || !selectedFile) return
+                      const activeFile = selectedFile as LeadFile | null
+                      if (!duplicateModal.rowId || !duplicateModal.fileId || !activeFile) return
                       const row = rows.find(r => r.id === duplicateModal.rowId)
                       if (!row) return
                       try {
                         await checkAndRouteDuplicates(
                           [duplicateModal.rowData || row.data],
                           duplicateModal.fileId,
-                          selectedFile.name,
-                          selectedFile.columns
+                          activeFile.name,
+                          activeFile.columns
                         )
                         if (supabase) {
                           await supabase.from('lead_rows').delete().eq('id', duplicateModal.rowId)

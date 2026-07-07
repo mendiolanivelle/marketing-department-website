@@ -158,7 +158,7 @@ export default function Timeline() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_tables' }, () => { fetchData() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_leads' }, () => { fetchData() })
       .subscribe()
-    return () => { try { supabase.removeChannel(channel) } catch {}; clearInterval(interval) }
+    return () => { try { supabase?.removeChannel(channel) } catch {}; clearInterval(interval) }
   }, [fetchData])
 
   // Persist to localStorage for cross-page sync
@@ -576,7 +576,7 @@ setEmailBody('')
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     setShowAddPopup(null)
     setAddPopupValue('')
-    try { await supabase.from('timeline_leads').update({ checklist: updated.checklist }).eq('id', selectedLead.id) } catch {}
+    try { await supabase?.from('timeline_leads').update({ checklist: updated.checklist }).eq('id', selectedLead.id) } catch {}
   }
 
   const toggleChecklistItem = async (idx: number) => {
@@ -586,7 +586,7 @@ setEmailBody('')
     const updated = { ...selectedLead, checklist }
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    try { await supabase.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
   }
 
   const deleteChecklistItem = async (idx: number) => {
@@ -595,7 +595,7 @@ setEmailBody('')
     const updated = { ...selectedLead, checklist }
     setSelectedLead(updated)
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    try { await supabase.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
   }
 
   const updateChecklistItem = async (idx: number) => {
@@ -607,7 +607,7 @@ setEmailBody('')
     setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     setEditingChecklistIdx(null)
     setEditingChecklistValue('')
-    try { await supabase.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
   }
 
   const filteredTables = searchQuery

@@ -293,7 +293,7 @@ export default function AcceptanceCriteria() {
       .subscribe()
 
     return () => {
-      try { supabase.removeChannel(channel) } catch {}
+      try { supabase?.removeChannel(channel) } catch {}
     }
   }, [])
 

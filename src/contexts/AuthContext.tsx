@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
-        await supabase.auth.signOut({ scope: 'local' })
+        await supabase?.auth.signOut({ scope: 'local' })
         setSession(null)
         setUser(null)
         setLoading(false)
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return
-    await supabase.auth.signOut()
+    await supabase?.auth.signOut()
     setSession(null)
     setUser(null)
   }

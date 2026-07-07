@@ -124,7 +124,7 @@ export default function WebsiteRequests() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase?.removeChannel(channel)
     }
   }, [])
 
@@ -211,7 +211,7 @@ export default function WebsiteRequests() {
       <div className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Requests</h1>
+            <h1 className="text-2xl sm:text-3xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Website Requests</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)', fontWeight: 300 }}>
               Website feedback, bug reports, and improvement tickets from the team.
             </p>

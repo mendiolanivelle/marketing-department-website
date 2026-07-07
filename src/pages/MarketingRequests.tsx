@@ -43,7 +43,7 @@ export default function MarketingRequests() {
         .subscribe()
 
       return () => {
-        supabase.removeChannel(channel)
+        supabase?.removeChannel(channel)
       }
     } else {
       const handleStorage = () => loadSubmissions()

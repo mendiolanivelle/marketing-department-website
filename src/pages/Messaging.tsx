@@ -398,7 +398,7 @@ export default function Messaging() {
 
     // Also try Supabase
     if (isSupabaseConfigured && supabase) {
-      supabase.from('calendar_items').insert([calendarItem]).then(() => {}).catch(() => {})
+      void supabase.from('calendar_items').insert([calendarItem]).then(() => {}, () => {})
       supabase.from('timeline_leads').insert([{
         table_id: targetTableId,
         company: lead.company,
@@ -412,7 +412,7 @@ export default function Messaging() {
         email_history: [],
         created_at: now,
         updated_at: now,
-      }]).then(() => {}).catch(() => {})
+      }]).then(() => {}, () => {})
     }
 
     setShowMeetingModal(false)
@@ -550,7 +550,7 @@ export default function Messaging() {
       .subscribe()
 
     return () => {
-      try { supabase.removeChannel(channel) } catch {}
+      try { supabase?.removeChannel(channel) } catch {}
     }
   }, [fetchTemplates])
 

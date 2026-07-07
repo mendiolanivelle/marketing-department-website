@@ -189,8 +189,8 @@ export default function Home() {
       .subscribe()
 
     return () => {
-      try { supabase.removeChannel(filesChannel) } catch {}
-      try { supabase.removeChannel(rowsChannel) } catch {}
+      try { supabase?.removeChannel(filesChannel) } catch {}
+      try { supabase?.removeChannel(rowsChannel) } catch {}
     }
   }, [fetchLeadStats])
 
