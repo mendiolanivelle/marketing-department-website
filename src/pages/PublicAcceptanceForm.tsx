@@ -103,7 +103,7 @@ export default function PublicAcceptanceForm() {
     toolsSoftware: '',
     performanceConstraints: '',
     signature: '',
-    signatureDate: '',
+    signatureDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   })
 
   const handleCheckboxGroup = (field: string, value: string, checked: boolean) => {
@@ -557,7 +557,7 @@ export default function PublicAcceptanceForm() {
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
-                <input type="text" value={form.signatureDate} onChange={(e) => setForm({ ...form, signatureDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Jul 01, 2026" required />
+                <div className="w-full px-3.5 py-2.5 border rounded-lg text-sm" style={{ borderColor: '#D1D5DB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>{form.signatureDate}</div>
               </div>
             </div>
           </div>
