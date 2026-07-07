@@ -63,25 +63,35 @@ interface FormData {
   managementApproval: string
 }
 
+const emptyForm: FormData = {
+  name: '',
+  department: '',
+  email: '',
+  title: '',
+  campaign: '',
+  description: '',
+  requestType: [],
+  otherRequestType: '',
+  platforms: '',
+  audience: '',
+  resourceLinks: [],
+  dateNeeded: '',
+  priority: '',
+  managementApproval: '',
+}
+
 export default function SubmitRequestForm() {
   const { token } = useParams<{ token: string }>()
   const isEditMode = !!token
 
-  const [form, setForm] = useState<FormData>({
-    name: '',
-    department: '',
-    email: '',
-    title: '',
-    campaign: '',
-    description: '',
-    requestType: [],
-    otherRequestType: '',
-    platforms: '',
-    audience: '',
-    resourceLinks: [],
-    dateNeeded: '',
-    priority: '',
-    managementApproval: '',
+  const [form, setForm] = useState<FormData>(() => {
+    if (isEditMode) return emptyForm
+    try {
+      const saved = localStorage.getItem('exodia-marketing-request-draft')
+      return saved ? { ...emptyForm, ...JSON.parse(saved) } : emptyForm
+    } catch {
+      return emptyForm
+    }
   })
   const [editToken, setEditToken] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -153,10 +163,6 @@ export default function SubmitRequestForm() {
       }
       loadFromSupabase()
     } else {
-      const saved = localStorage.getItem('exodia-marketing-request-draft')
-      if (saved) {
-        try { setForm(JSON.parse(saved)) } catch {}
-      }
       setLoading(false)
     }
   }, [token])
@@ -326,11 +332,7 @@ export default function SubmitRequestForm() {
           <div className="flex items-center justify-center">
             <button
               onClick={() => {
-              setForm({
-                name: '', department: '', email: '', title: '', campaign: '', description: '',
-                requestType: [], otherRequestType: '', platforms: '', audience: '',
-                resourceLinks: [], dateNeeded: '', priority: '', managementApproval: '',
-              })
+              setForm(emptyForm)
               setEditToken('')
               setSubmitted(false)
               setError('')
