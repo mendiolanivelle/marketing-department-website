@@ -103,6 +103,8 @@ export default function Timeline() {
     if (savedLeads) {
       try { localLeads = JSON.parse(savedLeads) } catch {}
     }
+    const fallbackTables = localTables
+    const fallbackLeads = localLeads
 
     // Ensure a default onboarding table exists
     if (localTables.length === 0) {
@@ -138,6 +140,21 @@ export default function Timeline() {
             email_history: typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || []),
             last_email_sent: l.last_email_sent || '',
           }))
+          const unsyncedCallingCards = fallbackLeads.filter(localLead =>
+            localLead.notes?.includes('Auto-created from calling card upload') &&
+            !localLeads.some(remoteLead =>
+              (localLead.email && remoteLead.email === localLead.email && remoteLead.date === localLead.date && remoteLead.notes === localLead.notes) ||
+              (!localLead.email && remoteLead.company === localLead.company && remoteLead.contact === localLead.contact && remoteLead.notes === localLead.notes)
+            )
+          )
+          if (unsyncedCallingCards.length > 0) {
+            localLeads = [...localLeads, ...unsyncedCallingCards]
+            fallbackTables.forEach(table => {
+              if (!localTables.some(remoteTable => remoteTable.id === table.id) && unsyncedCallingCards.some(lead => lead.table_id === table.id)) {
+                localTables.push(table)
+              }
+            })
+          }
         }
       } catch (err) {
         console.error('Error fetching timeline data:', err)
@@ -152,13 +169,21 @@ export default function Timeline() {
   useEffect(() => {
     fetchData()
     const interval = setInterval(fetchData, 3000)
-    if (!isSupabaseConfigured || !supabase) return () => clearInterval(interval)
+    window.addEventListener('timeline-data-changed', fetchData)
+    if (!isSupabaseConfigured || !supabase) return () => {
+      clearInterval(interval)
+      window.removeEventListener('timeline-data-changed', fetchData)
+    }
     const channel = supabase
       .channel('timeline_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_tables' }, () => { fetchData() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'timeline_leads' }, () => { fetchData() })
       .subscribe()
-    return () => { try { supabase?.removeChannel(channel) } catch {}; clearInterval(interval) }
+    return () => {
+      try { supabase?.removeChannel(channel) } catch {}
+      clearInterval(interval)
+      window.removeEventListener('timeline-data-changed', fetchData)
+    }
   }, [fetchData])
 
   // Persist to localStorage for cross-page sync

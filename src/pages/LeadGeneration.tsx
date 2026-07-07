@@ -220,8 +220,6 @@ const buildTimelineLead = (rowData: Record<string, string>, now: string, columnK
 }
 
 const addCallingCardToTimeline = async (rowData: Record<string, string>, now: string) => {
-  const email = rowData.Email.trim()
-
   const savedTables = localStorage.getItem('exodia-timeline-tables')
   let tables: TimelineTable[] = savedTables ? JSON.parse(savedTables) : []
   if (tables.length === 0) {
@@ -231,11 +229,10 @@ const addCallingCardToTimeline = async (rowData: Record<string, string>, now: st
   const localLead = buildTimelineLead(rowData, now, findIntroductoryColumn(tables[0].columns).key)
   const savedLeads = localStorage.getItem('exodia-timeline-leads')
   const leads = savedLeads ? JSON.parse(savedLeads) : []
-  if (!email || !leads.some((item: { email?: string }) => item.email?.toLowerCase() === email.toLowerCase())) {
-    leads.push({ id: crypto.randomUUID(), table_id: tables[0].id, ...localLead })
-  }
+  leads.push({ id: crypto.randomUUID(), table_id: tables[0].id, ...localLead })
   localStorage.setItem('exodia-timeline-tables', JSON.stringify(tables))
   localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
+  window.dispatchEvent(new CustomEvent('timeline-data-changed'))
 
   if (isSupabaseConfigured && supabase) {
     let { data: tableData } = await supabase.from('timeline_tables').select('*').order('created_at', { ascending: false }).limit(1)
@@ -249,12 +246,9 @@ const addCallingCardToTimeline = async (rowData: Record<string, string>, now: st
       if (error) throw error
     }
     const supabaseLead = buildTimelineLead(rowData, now, findIntroductoryColumn(table.columns).key)
-    if (email) {
-      const { data: existing } = await supabase.from('timeline_leads').select('id').eq('email', email).limit(1)
-      if (existing?.length) return
-    }
     const { error } = await supabase.from('timeline_leads').insert([{ table_id: table.id, ...supabaseLead }])
     if (error) throw error
+    window.dispatchEvent(new CustomEvent('timeline-data-changed'))
   }
 }
 
