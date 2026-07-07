@@ -366,7 +366,29 @@ export default function PublicAcceptanceForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
-                <input type="text" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. EST (UTC-5)" />
+                <select value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
+                  <option value="" disabled>Select your timezone</option>
+                  <option value="EST (UTC-5)">EST (UTC-5) — Eastern US</option>
+                  <option value="CST (UTC-6)">CST (UTC-6) — Central US</option>
+                  <option value="MST (UTC-7)">MST (UTC-7) — Mountain US</option>
+                  <option value="PST (UTC-8)">PST (UTC-8) — Pacific US</option>
+                  <option value="AKST (UTC-9)">AKST (UTC-9) — Alaska</option>
+                  <option value="HST (UTC-10)">HST (UTC-10) — Hawaii</option>
+                  <option value="AST (UTC-4)">AST (UTC-4) — Atlantic Canada</option>
+                  <option value="NST (UTC-3:30)">NST (UTC-3:30) — Newfoundland</option>
+                  <option value="BRT (UTC-3)">BRT (UTC-3) — Brasília</option>
+                  <option value="GMT (UTC+0)">GMT (UTC+0) — London / Lisbon</option>
+                  <option value="CET (UTC+1)">CET (UTC+1) — Paris / Berlin / Rome</option>
+                  <option value="EET (UTC+2)">EET (UTC+2) — Athens / Helsinki</option>
+                  <option value="MSK (UTC+3)">MSK (UTC+3) — Moscow</option>
+                  <option value="GST (UTC+4)">GST (UTC+4) — Dubai</option>
+                  <option value="IST (UTC+5:30)">IST (UTC+5:30) — India</option>
+                  <option value="SGT (UTC+8)">SGT (UTC+8) — Singapore / Manila</option>
+                  <option value="CST (UTC+8)">CST (UTC+8) — China / Taipei</option>
+                  <option value="JST (UTC+9)">JST (UTC+9) — Tokyo / Seoul</option>
+                  <option value="AEST (UTC+10)">AEST (UTC+10) — Sydney / Melbourne</option>
+                  <option value="NZST (UTC+12)">NZST (UTC+12) — Auckland</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
