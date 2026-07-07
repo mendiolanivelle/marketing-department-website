@@ -68,8 +68,6 @@ export default function Sidebar() {
       try {
         const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
         setUnreadCount(mr ?? 0)
-        const { count: ac } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
-        if (ac !== null) setAcUnreadCount(ac)
         const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
         const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
         setWebsiteRequestCount(wr ?? 0)
