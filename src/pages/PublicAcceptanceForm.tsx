@@ -374,26 +374,62 @@ export default function PublicAcceptanceForm() {
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
                 <select value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
                   <option value="" disabled>Select your timezone</option>
-                  <option value="EST (UTC-5)">EST (UTC-5) — Eastern US</option>
-                  <option value="CST (UTC-6)">CST (UTC-6) — Central US</option>
-                  <option value="MST (UTC-7)">MST (UTC-7) — Mountain US</option>
-                  <option value="PST (UTC-8)">PST (UTC-8) — Pacific US</option>
-                  <option value="AKST (UTC-9)">AKST (UTC-9) — Alaska</option>
-                  <option value="HST (UTC-10)">HST (UTC-10) — Hawaii</option>
-                  <option value="AST (UTC-4)">AST (UTC-4) — Atlantic Canada</option>
-                  <option value="NST (UTC-3:30)">NST (UTC-3:30) — Newfoundland</option>
-                  <option value="BRT (UTC-3)">BRT (UTC-3) — Brasília</option>
-                  <option value="GMT (UTC+0)">GMT (UTC+0) — London / Lisbon</option>
-                  <option value="CET (UTC+1)">CET (UTC+1) — Paris / Berlin / Rome</option>
-                  <option value="EET (UTC+2)">EET (UTC+2) — Athens / Helsinki</option>
-                  <option value="MSK (UTC+3)">MSK (UTC+3) — Moscow</option>
-                  <option value="GST (UTC+4)">GST (UTC+4) — Dubai</option>
-                  <option value="IST (UTC+5:30)">IST (UTC+5:30) — India</option>
-                  <option value="SGT (UTC+8)">SGT (UTC+8) — Singapore / Manila</option>
-                  <option value="CST (UTC+8)">CST (UTC+8) — China / Taipei</option>
-                  <option value="JST (UTC+9)">JST (UTC+9) — Tokyo / Seoul</option>
-                  <option value="AEST (UTC+10)">AEST (UTC+10) — Sydney / Melbourne</option>
-                  <option value="NZST (UTC+12)">NZST (UTC+12) — Auckland</option>
+                  <optgroup label="UTC-12 — UTC-9">
+                    <option value="UTC-12">UTC-12 — Baker Island / Howland Island</option>
+                    <option value="UTC-11">UTC-11 — American Samoa / Niue</option>
+                    <option value="UTC-10">UTC-10 — Hawaii / Papeete</option>
+                    <option value="UTC-9:30">UTC-9:30 — Marquesas Islands</option>
+                    <option value="UTC-9">UTC-9 — Alaska / Anchorage</option>
+                  </optgroup>
+                  <optgroup label="UTC-8 — UTC-6">
+                    <option value="UTC-8">UTC-8 — Los Angeles / Vancouver / Tijuana</option>
+                    <option value="UTC-7">UTC-7 — Denver / Phoenix / Calgary</option>
+                    <option value="UTC-6">UTC-6 — Chicago / Mexico City / Winnipeg</option>
+                  </optgroup>
+                  <optgroup label="UTC-5 — UTC-4">
+                    <option value="UTC-5">UTC-5 — New York / Toronto / Miami / Bogotá</option>
+                    <option value="UTC-4">UTC-4 — Santiago / Caracas / Halifax / Manaus</option>
+                    <option value="UTC-3:30">UTC-3:30 — St. John's / Newfoundland</option>
+                  </optgroup>
+                  <optgroup label="UTC-3 — UTC-1">
+                    <option value="UTC-3">UTC-3 — Brasília / Buenos Aires / Montevideo</option>
+                    <option value="UTC-2">UTC-2 — Fernando de Noronha / South Georgia</option>
+                    <option value="UTC-1">UTC-1 — Azores / Cape Verde</option>
+                  </optgroup>
+                  <optgroup label="UTC+0 — UTC+2">
+                    <option value="UTC+0">UTC+0 — London / Lisbon / Dublin / Accra</option>
+                    <option value="UTC+1">UTC+1 — Paris / Berlin / Rome / Madrid / Lagos</option>
+                    <option value="UTC+2">UTC+2 — Athens / Helsinki / Cairo / Jerusalem / Kyiv</option>
+                  </optgroup>
+                  <optgroup label="UTC+3 — UTC+5">
+                    <option value="UTC+3">UTC+3 — Moscow / Istanbul / Nairobi / Baghdad</option>
+                    <option value="UTC+3:30">UTC+3:30 — Tehran</option>
+                    <option value="UTC+4">UTC+4 — Dubai / Baku / Muscat / Tbilisi</option>
+                    <option value="UTC+4:30">UTC+4:30 — Kabul</option>
+                    <option value="UTC+5">UTC+5 — Karachi / Tashkent / Yekaterinburg</option>
+                  </optgroup>
+                  <optgroup label="UTC+5:30 — UTC+7">
+                    <option value="UTC+5:30">UTC+5:30 — India / Sri Lanka</option>
+                    <option value="UTC+5:45">UTC+5:45 — Kathmandu / Nepal</option>
+                    <option value="UTC+6">UTC+6 — Dhaka / Almaty / Omsk</option>
+                    <option value="UTC+6:30">UTC+6:30 — Yangon / Myanmar</option>
+                    <option value="UTC+7">UTC+7 — Bangkok / Jakarta / Hanoi / Krasnoyarsk</option>
+                  </optgroup>
+                  <optgroup label="UTC+8 — UTC+10">
+                    <option value="UTC+8">UTC+8 — Singapore / Beijing / Perth / Manila / Kuala Lumpur</option>
+                    <option value="UTC+8:45">UTC+8:45 — Eucla (Australia)</option>
+                    <option value="UTC+9">UTC+9 — Tokyo / Seoul / Osaka / Yakutsk</option>
+                    <option value="UTC+9:30">UTC+9:30 — Adelaide / Darwin</option>
+                    <option value="UTC+10">UTC+10 — Sydney / Melbourne / Brisbane / Guam</option>
+                  </optgroup>
+                  <optgroup label="UTC+10:30 — UTC+14">
+                    <option value="UTC+10:30">UTC+10:30 — Lord Howe Island</option>
+                    <option value="UTC+11">UTC+11 — Solomon Islands / Nouméa</option>
+                    <option value="UTC+12">UTC+12 — Auckland / Suva / Fiji / Kamchatka</option>
+                    <option value="UTC+12:45">UTC+12:45 — Chatham Islands</option>
+                    <option value="UTC+13">UTC+13 — Apia / Samoa / Tonga</option>
+                    <option value="UTC+14">UTC+14 — Line Islands / Kiritimati</option>
+                  </optgroup>
                 </select>
               </div>
               <div>
