@@ -242,10 +242,23 @@ function serveStatic(req, res) {
   const requested = cleanPath === '/' ? '/index.html' : cleanPath
   const filePath = join(distDir, requested)
   const fallbackPath = join(distDir, 'index.html')
+  const isAsset = requested.startsWith('/assets/')
+  if (isAsset && (!filePath.startsWith(distDir) || !existsSync(filePath))) {
+    res.writeHead(404, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store',
+    })
+    res.end('Asset not found')
+    return
+  }
+
   const safeFilePath = filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
   const type = contentTypes[extname(safeFilePath)] || 'application/octet-stream'
+  const cacheControl = extname(safeFilePath) === '.html'
+    ? 'no-cache'
+    : 'public, max-age=31536000, immutable'
 
-  res.writeHead(200, { 'Content-Type': type })
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl })
   createReadStream(safeFilePath).pipe(res)
 }
 

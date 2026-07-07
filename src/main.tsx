@@ -8,7 +8,8 @@ const reloadOnStaleChunk = (message: unknown) => {
   const isStaleChunk =
     text.includes('Failed to fetch dynamically imported module') ||
     text.includes('Importing a module script failed') ||
-    text.includes('Expected a JavaScript-or-Wasm module script')
+    text.includes('Expected a JavaScript-or-Wasm module script') ||
+    text.includes('Strict MIME type checking is enforced for module scripts')
 
   if (!isStaleChunk || sessionStorage.getItem('stale-chunk-reloaded') === 'true') return
 
