@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
+const WEBSITE_REQUESTS_SEEN_KEY = 'exodia-website-requests-seen-at'
+
 const categories = [
   {
     name: 'General',
@@ -50,6 +52,11 @@ export default function Sidebar() {
 
   const isActive = (path: string) => location.pathname === path
 
+  const markWebsiteRequestsSeen = () => {
+    localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, new Date().toISOString())
+    setWebsiteRequestCount(0)
+  }
+
   // Fetch unread counts
   const fetchUnread = async () => {
     if (isSupabaseConfigured && supabase) {
@@ -57,7 +64,8 @@ export default function Sidebar() {
       setUnreadCount(mr ?? 0)
       const { count: ac } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
       setAcUnreadCount(ac ?? 0)
-      const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).in('status', ['Open', 'Reviewing'])
+      const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
+      const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
       setWebsiteRequestCount(wr ?? 0)
     }
   }
@@ -295,7 +303,10 @@ export default function Sidebar() {
                       <Link
                         key={item.path}
                         to={item.path}
-                        onClick={() => setIsOpen(false)}
+                        onClick={() => {
+                          setIsOpen(false)
+                          if (item.path === '/website-requests') markWebsiteRequestsSeen()
+                        }}
                         className={`group flex items-center gap-2 rounded-xl transition-all duration-200 theme-transition relative ${
                           isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
                         }`}

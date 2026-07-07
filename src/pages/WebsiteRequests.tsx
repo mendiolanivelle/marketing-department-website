@@ -18,14 +18,22 @@ interface WebsiteRequest {
   requester_email: string | null
   created_by: string | null
   admin_notes: string | null
+  attachments?: WebsiteRequestAttachment[] | null
   created_at: string
   updated_at: string
+}
+
+interface WebsiteRequestAttachment {
+  name: string
+  type: string
+  dataUrl: string
 }
 
 const requestTypes: RequestType[] = ['Feedback', 'Bug', 'Improvement', 'New Feature', 'Question']
 const priorities: RequestPriority[] = ['Low', 'Medium', 'High', 'Urgent']
 const statuses: RequestStatus[] = ['Open', 'Reviewing', 'Planned', 'Done', 'Closed']
 const WEBSITE_REQUEST_DRAFT_KEY = 'exodia-website-request-draft'
+const MAX_ATTACHMENT_SIZE = 2 * 1024 * 1024
 
 const priorityStyle: Record<RequestPriority, { bg: string; text: string; border: string }> = {
   Low: { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0' },
@@ -60,6 +68,7 @@ function emptyForm(email?: string | null) {
     page_area: '',
     description: '',
     requester_name: getDisplayName(email),
+    attachments: [] as WebsiteRequestAttachment[],
   }
 }
 
@@ -69,7 +78,7 @@ export default function WebsiteRequests() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [statusFilter, setStatusFilter] = useState<RequestStatus | 'All'>('All')
+  const [statusFilter, setStatusFilter] = useState<RequestStatus | 'All'>('Open')
   const [form, setForm] = useState(() => {
     try {
       const saved = localStorage.getItem(WEBSITE_REQUEST_DRAFT_KEY)
@@ -123,6 +132,23 @@ export default function WebsiteRequests() {
     localStorage.setItem(WEBSITE_REQUEST_DRAFT_KEY, JSON.stringify(form))
   }, [form])
 
+  const addAttachments = async (files: FileList | null) => {
+    if (!files?.length) return
+    const images = Array.from(files).filter(file => file.type.startsWith('image/'))
+    const oversized = images.find(file => file.size > MAX_ATTACHMENT_SIZE)
+    if (oversized) {
+      setMessage('Images must be 2MB or smaller.')
+      return
+    }
+    const attachments = await Promise.all(images.map(file => new Promise<WebsiteRequestAttachment>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ name: file.name, type: file.type, dataUrl: String(reader.result) })
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(file)
+    })))
+    setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...attachments].slice(0, 4) }))
+  }
+
   const submitRequest = async (event: React.FormEvent) => {
     event.preventDefault()
     setMessage('')
@@ -147,6 +173,7 @@ export default function WebsiteRequests() {
       requester_name: form.requester_name.trim() || getDisplayName(user?.email) || null,
       requester_email: user?.email || null,
       created_by: user?.id || null,
+      attachments: form.attachments,
     }])
 
     if (error) {
@@ -291,6 +318,36 @@ export default function WebsiteRequests() {
               />
             </label>
 
+            <label className="block">
+              <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Images</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => { addAttachments(event.target.files); event.currentTarget.value = '' }}
+                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: 'var(--border-secondary)' }}
+              />
+            </label>
+
+            {form.attachments.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {form.attachments.map((attachment, index) => (
+                  <div key={`${attachment.name}-${index}`} className="relative overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
+                    <img src={attachment.dataUrl} alt={attachment.name} className="h-24 w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }))}
+                      className="absolute right-1 top-1 rounded-full px-1.5 text-xs"
+                      style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={saving}
@@ -311,7 +368,7 @@ export default function WebsiteRequests() {
         <section>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
-              {(['All', ...statuses] as Array<RequestStatus | 'All'>).map(status => {
+              {([...statuses, 'All'] as Array<RequestStatus | 'All'>).map(status => {
                 const active = statusFilter === status
                 const count = status === 'All' ? requests.length : requests.filter(request => request.status === status).length
                 return (
@@ -393,6 +450,16 @@ export default function WebsiteRequests() {
                     <p><span style={{ fontWeight: 600 }}>From:</span> {request.requester_name || 'Unnamed'}{request.requester_email ? ` (${request.requester_email})` : ''}</p>
                     <p><span style={{ fontWeight: 600 }}>Created:</span> {formatDate(request.created_at)}</p>
                   </div>
+
+                  {request.attachments && request.attachments.length > 0 && (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {request.attachments.map((attachment, index) => (
+                        <a key={`${attachment.name}-${index}`} href={attachment.dataUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
+                          <img src={attachment.dataUrl} alt={attachment.name} className="h-20 w-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <label className="block">
