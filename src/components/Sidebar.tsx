@@ -59,15 +59,21 @@ export default function Sidebar() {
 
   // Fetch unread counts
   const fetchUnread = async () => {
-    // Always compute from localStorage as primary source (works without Supabase)
-    const total = JSON.parse(localStorage.getItem('exodia-ac-total') || '0')
+    // Compute unread from localStorage (instant, works offline)
     const readIds = new Set(JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]'))
-    setAcUnreadCount(Math.max(0, total - readIds.size))
+    const localTotal = JSON.parse(localStorage.getItem('exodia-ac-total') || '0')
+    setAcUnreadCount(Math.max(0, localTotal - readIds.size))
 
+    // Also fetch total from Supabase for accurate cross-session count
     if (isSupabaseConfigured && supabase) {
       try {
         const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
         setUnreadCount(mr ?? 0)
+        const { count: total } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true })
+        if (total !== null) {
+          localStorage.setItem('exodia-ac-total', JSON.stringify(total))
+          setAcUnreadCount(Math.max(0, total - readIds.size))
+        }
         const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
         const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
         setWebsiteRequestCount(wr ?? 0)
