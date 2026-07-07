@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
-import { createReadStream, existsSync } from 'node:fs'
-import { extname, join, normalize } from 'node:path'
+import { createReadStream, existsSync, readdirSync } from 'node:fs'
+import { basename, extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
@@ -243,7 +243,13 @@ function serveStatic(req, res) {
   const filePath = join(distDir, requested)
   const fallbackPath = join(distDir, 'index.html')
   const isAsset = requested.startsWith('/assets/')
-  if (isAsset && (!filePath.startsWith(distDir) || !existsSync(filePath))) {
+  let assetFallback = ''
+  if (isAsset && filePath.startsWith(distDir) && !existsSync(filePath)) {
+    const ext = extname(requested)
+    const name = basename(requested, ext).replace(/-[A-Za-z0-9_-]+$/, '')
+    assetFallback = readdirSync(join(distDir, 'assets')).find(file => file.startsWith(`${name}-`) && file.endsWith(ext)) || ''
+  }
+  if (isAsset && (!filePath.startsWith(distDir) || (!existsSync(filePath) && !assetFallback))) {
     res.writeHead(404, {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -252,7 +258,9 @@ function serveStatic(req, res) {
     return
   }
 
-  const safeFilePath = filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
+  const safeFilePath = assetFallback
+    ? join(distDir, 'assets', assetFallback)
+    : filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
   const type = contentTypes[extname(safeFilePath)] || 'application/octet-stream'
   const cacheControl = extname(safeFilePath) === '.html'
     ? 'no-cache'
