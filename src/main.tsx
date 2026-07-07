@@ -41,3 +41,5 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+document.documentElement.dataset.assetCache = 'v2'

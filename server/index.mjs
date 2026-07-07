@@ -262,9 +262,7 @@ function serveStatic(req, res) {
     ? join(distDir, 'assets', assetFallback)
     : filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
   const type = contentTypes[extname(safeFilePath)] || 'application/octet-stream'
-  const cacheControl = extname(safeFilePath) === '.html'
-    ? 'no-cache'
-    : 'public, max-age=31536000, immutable'
+  const cacheControl = 'no-cache'
 
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl })
   createReadStream(safeFilePath).pipe(res)
