@@ -36,8 +36,21 @@ interface CellFormat {
   border?: string
 }
 
+interface TimelineColumn {
+  key: string
+  label: string
+}
+
+interface TimelineTable {
+  id: string
+  title: string
+  columns: TimelineColumn[]
+  created_at?: string
+}
+
 const CALLING_CARD_COLUMNS = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address', 'Notes', 'Raw OCR Text']
 const CALLING_CARD_FILE_NAME = 'Calling Card Leads'
+const INTRODUCTORY_CALL_COLUMN = { key: 'introductory-call', label: 'Introductory Call' }
 
 const emitUploadStatus = (id: string, label: string, status: 'queued' | 'uploading' | 'done' | 'error', progress: number) => {
   window.dispatchEvent(new CustomEvent('upload-status', { detail: { id, label, status, progress } }))
@@ -164,6 +177,86 @@ const mapAiLeadToRow = (lead: Record<string, string>): Record<string, string> =>
   Notes: lead.notes || '',
   'Raw OCR Text': lead.raw_text || '',
 })
+
+const parseTimelineColumns = (columns: TimelineColumn[] | string | null | undefined): TimelineColumn[] => {
+  if (typeof columns === 'string') {
+    try { return JSON.parse(columns) } catch { return [] }
+  }
+  return Array.isArray(columns) ? columns : []
+}
+
+const findIntroductoryColumn = (columns: TimelineColumn[]) =>
+  columns.find(col => col.label.toLowerCase() === INTRODUCTORY_CALL_COLUMN.label.toLowerCase()) || INTRODUCTORY_CALL_COLUMN
+
+const ensureIntroductoryColumn = (table: TimelineTable): TimelineTable => {
+  const columns = parseTimelineColumns(table.columns)
+  if (columns.some(col => col.label.toLowerCase() === INTRODUCTORY_CALL_COLUMN.label.toLowerCase())) {
+    return { ...table, columns }
+  }
+  return { ...table, columns: [INTRODUCTORY_CALL_COLUMN, ...columns] }
+}
+
+const buildTimelineLead = (rowData: Record<string, string>, now: string, columnKey: string) => {
+  const email = rowData.Email.trim()
+  return {
+    company: rowData.Company.trim() || rowData.Name.trim() || 'Unknown Company',
+    contact: rowData.Name.trim() || email || 'Unknown Contact',
+    email,
+    value: '',
+    date: now.slice(0, 10),
+    column_key: columnKey,
+    notes: [
+      'Auto-created from calling card upload',
+      rowData['Role / Position'] && `Role: ${rowData['Role / Position']}`,
+      rowData['Contact Number'] && `Phone: ${rowData['Contact Number']}`,
+      rowData.Address && `Address: ${rowData.Address}`,
+      rowData.Notes,
+    ].filter(Boolean).join('\n'),
+    attachments: [],
+    email_history: [],
+    created_at: now,
+    updated_at: now,
+  }
+}
+
+const addCallingCardToTimeline = async (rowData: Record<string, string>, now: string) => {
+  const email = rowData.Email.trim()
+
+  const savedTables = localStorage.getItem('exodia-timeline-tables')
+  let tables: TimelineTable[] = savedTables ? JSON.parse(savedTables) : []
+  if (tables.length === 0) {
+    tables = [{ id: 'onboarding-default', title: 'Client Onboarding', columns: [INTRODUCTORY_CALL_COLUMN], created_at: now }]
+  }
+  tables[0] = ensureIntroductoryColumn(tables[0])
+  const localLead = buildTimelineLead(rowData, now, findIntroductoryColumn(tables[0].columns).key)
+  const savedLeads = localStorage.getItem('exodia-timeline-leads')
+  const leads = savedLeads ? JSON.parse(savedLeads) : []
+  if (!email || !leads.some((item: { email?: string }) => item.email?.toLowerCase() === email.toLowerCase())) {
+    leads.push({ id: crypto.randomUUID(), table_id: tables[0].id, ...localLead })
+  }
+  localStorage.setItem('exodia-timeline-tables', JSON.stringify(tables))
+  localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
+
+  if (isSupabaseConfigured && supabase) {
+    let { data: tableData } = await supabase.from('timeline_tables').select('*').order('created_at', { ascending: false }).limit(1)
+    let table = tableData?.[0] ? ensureIntroductoryColumn(tableData[0]) : null
+    if (!table) {
+      const { data, error } = await supabase.from('timeline_tables').insert([{ title: 'Client Onboarding', columns: [INTRODUCTORY_CALL_COLUMN] }]).select().single()
+      if (error) throw error
+      table = ensureIntroductoryColumn(data)
+    } else if (!parseTimelineColumns(tableData?.[0]?.columns).some(col => col.label.toLowerCase() === INTRODUCTORY_CALL_COLUMN.label.toLowerCase())) {
+      const { error } = await supabase.from('timeline_tables').update({ columns: table.columns }).eq('id', table.id)
+      if (error) throw error
+    }
+    const supabaseLead = buildTimelineLead(rowData, now, findIntroductoryColumn(table.columns).key)
+    if (email) {
+      const { data: existing } = await supabase.from('timeline_leads').select('id').eq('email', email).limit(1)
+      if (existing?.length) return
+    }
+    const { error } = await supabase.from('timeline_leads').insert([{ table_id: table.id, ...supabaseLead }])
+    if (error) throw error
+  }
+}
 
 export default function LeadGeneration() {
   const [files, setFiles] = useState<LeadFile[]>([])
@@ -690,6 +783,11 @@ export default function LeadGeneration() {
     setRows(nextRows)
     setEditingCell(null)
     setEditingHeader(null)
+    try {
+      await addCallingCardToTimeline(rowData, now)
+    } catch (err) {
+      console.error('Error adding calling card to timeline:', err)
+    }
     logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
   }
 
