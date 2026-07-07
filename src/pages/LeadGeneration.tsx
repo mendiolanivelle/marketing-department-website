@@ -171,9 +171,6 @@ export default function LeadGeneration() {
   const [selectedFile, setSelectedFile] = useState<LeadFile | null>(null)
   const [rows, setRows] = useState<LeadRow[]>([])
   const [rowsLoading, setRowsLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [callingCardUploading, setCallingCardUploading] = useState(false)
-  const [callingCardMessage, setCallingCardMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editingCell, setEditingCell] = useState<{ rowId: string; col: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [editingHeader, setEditingHeader] = useState<number | null>(null)
@@ -505,7 +502,6 @@ export default function LeadGeneration() {
 
     const uploadId = `csv-${crypto.randomUUID()}`
     emitUploadStatus(uploadId, `Uploading ${file.name}`, 'uploading', 10)
-    setUploading(true)
     try {
       const text = await file.text()
       const { headers, rows: parsedRows } = parseCSV(text)
@@ -620,12 +616,12 @@ export default function LeadGeneration() {
       console.error('Error uploading CSV:', err)
       emitUploadStatus(uploadId, `Upload failed: ${file.name}`, 'error', 100)
       alert('Failed to upload CSV file')
-    } finally { setUploading(false) }
+    }
   }
 
   const appendCallingCardLead = async (file: File, sourceLabel: 'upload' | 'camera') => {
     if (!file.type.startsWith('image/')) {
-      setCallingCardMessage({ type: 'error', text: 'Please choose an image file.' })
+      emitUploadStatus(callingCardUploadIdRef.current, 'Please choose an image file', 'error', 100)
       return
     }
 
@@ -692,21 +688,17 @@ export default function LeadGeneration() {
     setRows(nextRows)
     setEditingCell(null)
     setEditingHeader(null)
-    setCallingCardMessage({ type: 'success', text: `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card added to "${CALLING_CARD_FILE_NAME}".` })
     logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
   }
 
   const processCallingCardQueue = async () => {
     if (processingCallingCardQueueRef.current) return
     processingCallingCardQueueRef.current = true
-    setCallingCardUploading(true)
-    setCallingCardMessage(null)
     try {
       while (callingCardQueueRef.current.length > 0) {
         const next = callingCardQueueRef.current.shift()!
         const total = Math.max(callingCardTotalRef.current, 1)
         emitUploadStatus(callingCardUploadIdRef.current, `Extracting calling cards (${callingCardDoneRef.current + 1}/${total})`, 'uploading', Math.max(5, Math.round((callingCardDoneRef.current / total) * 100)))
-        setCallingCardMessage({ type: 'success', text: `Processing ${callingCardQueueRef.current.length + 1} calling card photo${callingCardQueueRef.current.length === 0 ? '' : 's'}...` })
         await appendCallingCardLead(next.file, next.sourceLabel)
         callingCardDoneRef.current += 1
         emitUploadStatus(callingCardUploadIdRef.current, `Extracting calling cards (${callingCardDoneRef.current}/${total})`, 'uploading', Math.round((callingCardDoneRef.current / total) * 100))
@@ -719,10 +711,8 @@ export default function LeadGeneration() {
       emitUploadStatus(callingCardUploadIdRef.current, 'Calling card upload failed', 'error', 100)
       callingCardDoneRef.current = 0
       callingCardTotalRef.current = 0
-      setCallingCardMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to parse calling card photo.' })
     } finally {
       processingCallingCardQueueRef.current = false
-      setCallingCardUploading(false)
     }
   }
 
@@ -732,7 +722,6 @@ export default function LeadGeneration() {
     callingCardQueueRef.current.push(...selectedFiles.map(file => ({ file, sourceLabel })))
     callingCardTotalRef.current += selectedFiles.length
     emitUploadStatus(callingCardUploadIdRef.current, `${callingCardTotalRef.current - callingCardDoneRef.current} calling card photo${callingCardTotalRef.current - callingCardDoneRef.current === 1 ? '' : 's'} queued`, 'queued', Math.round((callingCardDoneRef.current / Math.max(callingCardTotalRef.current, 1)) * 100))
-    setCallingCardMessage({ type: 'success', text: `${selectedFiles.length} photo${selectedFiles.length === 1 ? '' : 's'} queued.` })
     e.target.value = ''
     processCallingCardQueue()
   }
@@ -1480,7 +1469,6 @@ if (supabase) {
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}
         >
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-          {uploading && <p className="mb-3 text-sm font-medium" style={{ color: 'var(--accent)' }}>Upload running...</p>}
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: 'var(--accent-light)' }}>
               <svg className="w-8 h-8" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -1492,20 +1480,6 @@ if (supabase) {
               <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>Import existing data</p>
             </div>
           </div>
-          {callingCardMessage && (
-            <div
-              className="mt-4 rounded-lg px-3 py-2 text-xs text-left"
-              style={{
-                backgroundColor: callingCardMessage.type === 'success' ? 'rgba(11,128,67,0.1)' : 'rgba(220,38,38,0.08)',
-                color: callingCardMessage.type === 'success' ? '#0B8043' : '#B91C1C',
-                border: `1px solid ${callingCardMessage.type === 'success' ? 'rgba(11,128,67,0.25)' : 'rgba(220,38,38,0.2)'}`,
-                fontWeight: 500,
-              }}
-              role="status"
-            >
-              {callingCardMessage.text}
-            </div>
-          )}
         </div>
 
         <div
@@ -1514,7 +1488,6 @@ if (supabase) {
         >
           <input ref={callingCardInputRef} type="file" accept="image/*" multiple onChange={(e) => handleCallingCardPhoto(e, 'upload')} className="hidden" />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={(e) => handleCallingCardPhoto(e, 'camera')} className="hidden" />
-          {callingCardUploading && <p className="mb-3 text-sm font-medium" style={{ color: '#0B8043' }}>Extracting with AI...</p>}
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300" style={{ backgroundColor: 'rgba(11,128,67,0.1)' }}>
               <svg className="w-8 h-8" style={{ color: '#0B8043' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
