@@ -475,6 +475,7 @@ export default function PublicAcceptanceForm() {
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Communication Tool</label>
               <div className="flex flex-wrap gap-2">{checkboxOptions('commsTool', ['Discord', 'Slack'])}</div>
             </div>
+            {form.projectType === 'Project Base' && (
             <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm mb-3 font-medium" style={{ color: '#374151' }}>If Project Base</p>
               <div className="space-y-3 pl-4">
@@ -488,6 +489,8 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
+            )}
+            {form.projectType === 'Staff Augmentation' && (
             <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
               <p className="text-sm mb-3 font-medium" style={{ color: '#374151' }}>If Staff Augmentation</p>
               <div className="space-y-3 pl-4">
@@ -505,6 +508,7 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
 
