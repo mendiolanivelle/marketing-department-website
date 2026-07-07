@@ -325,34 +325,38 @@ export default function PublicAcceptanceForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 pb-12 space-y-8">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 pb-12 space-y-6">
         {/* Section 1 */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 1: Basic Project Information</h2>
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>1</span>
+            <div>
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Project Information</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>Client &amp; Project Details</p>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client / Studio Name</label>
-                <input type="text" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client / Studio Name</label>
+                <input type="text" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Name</label>
-                <input type="text" value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter project name" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Name</label>
+                <input type="text" value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter project name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Point of Contact</label>
-                <input type="text" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your name" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Point of Contact</label>
+                <input type="text" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email Address</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="your@email.com" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email Address</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="your@email.com" />
               </div>
             </div>
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Project Type</label>
-              <div className="flex flex-wrap gap-4">
+            <div className="mt-5">
+              <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Project Type</label>
+              <div className="flex flex-wrap gap-3">
                 {radioOptions('projectType', ['Project Base', 'Staff Augmentation'])}
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -363,9 +367,9 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Target Platform</label>
-              <div className="flex flex-wrap gap-4">
+            <div className="mt-5">
+              <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Target Platform</label>
+              <div className="flex flex-wrap gap-3">
                 {checkboxOptions('targetPlatform', ['PC', 'Mobile', 'Web', 'Console', 'Not sure yet'])}
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -376,39 +380,43 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
-                <input type="text" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. EST (UTC-5)" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
+                <input type="text" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. EST (UTC-5)" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
-                <input type="text" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Aug 01, 2026" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
+                <input type="text" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Aug 01, 2026" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
-                <input type="text" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Oct 15, 2026" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
+                <input type="text" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Oct 15, 2026" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
-                <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
+                <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
               </div>
             </div>
-            <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Link to Project Document</label>
-              <input type="text" value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Google Drive, Notion, etc." />
+            <div className="mt-5">
+              <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Link to Project Document</label>
+              <input type="text" value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Google Drive, Notion, etc." />
             </div>
           </div>
         </div>
 
         {/* Section 2: Deliverables */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 2: What You Want Us to Create</h2>
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>2</span>
+            <div>
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Deliverables &amp; Specifications</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>What You Want Us To Create</p>
+            </div>
           </div>
-          <div className="p-5">
+          <div className="p-6">
             <p className="text-sm mb-4" style={{ color: '#6B7280', fontWeight: 300 }}>
-              List each deliverable, describe what it should include, and define how we will check if it's correct.
+              List each deliverable, describe what it should include, and define how we will check if it's correct. Each row represents one item from your project scope.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
@@ -425,21 +433,21 @@ export default function PublicAcceptanceForm() {
                 </thead>
                 <tbody>
                   {form.deliverableRows.map((row, i) => (
-                    <tr key={i}>
+                    <tr key={i} className="hover:bg-orange-50 transition">
                       {(['name', 'description', 'criteria', 'reference', 'quantity', 'serviceType'] as const).map((field) => (
                         <td key={field} className="p-1.5 border" style={{ borderColor: '#E5E7EB' }}>
                           <input
                             type="text"
                             value={row[field]}
                             onChange={(e) => updateDeliverableRow(i, field, e.target.value)}
-                            className="w-full px-2 py-1.5 border rounded outline-none text-xs"
+                            className="w-full px-2 py-1.5 border rounded outline-none text-xs transition hover:border-orange-300"
                             style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}
                             placeholder={`Enter ${field}`}
                           />
                         </td>
                       ))}
                       <td className="p-1.5 border" style={{ borderColor: '#E5E7EB' }}>
-                        <button type="button" onClick={() => removeDeliverableRow(i)} className="p-1 rounded" style={{ color: '#EF4444' }}>
+                        <button type="button" onClick={() => removeDeliverableRow(i)} className="p-1 rounded hover:bg-red-50 transition" style={{ color: '#EF4444' }}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -450,7 +458,7 @@ export default function PublicAcceptanceForm() {
                 </tbody>
               </table>
             </div>
-            <button type="button" onClick={addDeliverableRow} className="mt-3 px-4 py-2 text-sm rounded-lg transition flex items-center gap-1.5" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', fontWeight: 500 }}>
+            <button type="button" onClick={addDeliverableRow} className="mt-3 px-4 py-2 text-sm rounded-lg transition flex items-center gap-1.5 hover:-translate-y-0.5" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', fontWeight: 500 }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -460,13 +468,17 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 3: Review & Approval */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 3: How Will You Review &amp; Approve the Work?</h2>
-          </div>
-          <div className="p-5 space-y-4">
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>3</span>
             <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Review &amp; Approval Process</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>How Will You Review &amp; Approve The Work</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
               <div className="flex flex-wrap gap-4">
                 {checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}
                 <div className="flex items-center gap-2">
@@ -478,30 +490,36 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>How many review rounds are included?</label>
-              <div className="flex flex-wrap gap-4">{radioOptions('reviewRounds', ['1', '2', '3', 'Not Sure'])}</div>
-            </div>
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Expected review time</label>
-              <div className="flex flex-wrap gap-4">{radioOptions('reviewTime', ['1 business day', '2 business days', '3 business days', 'Not Sure'])}</div>
-            </div>
-            <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Basis for approval</label>
-              <div className="flex flex-wrap gap-4">{checkboxOptions('approvalBasis', ['The acceptance expectations defined in this Section 2 (Acceptance Criteria)'])}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Review Rounds Included</label>
+                <div className="flex flex-wrap gap-3">{radioOptions('reviewRounds', ['1', '2', '3', 'Not Sure'])}</div>
+              </div>
+              <div>
+                <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Expected Review Time</label>
+                <div className="flex flex-wrap gap-3">{radioOptions('reviewTime', ['1 day', '2 days', '3 days', 'Not Sure'])}</div>
+              </div>
+              <div>
+                <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Basis for Approval</label>
+                <div className="flex flex-wrap gap-3">{checkboxOptions('approvalBasis', ['Acceptance criteria from Section 2'])}</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Section 4: Project Governance */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 4: Project Governance</h2>
-          </div>
-          <div className="p-5 space-y-4">
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>4</span>
             <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Communication Tool</label>
-              <div className="flex flex-wrap gap-4">
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Communication &amp; Governance</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>Project Management &amp; Team Coordination</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Communication Tool</label>
+              <div className="flex flex-wrap gap-3">
                 {checkboxOptions('commsTool', ['Discord', 'Slack'])}
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -512,16 +530,18 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
-            <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
-              <p className="text-sm mb-3 font-medium" style={{ color: '#374151' }}>If Project Base</p>
-              <div className="space-y-3 pl-4">
+            <div className="border-t pt-5" style={{ borderColor: '#E5E7EB' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: '#EBF5FF', color: '#2563EB' }}>If Project Base</span>
+              </div>
+              <div className="space-y-4 pl-4">
                 <div>
-                  <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Weekly target meeting</label>
-                  <div className="flex flex-wrap gap-4">{checkboxOptions('weeklyMeeting', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])}</div>
+                  <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Weekly Meeting Days</label>
+                  <div className="flex flex-wrap gap-3">{checkboxOptions('weeklyMeeting', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])}</div>
                 </div>
                 <div>
-                  <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Preferred target meeting time <span className="text-xs font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
-                  <div className="flex flex-wrap gap-4">
+                  <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Preferred Meeting Time <span className="text-[10px] font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
+                  <div className="flex flex-wrap gap-3">
                     {radioOptions('meetingTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}
                     <div className="flex items-center gap-2">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -534,16 +554,18 @@ export default function PublicAcceptanceForm() {
                 </div>
               </div>
             </div>
-            <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
-              <p className="text-sm mb-3 font-medium" style={{ color: '#374151' }}>If Staff Augmentation</p>
-              <div className="space-y-3 pl-4">
+            <div className="border-t pt-5" style={{ borderColor: '#E5E7EB' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>If Staff Augmentation</span>
+              </div>
+              <div className="space-y-4 pl-4">
                 <div>
-                  <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Daily team sync-up</label>
-                  <div className="flex flex-wrap gap-4">{checkboxOptions('dailySync', ['Everyday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])}</div>
+                  <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Daily Sync Days</label>
+                  <div className="flex flex-wrap gap-3">{checkboxOptions('dailySync', ['Everyday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])}</div>
                 </div>
                 <div>
-                  <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Preferred sync-up time <span className="text-xs font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
-                  <div className="flex flex-wrap gap-4">
+                  <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Preferred Sync Time <span className="text-[10px] font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
+                  <div className="flex flex-wrap gap-3">
                     {radioOptions('syncTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}
                     <div className="flex items-center gap-2">
                       <label className="flex items-center gap-2 cursor-pointer">
@@ -555,8 +577,8 @@ export default function PublicAcceptanceForm() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Training &amp; onboarding</label>
-                  <div className="flex flex-wrap gap-4">{checkboxOptions('training', ['Client', 'Exodia', 'Third Party'])}</div>
+                  <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Training &amp; Onboarding</label>
+                  <div className="flex flex-wrap gap-3">{checkboxOptions('training', ['Client', 'Exodia', 'Third Party'])}</div>
                 </div>
               </div>
             </div>
@@ -564,14 +586,18 @@ export default function PublicAcceptanceForm() {
         </div>
 
         {/* Section 5: Technical Details */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 5: Technical Details</h2>
-          </div>
-          <div className="p-5 space-y-4">
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>5</span>
             <div>
-              <label className="block text-sm mb-2" style={{ color: '#374151', fontWeight: 500 }}>Game Engine</label>
-              <div className="flex flex-wrap gap-4">
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Technical Specifications</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>Platform, Engine &amp; Performance Requirements</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+            <div>
+              <label className="block text-xs mb-2" style={{ color: '#374151', fontWeight: 500 }}>Game Engine</label>
+              <div className="flex flex-wrap gap-3">
                 {checkboxOptions('gameEngine', ['Unity', 'Unreal', 'Not sure yet'])}
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -583,26 +609,30 @@ export default function PublicAcceptanceForm() {
               </div>
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Technical Requirements</label>
-              <textarea value={form.techRequirements} onChange={(e) => setForm({ ...form, techRequirements: e.target.value })} rows={3} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="File format, naming convention, output format, etc." />
+              <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Technical Requirements</label>
+              <textarea value={form.techRequirements} onChange={(e) => setForm({ ...form, techRequirements: e.target.value })} rows={3} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition hover:border-orange-300" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="File format, naming convention, output format, etc." />
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Tools &amp; Software Required</label>
-              <textarea value={form.toolsSoftware} onChange={(e) => setForm({ ...form, toolsSoftware: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="List any required tools or software" />
+              <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Tools &amp; Software Required</label>
+              <textarea value={form.toolsSoftware} onChange={(e) => setForm({ ...form, toolsSoftware: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition hover:border-orange-300" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="List any required tools or software" />
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Performance or Platform Constraints</label>
-              <textarea value={form.performanceConstraints} onChange={(e) => setForm({ ...form, performanceConstraints: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Any performance targets or platform limitations" />
+              <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Performance &amp; Platform Constraints</label>
+              <textarea value={form.performanceConstraints} onChange={(e) => setForm({ ...form, performanceConstraints: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition hover:border-orange-300" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Any performance targets or platform limitations" />
             </div>
           </div>
         </div>
 
         {/* Section 6: Client Confirmation */}
-        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div className="p-4 border-b" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
-            <h2 className="text-base text-white" style={{ fontWeight: 600 }}>Section 6: Client Confirmation</h2>
+        <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+          <div className="p-5 border-b flex items-center gap-3" style={{ backgroundColor: '#1B1A1C', borderColor: '#1B1A1C' }}>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#FF5900', color: '#FFF' }}>6</span>
+            <div>
+              <h2 className="text-sm text-white" style={{ fontWeight: 600 }}>Client Sign-Off</h2>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF', fontWeight: 300 }}>Confirmation &amp; Authorization</p>
+            </div>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-6 space-y-5">
             <div className="p-4 rounded-xl" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FFE4C4' }}>
               <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 300 }}>
                 By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation. Any changes after approval may require a formal revision and may impact cost, timeline, or delivery scope.
@@ -610,22 +640,22 @@ export default function PublicAcceptanceForm() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name &amp; Signature</label>
-                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name &amp; Signature</label>
+                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
-                <input type="text" value={form.signatureDate} onChange={(e) => setForm({ ...form, signatureDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Jul 01, 2026" required />
+                <label className="block text-xs mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
+                <input type="text" value={form.signatureDate} onChange={(e) => setForm({ ...form, signatureDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition hover:border-orange-300 focus:border-orange-500" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Jul 01, 2026" required />
               </div>
             </div>
           </div>
         </div>
 
         {/* Submit */}
-        <div className="text-center">
+        <div className="text-center pt-2">
           <button
             type="submit"
-            className="px-10 py-3.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+            className="px-12 py-3.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5 hover:shadow-lg"
             style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
           >
             Submit Form
