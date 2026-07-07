@@ -59,22 +59,20 @@ export default function Sidebar() {
 
   // Fetch unread counts
   const fetchUnread = async () => {
+    // Always compute from localStorage as primary source (works without Supabase)
+    const total = JSON.parse(localStorage.getItem('exodia-ac-total') || '0')
+    const readIds = new Set(JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]'))
+    setAcUnreadCount(Math.max(0, total - readIds.size))
+
     if (isSupabaseConfigured && supabase) {
       try {
-        const { count: mr, error: mrErr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
-        if (!mrErr) setUnreadCount(mr ?? 0)
-        const { count: ac, error: acErr } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
-        if (!acErr && ac !== null) {
-          setAcUnreadCount(ac)
-        } else {
-          // Fallback: compute unread from localStorage read IDs
-          const readIds = new Set(JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]'))
-          const { count: total, error: totalErr } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true })
-          if (!totalErr && total !== null) setAcUnreadCount(Math.max(0, total - readIds.size))
-        }
+        const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
+        setUnreadCount(mr ?? 0)
+        const { count: ac } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
+        if (ac !== null) setAcUnreadCount(ac)
         const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
-        const { count: wr, error: wrErr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
-        if (!wrErr) setWebsiteRequestCount(wr ?? 0)
+        const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
+        setWebsiteRequestCount(wr ?? 0)
       } catch {}
     }
   }

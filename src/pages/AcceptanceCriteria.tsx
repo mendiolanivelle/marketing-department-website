@@ -301,6 +301,11 @@ export default function AcceptanceCriteria() {
     localStorage.setItem('exodia-ops-emails', JSON.stringify(savedEmails))
   }, [savedEmails])
 
+  // Save total submission count to localStorage for sidebar badge
+  useEffect(() => {
+    localStorage.setItem('exodia-ac-total', JSON.stringify(submissions.length))
+  }, [submissions])
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
