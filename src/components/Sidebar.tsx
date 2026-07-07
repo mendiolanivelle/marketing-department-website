@@ -72,14 +72,17 @@ export default function Sidebar() {
 
   useEffect(() => {
     fetchUnread()
+    const handleChange = () => fetchUnread()
+    window.addEventListener('acceptance-forms-changed', handleChange)
     if (isSupabaseConfigured && supabase) {
       const channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { fetchUnread() })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { fetchUnread() })
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
+      return () => { supabase.removeChannel(channel); window.removeEventListener('acceptance-forms-changed', handleChange) }
     }
+    return () => window.removeEventListener('acceptance-forms-changed', handleChange)
   }, [])
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
