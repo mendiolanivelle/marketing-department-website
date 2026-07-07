@@ -74,15 +74,17 @@ export default function Sidebar() {
     fetchUnread()
     const handleChange = () => fetchUnread()
     window.addEventListener('acceptance-forms-changed', handleChange)
+    window.addEventListener('lead-data-changed', handleChange)
+    const interval = setInterval(fetchUnread, 5000)
     if (isSupabaseConfigured && supabase) {
       const channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { fetchUnread() })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { fetchUnread() })
         .subscribe()
-      return () => { supabase.removeChannel(channel); window.removeEventListener('acceptance-forms-changed', handleChange) }
+      return () => { supabase.removeChannel(channel); clearInterval(interval); window.removeEventListener('acceptance-forms-changed', handleChange); window.removeEventListener('lead-data-changed', handleChange) }
     }
-    return () => window.removeEventListener('acceptance-forms-changed', handleChange)
+    return () => { clearInterval(interval); window.removeEventListener('acceptance-forms-changed', handleChange); window.removeEventListener('lead-data-changed', handleChange) }
   }, [])
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
