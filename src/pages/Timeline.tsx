@@ -6,6 +6,7 @@ import { logActivity } from '../lib/activityLogger'
 interface TimelineColumn {
   key: string
   label: string
+  emailTemplateId?: string
 }
 
 interface TimelineTable {
@@ -37,6 +38,14 @@ interface TimelineLead {
   checklist?: { text: string; done: boolean }[]
   created_at: string
   updated_at: string
+}
+
+interface MessageTemplate {
+  id: string
+  title: string
+  category: string
+  subject: string
+  body: string
 }
 
 const defaultColumns = (): TimelineColumn[] => [
@@ -87,6 +96,7 @@ export default function Timeline() {
   const [activeRightTab, setActiveRightTab] = useState('notes')
   const [showAddPopup, setShowAddPopup] = useState<'note' | 'checklist' | 'attachment' | null>(null)
   const [addPopupValue, setAddPopupValue] = useState('')
+  const [templates, setTemplates] = useState<MessageTemplate[]>([])
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
@@ -194,6 +204,24 @@ export default function Timeline() {
   useEffect(() => {
     localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
   }, [leads])
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const saved = localStorage.getItem('exodia-message-templates')
+      if (saved) {
+        try { setTemplates(JSON.parse(saved)) } catch {}
+      }
+      if (!isSupabaseConfigured || !supabase) return
+      try {
+        const { data } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
+        if (data) {
+          setTemplates(data)
+          localStorage.setItem('exodia-message-templates', JSON.stringify(data))
+        }
+      } catch (err) { console.error('Error fetching message templates:', err) }
+    }
+    fetchTemplates()
+  }, [])
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.effectAllowed = 'move'
@@ -386,6 +414,18 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
     } catch (err) { console.error('Error updating column:', err) }
     setEditingColumnLabel(null)
+  }
+
+  const saveColumnTemplate = async (tableId: string, colKey: string, emailTemplateId: string) => {
+    const table = tables.find(t => t.id === tableId)
+    if (!table) return
+    const newColumns = table.columns.map(c => c.key === colKey ? { ...c, emailTemplateId: emailTemplateId || undefined } : c)
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
+    if (!supabase) return
+    try {
+      const { error } = await supabase.from('timeline_tables').update({ columns: newColumns }).eq('id', tableId)
+      if (error) throw error
+    } catch (err) { console.error('Error updating column template:', err) }
   }
 
   const addColumn = async () => {
@@ -739,6 +779,22 @@ const timelineTables = filteredTables.map((table) => {
             </button>
           </div>
         </div>
+
+        <select
+          value={col.emailTemplateId || ''}
+          onChange={(e) => saveColumnTemplate(table.id, col.key, e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onDragStart={(e) => e.stopPropagation()}
+          className="w-full mb-3 px-2 py-1.5 text-xs rounded-lg border outline-none"
+          style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)' }}
+          title="Auto email template"
+        >
+          <option value="">No auto email</option>
+          {templates.map(template => (
+            <option key={template.id} value={template.id}>{template.title}</option>
+          ))}
+        </select>
 
         {/* Cards */}
         <div className="space-y-2">

@@ -39,6 +39,7 @@ interface CellFormat {
 interface TimelineColumn {
   key: string
   label: string
+  emailTemplateId?: string
 }
 
 interface TimelineTable {
@@ -48,9 +49,17 @@ interface TimelineTable {
   created_at?: string
 }
 
+interface MessageTemplate {
+  id: string
+  title: string
+  category: string
+  subject: string
+  body: string
+}
+
 const CALLING_CARD_COLUMNS = ['Name', 'Company', 'Role / Position', 'Email', 'Contact Number', 'Address', 'Notes', 'Raw OCR Text']
 const CALLING_CARD_FILE_NAME = 'Calling Card Leads'
-const INTRODUCTORY_CALL_COLUMN = { key: 'introductory-call', label: 'Introductory Call' }
+const INTRODUCTORY_CALL_COLUMN: TimelineColumn = { key: 'introductory-call', label: 'Introductory Call' }
 
 const emitUploadStatus = (id: string, label: string, status: 'queued' | 'uploading' | 'done' | 'error', progress: number) => {
   window.dispatchEvent(new CustomEvent('upload-status', { detail: { id, label, status, progress } }))
@@ -219,6 +228,61 @@ const buildTimelineLead = (rowData: Record<string, string>, now: string, columnK
   }
 }
 
+const loadMessageTemplates = async (): Promise<MessageTemplate[]> => {
+  const saved = localStorage.getItem('exodia-message-templates')
+  let templates: MessageTemplate[] = saved ? JSON.parse(saved) : []
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    if (data) {
+      templates = data
+      localStorage.setItem('exodia-message-templates', JSON.stringify(data))
+    }
+  }
+  return templates
+}
+
+const findTemplateForColumn = (templates: MessageTemplate[], column: TimelineColumn) =>
+  templates.find(template => template.id === column.emailTemplateId) ||
+  (column.label.toLowerCase() === INTRODUCTORY_CALL_COLUMN.label.toLowerCase()
+    ? templates.find(template => /introductory call/i.test(`${template.title} ${template.category}`))
+    : undefined)
+
+const fillMessageTemplate = (text: string, rowData: Record<string, string>) =>
+  text
+    .replace(/\{\{contact_name\}\}/g, rowData.Name || rowData.Email || 'there')
+    .replace(/\{\{company_name\}\}/g, rowData.Company || 'your company')
+    .replace(/\{\{sender_name\}\}/g, 'Marketing Team')
+    .replace(/\{\{sales_rep_name\}\}/g, 'our Sales Team')
+    .replace(/\{\{ops_rep_name\}\}/g, 'our Operations Team')
+    .replace(/\{\{proposed_date\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+    .replace(/\{\{project_name\}\}/g, rowData.Company || 'your project')
+
+const sendColumnTemplateEmail = async (rowData: Record<string, string>, column: TimelineColumn) => {
+  const to = rowData.Email.trim()
+  if (!to || !isSupabaseConfigured || !supabase) return null
+  const template = findTemplateForColumn(await loadMessageTemplates(), column)
+  if (!template) return null
+  const subject = fillMessageTemplate(template.subject, rowData)
+  const body = fillMessageTemplate(template.body, rowData)
+  const { error } = await supabase.functions.invoke('send-outreach-email', {
+    body: {
+      to,
+      name: rowData.Name || to,
+      subject,
+      body,
+      messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
+    },
+  })
+  if (error) throw error
+  return { template, subject, body }
+}
+
+const appendTimelineNote = (lead: any, note: string) => ({
+  ...lead,
+  notes: [lead.notes, note].filter(Boolean).join('\n'),
+})
+
 const addCallingCardToTimeline = async (rowData: Record<string, string>, now: string) => {
   const savedTables = localStorage.getItem('exodia-timeline-tables')
   let tables: TimelineTable[] = savedTables ? JSON.parse(savedTables) : []
@@ -226,10 +290,12 @@ const addCallingCardToTimeline = async (rowData: Record<string, string>, now: st
     tables = [{ id: 'onboarding-default', title: 'Client Onboarding', columns: [INTRODUCTORY_CALL_COLUMN], created_at: now }]
   }
   tables[0] = ensureIntroductoryColumn(tables[0])
-  const localLead = buildTimelineLead(rowData, now, findIntroductoryColumn(tables[0].columns).key)
+  const localColumn = findIntroductoryColumn(tables[0].columns)
+  const localLead = buildTimelineLead(rowData, now, localColumn.key)
   const savedLeads = localStorage.getItem('exodia-timeline-leads')
   const leads = savedLeads ? JSON.parse(savedLeads) : []
-  leads.push({ id: crypto.randomUUID(), table_id: tables[0].id, ...localLead })
+  const localLeadId = crypto.randomUUID()
+  leads.push({ id: localLeadId, table_id: tables[0].id, ...localLead })
   localStorage.setItem('exodia-timeline-tables', JSON.stringify(tables))
   localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
   window.dispatchEvent(new CustomEvent('timeline-data-changed'))
@@ -245,9 +311,22 @@ const addCallingCardToTimeline = async (rowData: Record<string, string>, now: st
       const { error } = await supabase.from('timeline_tables').update({ columns: table.columns }).eq('id', table.id)
       if (error) throw error
     }
-    const supabaseLead = buildTimelineLead(rowData, now, findIntroductoryColumn(table.columns).key)
-    const { error } = await supabase.from('timeline_leads').insert([{ table_id: table.id, ...supabaseLead }])
+    const supabaseColumn = findIntroductoryColumn(table.columns)
+    const supabaseLead = buildTimelineLead(rowData, now, supabaseColumn.key)
+    const { data: insertedLead, error } = await supabase.from('timeline_leads').insert([{ table_id: table.id, ...supabaseLead }]).select().single()
     if (error) throw error
+    try {
+      const sent = await sendColumnTemplateEmail(rowData, { ...supabaseColumn, emailTemplateId: supabaseColumn.emailTemplateId || localColumn.emailTemplateId })
+      if (sent) {
+        const sentNote = `Auto email sent: ${sent.template.title}`
+        const saved = localStorage.getItem('exodia-timeline-leads')
+        const localLeads = saved ? JSON.parse(saved) : []
+        localStorage.setItem('exodia-timeline-leads', JSON.stringify(localLeads.map((lead: any) => lead.id === localLeadId ? appendTimelineNote(lead, sentNote) : lead)))
+        await supabase.from('timeline_leads').update({ notes: appendTimelineNote(insertedLead, sentNote).notes }).eq('id', insertedLead.id)
+      }
+    } catch (err) {
+      console.error('Auto email failed:', err)
+    }
     window.dispatchEvent(new CustomEvent('timeline-data-changed'))
   }
 }
