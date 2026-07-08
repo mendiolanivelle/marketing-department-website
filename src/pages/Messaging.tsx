@@ -1308,7 +1308,7 @@ export default function Messaging() {
                     {...register('emailMessage', {
                       onChange: (e) => setValue('body', applyEmailMessage(watch('body') || emailHtmlStarter, e.target.value), { shouldDirty: true, shouldValidate: true }),
                     })}
-                    rows={10}
+                    rows={15}
                     className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical"
                     style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     placeholder="Write the email content here..."

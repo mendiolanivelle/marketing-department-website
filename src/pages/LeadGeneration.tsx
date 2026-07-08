@@ -258,13 +258,45 @@ const fillMessageTemplate = (text: string, rowData: Record<string, string>) =>
     .replace(/\{\{proposed_date\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
     .replace(/\{\{project_name\}\}/g, rowData.Company || 'your project')
 
+const escapeEmailHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const plainTextToEmailHtml = (message: string, rowData: Record<string, string>) => {
+  const paragraphs = message
+    .split(/\n{2,}/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(part => `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;">${escapeEmailHtml(part).replace(/\n/g, '<br>')}</p>`)
+    .join('\n        ')
+
+  return `<div style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#1B1A1C;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eceef2;">
+      <div style="background:#FF5900;padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:24px;line-height:1.2;">Exodia Game Development</h1>
+        <p style="margin:8px 0 0;color:#ffe7da;font-size:14px;">Marketing Department</p>
+      </div>
+      <div style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi ${escapeEmailHtml(rowData.Name || rowData.Email || 'there')},</p>
+        ${paragraphs}
+        <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
+        <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>Marketing Team</p>
+      </div>
+    </div>
+  </div>
+</div>`
+}
+
+const ensureDesignedEmailBody = (body: string, rowData: Record<string, string>) =>
+  /<\/?[a-z][\s\S]*>/i.test(body) ? body : plainTextToEmailHtml(body, rowData)
+
 const sendColumnTemplateEmail = async (rowData: Record<string, string>, column: TimelineColumn) => {
   const to = rowData.Email.trim()
   if (!to || !isSupabaseConfigured || !supabase) return null
   const template = findTemplateForColumn(await loadMessageTemplates(), column)
   if (!template) return null
   const subject = fillMessageTemplate(template.subject, rowData)
-  const body = fillMessageTemplate(template.body, rowData)
+  const body = ensureDesignedEmailBody(fillMessageTemplate(template.body, rowData), rowData)
   const { error } = await supabase.functions.invoke('send-outreach-email', {
     body: {
       to,
