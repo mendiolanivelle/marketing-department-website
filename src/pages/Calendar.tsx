@@ -378,20 +378,23 @@ export default function Calendar() {
   return (
     <div className="min-h-screen bg-[rgba(202,205,215,0.15)]">
       <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="bg-white rounded-2xl border-2 border-[#CACDD7] exodia-card overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(27,26,28,0.06)] border border-[#E5E7EB] overflow-hidden">
+          {/* Orange gradient accent bar */}
+          <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
+          
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-[#CACDD7] gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-[#E5E7EB] gap-3">
             <div className="flex items-center gap-3 sm:gap-4">
               <h1 className="text-xl sm:text-2xl font-bold text-[#1B1A1C]">
                 {MONTHS[currentMonth]} {currentYear}
               </h1>
               <div className="flex items-center gap-1">
-                <button onClick={goToPrevMonth} className="p-1.5 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
+                <button onClick={goToPrevMonth} className="p-1.5 hover:bg-orange-50 rounded-full transition">
                   <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <button onClick={goToNextMonth} className="p-1.5 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
+                <button onClick={goToNextMonth} className="p-1.5 hover:bg-orange-50 rounded-full transition">
                   <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -401,13 +404,14 @@ export default function Calendar() {
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 onClick={goToToday}
-                className="px-4 py-1.5 text-sm font-medium text-[#3E4048] border border-[#CACDD7] rounded-lg hover:bg-[rgba(202,205,215,0.15)] transition"
+                className="px-4 py-1.5 text-sm font-medium text-[#FF5900] border border-[#FF5900] rounded-lg hover:bg-orange-50 transition"
               >
                 Today
               </button>
               <button
                 onClick={() => openCreateModal()}
-                className="px-4 py-1.5 text-sm font-semibold text-white bg-[#FF5900] hover:bg-[#FF5900] rounded-lg transition flex items-center gap-1.5"
+                className="px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition flex items-center gap-1.5 hover:-translate-y-0.5"
+                style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.25)' }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -418,9 +422,9 @@ export default function Calendar() {
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-[#CACDD7]">
+          <div className="grid grid-cols-7 border-b border-[#E5E7EB]">
             {DAYS.map((day) => (
-              <div key={day} className="py-2 text-center text-xs sm:text-sm font-semibold text-[#3E4048] uppercase tracking-wide">
+              <div key={day} className="py-2.5 text-center text-xs sm:text-sm font-semibold text-[#6B7280] uppercase tracking-wider">
                 <span className="hidden sm:inline">{day}</span>
                 <span className="sm:hidden">{day.charAt(0)}</span>
               </div>
@@ -446,39 +450,38 @@ export default function Calendar() {
                       key={`${weekIdx}-${dayInfo.day}`}
                       onClick={() => setSelectedDate(dateKey === selectedDate ? null : dateKey)}
                       className={`
-                        min-h-[80px] sm:min-h-[110px] border-b border-r border-[#CACDD7] p-1 sm:p-1.5 cursor-pointer transition-colors
-                        ${!dayInfo.isCurrentMonth ? 'bg-[rgba(202,205,215,0.15)]/70' : 'bg-white'}
-                        ${isSelected ? 'bg-[rgba(255,89,0,0.1)]/50' : ''}
-                        hover:bg-[rgba(202,205,215,0.15)]
+                        min-h-[80px] sm:min-h-[110px] border-b border-r border-[#E5E7EB] p-1 sm:p-1.5 cursor-pointer transition-all
+                        ${!dayInfo.isCurrentMonth ? 'bg-gray-50/50' : 'bg-white'}
+                        ${isSelected ? 'bg-orange-50/50 ring-1 ring-inset ring-[#FF5900]/20' : ''}
+                        hover:bg-orange-50/30
                       `}
                     >
                       <div className="flex justify-between items-start mb-0.5">
                         <span
                           className={`
                             inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm rounded-full
-                            ${todayFlag ? 'bg-[#FF5900] text-white font-bold' : ''}
+                            ${todayFlag ? 'bg-[#FF5900] text-white font-bold shadow-sm' : ''}
                             ${!todayFlag && dayInfo.isCurrentMonth ? 'text-[#1B1A1C] font-medium' : ''}
                             ${!todayFlag && !dayInfo.isCurrentMonth ? 'text-[#CACDD7]' : ''}
                           `}
                         >
                           {dayInfo.day}
                         </span>
-                        {dayItems.length > 0 && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openCreateModal(dateKey) }}
-                            className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-[rgba(202,205,215,0.3)] transition opacity-0 group-hover:opacity-100"
-                          >
-                            <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openCreateModal(dateKey) }}
+                          className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-orange-100 transition opacity-0 group-hover:opacity-100"
+                          title="Add item"
+                        >
+                          <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
                       </div>
                       <div className="space-y-0.5 overflow-hidden">
                         {dayItems.slice(0, 3).map((item) => (
                           <div
                             key={item.id}
-                            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white cursor-pointer hover:opacity-90 transition"
+                            className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate font-medium text-white cursor-pointer hover:opacity-90 transition shadow-sm"
                             style={{ backgroundColor: item.color }}
                             onClick={(e) => { e.stopPropagation(); openViewItem(item) }}
                           >
@@ -491,18 +494,18 @@ export default function Calendar() {
                         {dayItems.slice(0, 2).map((item) => (
                           <div
                             key={`m-${item.id}`}
-                            className="sm:hidden flex items-center justify-center w-5 h-5 rounded-full mx-auto"
+                            className="sm:hidden flex items-center justify-center w-5 h-5 rounded-full mx-auto shadow-sm"
                             style={{ backgroundColor: item.color }}
                             title={`${TYPE_CONFIG[item.type].label}: ${item.title}`}
                           />
                         ))}
                         {dayItems.length > 3 && (
-                          <div className="hidden sm:block text-xs text-[#3E4048] font-medium px-1">
+                          <div className="hidden sm:block text-xs text-[#6B7280] font-medium px-1">
                             +{dayItems.length - 3} more
                           </div>
                         )}
                         {dayItems.length > 2 && (
-                          <div className="sm:hidden text-xs text-[#3E4048] text-center font-medium">
+                          <div className="sm:hidden text-xs text-[#6B7280] text-center font-medium">
                             +{dayItems.length - 2}
                           </div>
                         )}
@@ -662,12 +665,12 @@ export default function Calendar() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-[#CACDD7] px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-[#E5E7EB]">
+            <div className="sticky top-0 bg-white px-6 py-4 flex items-center justify-between rounded-t-2xl border-b border-[#E5E7EB]">
               <h2 className="text-lg font-bold text-[#1B1A1C]">
                 {editingItem ? 'Edit Item' : 'Create New Item'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-[rgba(202,205,215,0.2)] rounded-full transition">
+              <button onClick={() => setShowModal(false)} className="p-1 hover:bg-orange-50 rounded-full transition">
                 <svg className="w-5 h-5 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
