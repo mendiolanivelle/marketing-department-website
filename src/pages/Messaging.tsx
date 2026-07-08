@@ -685,12 +685,13 @@ export default function Messaging() {
   }
 
   const handleEdit = (template: MessageTemplate) => {
+    const emailMessage = extractEmailMessage(template.body) || defaultEmailMessage
     reset({
       title: template.title,
       category: template.category,
       subject: template.subject,
-      emailMessage: extractEmailMessage(template.body),
-      body: template.body,
+      emailMessage,
+      body: applyEmailMessage(template.body, emailMessage),
     })
     setEditingId(template.id)
     setShowForm(true)
@@ -1307,7 +1308,7 @@ export default function Messaging() {
                     {...register('emailMessage', {
                       onChange: (e) => setValue('body', applyEmailMessage(watch('body') || emailHtmlStarter, e.target.value), { shouldDirty: true, shouldValidate: true }),
                     })}
-                    rows={6}
+                    rows={10}
                     className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical"
                     style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     placeholder="Write the email content here..."
