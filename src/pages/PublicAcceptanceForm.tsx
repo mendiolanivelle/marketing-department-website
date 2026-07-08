@@ -324,12 +324,14 @@ export default function PublicAcceptanceForm() {
             </p>
           </div>
         </div>
-        <div className="max-w-3xl mx-auto px-4 pb-6">
-          <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
-              This document defines the Client's expectations for production deliverables and acceptance standards. Information provided here will be translated by the Operations and QA teams into detailed technical specifications, quality checks, and validation procedures. Clients are not required to provide technical details.
-            </p>
-          </div>
+      </div>
+
+      {/* Intro */}
+      <div className="max-w-3xl mx-auto px-4 mt-6 mb-6">
+        <div className="p-5 rounded-xl" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FFE4C4' }}>
+          <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 300 }}>
+            This document defines the Client's expectations for production deliverables and acceptance standards. Information provided here will be translated by the Operations and QA teams into detailed technical specifications, quality checks, and validation procedures. Clients are not required to provide technical details.
+          </p>
         </div>
       </div>
 
