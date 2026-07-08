@@ -376,7 +376,7 @@ export default function Calendar() {
   }
 
   return (
-    <div className="min-h-screen bg-[rgba(202,205,215,0.15)]">
+    <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB' }}>
       <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
         <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(27,26,28,0.06)] border border-[#E5E7EB] overflow-hidden">
           {/* Orange gradient accent bar */}
@@ -680,7 +680,7 @@ export default function Calendar() {
             <div className="px-6 py-5 space-y-5">
               {/* Type selector */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-2">Type</label>
+                <label className="block text-sm font-semibold text-[#374151] mb-2">Type</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(Object.keys(TYPE_CONFIG) as ItemType[]).map((type) => (
                     <button
@@ -690,7 +690,7 @@ export default function Calendar() {
                         flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition
                         ${form.type === type
                           ? 'border-current text-white shadow-sm'
-                          : 'border-[#CACDD7] text-[#3E4048] hover:border-[#CACDD7]'
+                          : 'border-[#D1D5DB] text-[#374151] hover:border-[#D1D5DB]'
                         }
                       `}
                       style={form.type === type ? { backgroundColor: TYPE_CONFIG[type].color, borderColor: TYPE_CONFIG[type].color } : {}}
@@ -706,127 +706,61 @@ export default function Calendar() {
 
               {/* Title */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Title</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                  placeholder="Enter title..."
-                  autoFocus
-                />
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Title</label>
+                <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" placeholder="Enter title..." autoFocus />
               </div>
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Date</label>
-                <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                />
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Date</label>
+                <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" />
               </div>
 
               {/* Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Start Time</label>
-                  <input
-                    type="time"
-                    value={form.start_time}
-                    onChange={(e) => setForm({ ...form, start_time: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                  />
+                  <label className="block text-sm font-semibold text-[#374151] mb-1.5">Start Time</label>
+                  <input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">End Time</label>
-                  <input
-                    type="time"
-                    value={form.end_time}
-                    onChange={(e) => setForm({ ...form, end_time: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                  />
+                  <label className="block text-sm font-semibold text-[#374151] mb-1.5">End Time</label>
+                  <input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" />
                 </div>
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Location</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                  placeholder="e.g., Conference Room A, Zoom"
-                />
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Location</label>
+                <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" placeholder="e.g., Conference Room A, Zoom" />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none"
-                  placeholder="Add details..."
-                />
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Description</label>
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none" placeholder="Add details..." />
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none"
-                  placeholder="Add notes..."
-                />
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Notes</label>
+                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="w-full px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm resize-none" placeholder="Add notes..." />
               </div>
 
               {/* Assignees */}
               <div>
-                <label className="block text-sm font-semibold text-[#3E4048] mb-1.5">
-                  Assign People
-                </label>
+                <label className="block text-sm font-semibold text-[#374151] mb-1.5">Assign People</label>
                 <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={assigneeInput}
-                    onChange={(e) => setAssigneeInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAssignee() } }}
-                    className="flex-1 px-3 py-2.5 border border-[#CACDD7] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm"
-                    placeholder="Enter email address..."
-                  />
-                  <button
-                    type="button"
-                    onClick={addAssignee}
-                    className="px-3 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white rounded-lg transition text-sm font-semibold"
-                  >
-                    Add
-                  </button>
+                  <input type="email" value={assigneeInput} onChange={(e) => setAssigneeInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAssignee() } }} className="flex-1 px-3 py-2.5 border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#ff5900] focus:border-transparent outline-none transition text-sm" placeholder="Enter email address..." />
+                  <button type="button" onClick={addAssignee} className="px-3 py-2.5 bg-[#1B1A1C] hover:bg-[#1B1A1C] text-white rounded-lg transition text-sm font-semibold">Add</button>
                 </div>
                 {form.assignees.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
                     {form.assignees.map((email) => (
-                      <span
-                        key={email}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[rgba(202,205,215,0.2)] text-[#3E4048] rounded-full text-xs font-medium"
-                      >
-                        <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                      <span key={email} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-[#374151] rounded-full text-xs font-medium">
+                        <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         {email}
-                        <button
-                          type="button"
-                          onClick={() => removeAssignee(email)}
-                          className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 transition"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                        <button type="button" onClick={() => removeAssignee(email)} className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-gray-300 transition">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       </span>
                     ))}
@@ -836,18 +770,9 @@ export default function Calendar() {
             </div>
 
             {/* Modal footer */}
-            <div className="sticky bottom-0 bg-white border-t border-[#CACDD7] px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 text-sm font-semibold text-[#3E4048] bg-[rgba(202,205,215,0.2)] hover:bg-[rgba(202,205,215,0.3)] rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!form.title.trim() || submitting}
-                className="px-5 py-2.5 text-sm font-semibold text-white bg-[#FF5900] hover:bg-[#FF5900] rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
+            <div className="sticky bottom-0 bg-white border-t border-[#E5E7EB] px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2.5 text-sm font-semibold text-[#374151] bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancel</button>
+              <button onClick={handleSubmit} disabled={!form.title.trim() || submitting} className="px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style={{ backgroundColor: '#FF5900' }}>
                 {submitting && (
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
