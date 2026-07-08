@@ -377,6 +377,7 @@ export default function Messaging() {
   }
 
   const deleteLead = (id: number) => {
+    if (!window.confirm('Delete this lead?')) return
     const lead = leads.find(l => l.id === id)
     setLeads(leads.filter(l => l.id !== id))
     if (lead) logActivity('Lead', `Deleted "${lead.name}"`)
@@ -1343,8 +1344,16 @@ export default function Messaging() {
           </div>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--text-primary)' }}></div></div>
+{loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-xl border p-4 animate-pulse" style={{ borderColor: '#E5E7EB' }}>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                </div>
+              ))}
+            </div>
         ) : (
           <>
             {(() => {

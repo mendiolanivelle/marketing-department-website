@@ -679,13 +679,26 @@ setEmailBody('')
     ? tables.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : tables
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B1A1C]"></div>
+if (loading) {
+  return (
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
+      <div className="flex items-center gap-3 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-48"></div>
+        <div className="h-8 bg-gray-200 rounded w-24"></div>
       </div>
-    )
-  }
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border p-4" style={{ borderColor: '#E5E7EB' }}>
+            <div className="h-5 bg-gray-200 rounded w-1/2 mb-4 animate-pulse"></div>
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div key={j} className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse"></div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 const timelineTables = filteredTables.map((table) => {
   const columns = table.columns.map((col) => {
     const colLeads = leads.filter(l => l.table_id === table.id && l.column_key === col.key)
@@ -797,8 +810,14 @@ const timelineTables = filteredTables.map((table) => {
         </select>
 
         {/* Cards */}
-        <div className="space-y-2">
-          {colLeads.map((lead) => (
+        {colLeads.length === 0 ? (
+              <div className="text-center py-8 rounded-xl border" style={{ borderColor: 'var(--border-primary)' }}>
+                <svg className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No leads in this column</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {colLeads.map((lead) => (
             <div
               key={lead.id}
               onClick={() => setSelectedLead(lead)}
@@ -847,6 +866,7 @@ const timelineTables = filteredTables.map((table) => {
             </div>
           ))}
         </div>
+        )}
       </div>
     )
   })
@@ -916,9 +936,9 @@ const timelineTables = filteredTables.map((table) => {
         {/* Columns */}
         <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2">
           {columns}
+</div>
         </div>
       </div>
-    </div>
   )
 })
 

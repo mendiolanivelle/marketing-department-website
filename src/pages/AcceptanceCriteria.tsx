@@ -403,10 +403,18 @@ export default function AcceptanceCriteria() {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: 'var(--accent)' }}></div>
-        </div>
+{loading ? (
+            <div className="space-y-3 p-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-gray-200"></div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
       ) : filteredSubmissions.length === 0 ? (
         <div className="text-center py-20">
           <svg className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">

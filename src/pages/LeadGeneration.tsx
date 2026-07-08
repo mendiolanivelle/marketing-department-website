@@ -1161,6 +1161,7 @@ if (supabase) {
   }
 
   const deleteRow = async (rowId: string) => {
+    if (!window.confirm('Delete this row?')) return
     setRows(prev => prev.filter(r => r.id !== rowId))
     if (supabase) {
       try { await supabase.from('lead_rows').delete().eq('id', rowId) } catch (err) {}

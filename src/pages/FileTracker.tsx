@@ -219,6 +219,7 @@ export default function FileTracker() {
   }
 
   const handleDelete = (id: string) => {
+    if (!window.confirm('Delete this file?')) return
     const asset = userAssets.find(a => a.id === id) || mockAssets.find(a => a.id === id)
     if (asset && mockAssets.some(m => m.id === id)) {
       setDeletedMockIds(prev => { const next = new Set(prev); next.add(id); return next })

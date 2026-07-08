@@ -88,6 +88,7 @@ export default function MarketingRequests() {
   }
 
   const deleteRequest = async (index: number, req: SubmittedRequest) => {
+    if (!window.confirm('Delete this request?')) return
     setDeleting(index)
     let deletedFromSupabase = false
     try {
@@ -218,8 +219,18 @@ export default function MarketingRequests() {
               </button>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-7 w-7 border-b-2" style={{ borderColor: 'var(--accent)' }}></div></div>
+{loading ? (
+            <div className="space-y-3 p-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-gray-200"></div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--bg-card)' }}>

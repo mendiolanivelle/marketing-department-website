@@ -433,8 +433,16 @@ export default function Calendar() {
 
           {/* Calendar grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B1A1C]"></div>
+            <div className="grid grid-cols-7">
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div key={i} className="min-h-[80px] sm:min-h-[110px] border-b border-r border-[#E5E7EB] p-1 sm:p-1.5 animate-pulse" style={{ backgroundColor: '#F9FAFB' }}>
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-200 mb-1"></div>
+                  <div className="space-y-1">
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-7">

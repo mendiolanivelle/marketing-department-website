@@ -242,6 +242,7 @@ export default function Campaigns() {
   }
 
   const deleteCampaign = (id: number) => {
+    if (!window.confirm('Delete this campaign?')) return
     const camp = campaigns.find(c => c.id === id)
     const updated = campaigns.filter(c => c.id !== id)
     setCampaigns(updated)
@@ -351,6 +352,12 @@ export default function Campaigns() {
                 })}
               </div>
               {/* All campaigns list */}
+              {displayedCampaigns.length === 0 ? (
+              <div className="text-center py-12 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                <svg className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No campaigns yet</p>
+              </div>
+            ) : (
               <div className="space-y-2">
                 {[...displayedCampaigns].reverse().map((camp) => {
                   const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
@@ -371,6 +378,7 @@ export default function Campaigns() {
                   )
                 })}
               </div>
+            )}
             </div>
           </div>
         </div>
@@ -468,7 +476,7 @@ export default function Campaigns() {
                 </select>
               </div>
 
-<div className="grid grid-cols-2 gap-x-8 gap-y-5 mb-6">
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-6">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#9CA3AF' }}>Requester</p>
                   <p className="text-sm" style={{ color: '#1B1A1C' }}>{viewingCampaign.requesterName || '—'}</p>

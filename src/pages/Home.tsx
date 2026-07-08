@@ -218,6 +218,7 @@ export default function Home() {
   }
 
   const deleteTask = (id: number) => {
+    if (!window.confirm('Delete this task?')) return
     const task = tasks.find(t => t.id === id)
     setTasks(tasks.filter(t => t.id !== id))
     if (task) logActivity('Task', `Deleted "${task.text}"`)
@@ -377,10 +378,16 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
-              <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 space-y-3 sm:space-y-4">
-                {calendarItems
-                  .filter(item => showReadAnnouncements || !readAnnouncementIds.includes(item.id))
-                  .map((item) => {
+              {calendarItems.filter(item => showReadAnnouncements || !readAnnouncementIds.includes(item.id)).length === 0 ? (
+                <div className="text-center py-10">
+                  <svg className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No announcements</p>
+                </div>
+              ) : (
+                <div className="max-h-[420px] overflow-y-auto pr-1 -mr-1 space-y-3 sm:space-y-4">
+                  {calendarItems
+                    .filter(item => showReadAnnouncements || !readAnnouncementIds.includes(item.id))
+                    .map((item) => {
                   const tag = tagFromType(item.type)
                   const tagColors: Record<string, { bg: string; text: string }> = {
                     Meeting: { bg: '#EBF5FF', text: '#2563EB' },
@@ -413,6 +420,7 @@ export default function Home() {
                   )
                 })}
               </div>
+            )}
             </div>
           </div>
 
@@ -532,7 +540,11 @@ export default function Home() {
                   </button>
                 </div>
                 <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                  {tasks.map((task) => (
+                  {tasks.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No tasks yet</p>
+                    </div>
+                  ) : tasks.map((task) => (
                     <li key={task.id} className="group flex items-center gap-3 p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                       <input
                         type="checkbox"
