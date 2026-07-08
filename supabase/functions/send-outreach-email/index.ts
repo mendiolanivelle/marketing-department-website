@@ -7,6 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
 }
 
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const stripHtml = (value: string) =>
+  value.replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -31,12 +43,14 @@ serve(async (req) => {
       auth: { user: smtpUser, pass: smtpPass },
     })
 
+    const emailBody = body || ''
+    const hasHtml = /<\/?[a-z][\s\S]*>/i.test(emailBody)
     const mailOptions: any = {
       from: fromEmail,
       to: to,
       subject: subject,
-      text: body || '',
-      html: body ? body.replace(/\n/g, '<br>') : '',
+      text: hasHtml ? stripHtml(emailBody) : emailBody,
+      html: hasHtml ? emailBody : escapeHtml(emailBody).replace(/\n/g, '<br>'),
       headers: {
         'Message-ID': messageId,
       },

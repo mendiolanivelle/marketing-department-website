@@ -73,6 +73,41 @@ const defaultCategories = [
   'Meeting Invitation Email',
 ]
 
+const emailHtmlStarter = `<div style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#1B1A1C;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eceef2;">
+      <div style="background:#FF5900;padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:24px;line-height:1.2;">Exodia Game Development</h1>
+        <p style="margin:8px 0 0;color:#ffe7da;font-size:14px;">Marketing Department</p>
+      </div>
+      <div style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi {{contact_name}},</p>
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">We would love to connect with {{company_name}} about your project goals.</p>
+        <div style="background:#FFF7ED;border:1px solid #fed7aa;border-radius:14px;padding:18px;margin:22px 0;">
+          <p style="margin:0;color:#9a3412;font-size:14px;line-height:1.6;">Tell us what you want to highlight here.</p>
+        </div>
+        <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
+        <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>{{sender_name}}</p>
+      </div>
+    </div>
+  </div>
+</div>`
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const renderEmailPreview = (body = '') => {
+  const content = body.trim()
+  if (!content) {
+    return '<!doctype html><html><body style="margin:0;background:#f4f4f5;"></body></html>'
+  }
+  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(content)
+  const html = looksLikeHtml
+    ? content
+    : `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#1B1A1C;white-space:pre-wrap;padding:24px;">${escapeHtml(content)}</div>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f4f4f5;">${html}</body></html>`
+}
+
 const fallbackTemplates: MessageTemplate[] = [
   {
     id: '1',
@@ -508,10 +543,13 @@ export default function Messaging() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
   })
+  const templateBodyPreview = renderEmailPreview(watch('body') || '')
 
   // === Message Templates Functions ===
   const fetchTemplates = useCallback(async () => {
@@ -1195,7 +1233,7 @@ export default function Messaging() {
 
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => { setShowForm(false); setEditingId(null); reset() }}>
-            <div className="relative rounded-2xl border w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="relative rounded-2xl border w-full max-w-5xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
               <div className="sticky top-0 border-b px-6 py-4 flex items-center justify-between rounded-t-2xl" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{editingId ? 'Edit Template' : 'New Template'}</h2>
                 <button onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="p-1 rounded-full transition" style={{ color: 'var(--accent)' }}>
@@ -1226,10 +1264,33 @@ export default function Messaging() {
                   {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
                   <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Use {'{{variable_name}}'} for dynamic placeholders</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Email Body</label>
-                  <textarea {...register('body')} rows={8} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="Write your email template here..." />
-                  {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>HTML Email Body</label>
+                      <button
+                        type="button"
+                        onClick={() => setValue('body', emailHtmlStarter, { shouldDirty: true, shouldValidate: true })}
+                        className="px-3 py-1.5 rounded-lg text-xs transition"
+                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600 }}
+                      >
+                        Starter HTML
+                      </button>
+                    </div>
+                    <textarea {...register('body')} rows={16} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="<div style=&quot;font-family:Arial,sans-serif&quot;>Write your HTML email here...</div>" />
+                    {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
+                  </div>
+                  <div>
+                    <p className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Live Preview</p>
+                    <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#f4f4f5' }}>
+                      <iframe
+                        title="Email template preview"
+                        srcDoc={templateBodyPreview}
+                        sandbox=""
+                        className="w-full h-[420px] bg-white"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="sticky bottom-0 border-t -mx-6 px-6 py-4 flex justify-end gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                   <button type="button" onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="px-5 py-2.5 rounded-lg transition text-sm" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
