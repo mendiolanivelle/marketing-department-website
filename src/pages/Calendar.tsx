@@ -95,6 +95,8 @@ export default function Calendar() {
   const [form, setForm] = useState<FormData>({ ...defaultForm })
   const [assigneeInput, setAssigneeInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterType, setFilterType] = useState<string>('')
 
   const fetchItems = useCallback(async () => {
     // Always merge local calendar items (from Campaigns page, etc.)
@@ -177,14 +179,22 @@ export default function Calendar() {
     return () => window.removeEventListener('storage', handler)
   }, [fetchItems])
 
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+      if (filterType && item.type !== filterType) return false
+      return true
+    })
+  }, [items, searchQuery, filterType])
+
   const itemsByDate = useMemo(() => {
     const map: Record<string, CalendarItem[]> = {}
-    items.forEach((item) => {
+    filteredItems.forEach((item) => {
       if (!map[item.date]) map[item.date] = []
       map[item.date].push(item)
     })
     return map
-  }, [items])
+  }, [filteredItems])
 
   const calendarDays = useMemo(() => {
     const daysInMonth = getDaysInMonth(currentYear, currentMonth)
@@ -402,6 +412,16 @@ export default function Calendar() {
               </div>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
+              <div className="relative">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: '#9CA3AF' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search..." className="w-28 sm:w-36 pl-8 pr-2 py-1.5 text-xs border rounded-lg outline-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+              </div>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-2 py-1.5 text-xs border rounded-lg outline-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
+                <option value="">All</option>
+                <option value="event">Event</option>
+                <option value="task">Task</option>
+                <option value="meeting">Meeting</option>
+              </select>
               <button
                 onClick={goToToday}
                 className="px-4 py-1.5 text-sm font-medium text-[#FF5900] border border-[#FF5900] rounded-lg hover:bg-orange-50 transition"
