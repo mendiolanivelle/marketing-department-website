@@ -1397,8 +1397,8 @@ export default function Messaging() {
                         <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{template.subject}</p>
                       </div>
                       <div>
-                        <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Body</p>
-                        <p className="text-sm whitespace-pre-wrap line-clamp-4 font-mono leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{template.body}</p>
+                        <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Email Message</p>
+                        <p className="text-sm whitespace-pre-wrap line-clamp-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{extractEmailMessage(template.body) || template.body}</p>
                       </div>
                     </div>
                   ))}
