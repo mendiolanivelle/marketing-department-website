@@ -537,6 +537,7 @@ export default function Messaging() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [showBodyPreview, setShowBodyPreview] = useState(false)
 
   // === Message Templates Hook ===
   const {
@@ -656,6 +657,7 @@ export default function Messaging() {
       body: template.body,
     })
     setEditingId(template.id)
+    setShowBodyPreview(false)
     setShowForm(true)
   }
 
@@ -1198,7 +1200,7 @@ export default function Messaging() {
                 </div>
               </div>
               <button
-                onClick={() => { setShowForm(true); setEditingId(null); reset() }}
+                onClick={() => { setShowBodyPreview(false); setShowForm(true); setEditingId(null); reset() }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
                 style={{ backgroundColor: 'var(--accent)', boxShadow: '0 4px 12px rgba(255,89,0,0.25)', color: '#FFFFFF' }}
               >
@@ -1264,33 +1266,59 @@ export default function Messaging() {
                   {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
                   <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Use {'{{variable_name}}'} for dynamic placeholders</p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className={`grid grid-cols-1 ${showBodyPreview ? '' : 'lg:grid-cols-2'} gap-4`}>
                   <div>
                     <div className="flex items-center justify-between gap-3 mb-1.5">
                       <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>HTML Email Body</label>
-                      <button
-                        type="button"
-                        onClick={() => setValue('body', emailHtmlStarter, { shouldDirty: true, shouldValidate: true })}
-                        className="px-3 py-1.5 rounded-lg text-xs transition"
-                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600 }}
-                      >
-                        Starter HTML
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setValue('body', emailHtmlStarter, { shouldDirty: true, shouldValidate: true })
+                            setShowBodyPreview(true)
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs transition"
+                          style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600 }}
+                        >
+                          Starter HTML
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowBodyPreview(prev => !prev)}
+                          className="px-3 py-1.5 rounded-lg text-xs transition"
+                          style={{ backgroundColor: showBodyPreview ? 'var(--accent)' : 'var(--bg-hover)', color: showBodyPreview ? '#FFFFFF' : 'var(--text-secondary)', fontWeight: 600 }}
+                        >
+                          {showBodyPreview ? 'Edit HTML' : 'Preview'}
+                        </button>
+                      </div>
                     </div>
-                    <textarea {...register('body')} rows={16} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="<div style=&quot;font-family:Arial,sans-serif&quot;>Write your HTML email here...</div>" />
+                    {showBodyPreview ? (
+                      <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#f4f4f5' }}>
+                        <iframe
+                          title="Email template preview"
+                          srcDoc={templateBodyPreview}
+                          sandbox=""
+                          className="w-full h-[420px] bg-white"
+                        />
+                      </div>
+                    ) : (
+                      <textarea {...register('body')} rows={16} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="<div style=&quot;font-family:Arial,sans-serif&quot;>Write your HTML email here...</div>" />
+                    )}
                     {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
                   </div>
-                  <div>
-                    <p className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Live Preview</p>
-                    <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#f4f4f5' }}>
-                      <iframe
-                        title="Email template preview"
-                        srcDoc={templateBodyPreview}
-                        sandbox=""
-                        className="w-full h-[420px] bg-white"
-                      />
+                  {!showBodyPreview && (
+                    <div>
+                      <p className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Live Preview</p>
+                      <div className="border rounded-lg overflow-hidden" style={{ borderColor: 'var(--border-primary)', backgroundColor: '#f4f4f5' }}>
+                        <iframe
+                          title="Email template preview"
+                          srcDoc={templateBodyPreview}
+                          sandbox=""
+                          className="w-full h-[420px] bg-white"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="sticky bottom-0 border-t -mx-6 px-6 py-4 flex justify-end gap-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                   <button type="button" onClick={() => { setShowForm(false); setEditingId(null); reset() }} className="px-5 py-2.5 rounded-lg transition text-sm" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
