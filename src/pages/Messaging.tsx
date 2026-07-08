@@ -50,6 +50,7 @@ const templateSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   category: z.string().min(1, 'Category is required'),
   subject: z.string().min(1, 'Subject is required'),
+  emailMessage: z.string().optional(),
   body: z.string().min(1, 'Body is required'),
 })
 
@@ -73,6 +74,10 @@ const defaultCategories = [
   'Meeting Invitation Email',
 ]
 
+const defaultEmailMessage = `We would love to connect with {{company_name}} about your project goals.
+
+Tell us what you want to highlight here.`
+
 const emailHtmlStarter = `<div style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#1B1A1C;">
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
     <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eceef2;">
@@ -82,10 +87,12 @@ const emailHtmlStarter = `<div style="margin:0;padding:0;background:#f4f4f5;font
       </div>
       <div style="padding:32px;">
         <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi {{contact_name}},</p>
+        <!-- EMAIL_MESSAGE_START -->
         <p style="margin:0 0 18px;font-size:15px;line-height:1.7;">We would love to connect with {{company_name}} about your project goals.</p>
         <div style="background:#FFF7ED;border:1px solid #fed7aa;border-radius:14px;padding:18px;margin:22px 0;">
           <p style="margin:0;color:#9a3412;font-size:14px;line-height:1.6;">Tell us what you want to highlight here.</p>
         </div>
+        <!-- EMAIL_MESSAGE_END -->
         <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
         <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>{{sender_name}}</p>
       </div>
@@ -95,6 +102,31 @@ const emailHtmlStarter = `<div style="margin:0;padding:0;background:#f4f4f5;font
 
 const escapeHtml = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const messageToHtml = (message: string) =>
+  message
+    .split(/\n{2,}/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(part => `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;">${escapeHtml(part).replace(/\n/g, '<br>')}</p>`)
+    .join('\n        ')
+
+const applyEmailMessage = (html: string, message: string) => {
+  const messageHtml = messageToHtml(message)
+  const source = html || emailHtmlStarter
+  if (!source.includes('<!-- EMAIL_MESSAGE_START -->')) return emailHtmlStarter.replace(/<!-- EMAIL_MESSAGE_START -->[\s\S]*<!-- EMAIL_MESSAGE_END -->/, `<!-- EMAIL_MESSAGE_START -->\n        ${messageHtml}\n        <!-- EMAIL_MESSAGE_END -->`)
+  return source.replace(/<!-- EMAIL_MESSAGE_START -->[\s\S]*<!-- EMAIL_MESSAGE_END -->/, `<!-- EMAIL_MESSAGE_START -->\n        ${messageHtml}\n        <!-- EMAIL_MESSAGE_END -->`)
+}
+
+const extractEmailMessage = (html: string) => {
+  const match = html.match(/<!-- EMAIL_MESSAGE_START -->([\s\S]*?)<!-- EMAIL_MESSAGE_END -->/)
+  const source = match ? match[1] : html
+  return source.replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 const renderEmailPreview = (body = '') => {
   const content = body.trim()
@@ -543,11 +575,13 @@ export default function Messaging() {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
     defaultValues: {
+      emailMessage: defaultEmailMessage,
       body: emailHtmlStarter,
     },
   })
@@ -594,7 +628,7 @@ export default function Messaging() {
     }
   }, [fetchTemplates])
 
-  const onSubmit = async (data: TemplateFormData) => {
+  const onSubmit = async ({ emailMessage: _emailMessage, ...data }: TemplateFormData) => {
     setErrorMessage(null)
     setSuccessMessage(null)
 
@@ -655,6 +689,7 @@ export default function Messaging() {
       title: template.title,
       category: template.category,
       subject: template.subject,
+      emailMessage: extractEmailMessage(template.body),
       body: template.body,
     })
     setEditingId(template.id)
@@ -1200,7 +1235,7 @@ export default function Messaging() {
                 </div>
               </div>
               <button
-                onClick={() => { setShowForm(true); setEditingId(null); reset({ title: '', category: '', subject: '', body: emailHtmlStarter }) }}
+                onClick={() => { setShowForm(true); setEditingId(null); reset({ title: '', category: '', subject: '', emailMessage: defaultEmailMessage, body: applyEmailMessage(emailHtmlStarter, defaultEmailMessage) }) }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
                 style={{ backgroundColor: 'var(--accent)', boxShadow: '0 4px 12px rgba(255,89,0,0.25)', color: '#FFFFFF' }}
               >
@@ -1266,10 +1301,22 @@ export default function Messaging() {
                   {errors.subject && <p className="mt-1 text-xs text-red-600">{errors.subject.message}</p>}
                   <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Use {'{{variable_name}}'} for dynamic placeholders</p>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Email Message</label>
+                  <textarea
+                    {...register('emailMessage', {
+                      onChange: (e) => setValue('body', applyEmailMessage(watch('body') || emailHtmlStarter, e.target.value), { shouldDirty: true, shouldValidate: true }),
+                    })}
+                    rows={6}
+                    className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical"
+                    style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    placeholder="Write the email content here..."
+                  />
+                </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
                     <div className="flex items-center justify-between gap-3 mb-1.5">
-                      <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>HTML Email Body</label>
+                      <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>HTML Email Designer</label>
                     </div>
                     <textarea {...register('body')} rows={16} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="<div style=&quot;font-family:Arial,sans-serif&quot;>Write your HTML email here...</div>" />
                     {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
