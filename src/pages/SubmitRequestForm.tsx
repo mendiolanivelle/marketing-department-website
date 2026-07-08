@@ -369,34 +369,36 @@ export default function SubmitRequestForm() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 pb-16" style={{ marginTop: '-1.5rem' }}>
-        <div className="space-y-6">
-          {/* Section A */}
-          <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
-            <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
-            <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
-              <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION A: REQUESTER INFORMATION</h2>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Name of Requester</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your full name" />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Department</label>
-                  <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
-                    <option value="">Select department</option>
-                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
+      {/* Section A: Requester Information */}
+      <div className="max-w-3xl mx-auto px-4 mt-6 mb-6">
+        <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
+          <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
+          <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
+            <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION A: REQUESTER INFORMATION</h2>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Name of Requester</label>
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your full name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email / Internal Chat Handle</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="email@company.com or @slackhandle" />
+                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Department</label>
+                <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
+                  <option value="">Select department</option>
+                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
               </div>
             </div>
+            <div>
+              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email / Internal Chat Handle</label>
+              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="email@company.com or @slackhandle" />
+            </div>
           </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 pb-16 space-y-6">
 
           {/* Section B */}
           <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
@@ -568,7 +570,6 @@ export default function SubmitRequestForm() {
               {submitting ? 'Saving...' : isEditMode ? 'Update Request' : 'Submit Request'}
             </button>
           </div>
-        </div>
       </form>
     </div>
   )
