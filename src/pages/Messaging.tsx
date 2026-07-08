@@ -853,15 +853,6 @@ export default function Messaging() {
           reader.readAsDataURL(file)
           e.target.value = ''
         }} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[600px] overflow-y-auto pr-2">
-          {filtered.map(renderLeadCard)}
-          {filtered.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No leads found. Add one to get started.</p>
-            </div>
-          )}
-        </div>
-
         {/* Add Lead Modal */}
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAdd(false)}>
