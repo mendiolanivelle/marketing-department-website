@@ -520,22 +520,26 @@ export default function PublicAcceptanceForm() {
           <div className="px-6 py-3.5" style={{ backgroundColor: '#1B1A1C' }}>
             <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION C: REVIEW &amp; APPROVAL PROCESS</h2>
           </div>
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-6 py-5 space-y-5">
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
+              <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>Select all that apply</p>
               <div className="flex flex-wrap gap-2">{checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}</div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="border-t pt-4 space-y-4" style={{ borderColor: '#E5E7EB' }}>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Review Rounds Included</label>
+                <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>How many rounds of revisions are included?</p>
                 <div className="flex flex-wrap gap-2">{radioOptions('reviewRounds', ['1', '2', '3', 'Not Sure'])}</div>
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Review Time</label>
+                <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>How long do you expect each review to take?</p>
                 <div className="flex flex-wrap gap-2">{radioOptions('reviewTime', ['1 day', '2 days', '3 days', 'Not Sure'])}</div>
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Basis for Approval</label>
+                <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>What will the deliverables be measured against?</p>
                 <div className="flex flex-wrap gap-2">{checkboxOptions('approvalBasis', ['Acceptance criteria from Section 2'])}</div>
               </div>
             </div>
