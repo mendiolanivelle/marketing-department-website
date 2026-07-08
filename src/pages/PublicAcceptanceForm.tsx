@@ -324,18 +324,16 @@ export default function PublicAcceptanceForm() {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Intro */}
-      <div className="max-w-3xl mx-auto px-4 mb-6" style={{ marginTop: '-1.5rem' }}>
-        <div className="p-5 rounded-xl" style={{ backgroundColor: '#FFF7ED', border: '1px solid #FFE4C4' }}>
-          <p className="text-sm leading-relaxed" style={{ color: '#9A3412', fontWeight: 300 }}>
-            This document defines the Client's expectations for production deliverables and acceptance standards. Information provided here will be translated by the Operations and QA teams into detailed technical specifications, quality checks, and validation procedures. Clients are not required to provide technical details.
-          </p>
+        <div className="max-w-3xl mx-auto px-4 pb-6">
+          <div className="p-4 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontWeight: 300 }}>
+              This document defines the Client's expectations for production deliverables and acceptance standards. Information provided here will be translated by the Operations and QA teams into detailed technical specifications, quality checks, and validation procedures. Clients are not required to provide technical details.
+            </p>
+          </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 pb-16">
+<form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 pb-16">
         <div className="space-y-6">
         <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB', boxShadow: '0 4px 20px rgba(27,26,28,0.06)' }}>
           <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
