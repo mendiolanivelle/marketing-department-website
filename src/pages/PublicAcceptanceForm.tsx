@@ -363,11 +363,25 @@ export default function PublicAcceptanceForm() {
             </div>
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Type</label>
-              <div className="flex flex-wrap gap-2">{radioOptions('projectType', ['Project Base', 'Staff Augmentation'])}</div>
+              <div className="flex flex-wrap gap-2">
+                {radioOptions('projectType', ['Project Base', 'Staff Augmentation'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="projectType" value="Others (Specify)" checked={form.projectType === 'Others (Specify)'} onChange={() => handleRadioGroup('projectType', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.projectType === 'Others (Specify)' && <input type="text" value={form.projectTypeOther} onChange={(e) => setForm({ ...form, projectTypeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
             </div>
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Target Platform</label>
-              <div className="flex flex-wrap gap-2">{checkboxOptions('targetPlatform', ['PC', 'Mobile', 'Web', 'Console', 'Not sure yet'])}</div>
+              <div className="flex flex-wrap gap-2">
+                {checkboxOptions('targetPlatform', ['PC', 'Mobile', 'Web', 'Console', 'Not sure yet'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="Others (Specify)" checked={form.targetPlatform.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('targetPlatform', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.targetPlatform.includes('Others (Specify)') && <input type="text" value={form.targetPlatformOther} onChange={(e) => setForm({ ...form, targetPlatformOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -524,7 +538,14 @@ export default function PublicAcceptanceForm() {
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
               <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>Select all that apply</p>
-              <div className="flex flex-wrap gap-2">{checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}</div>
+              <div className="flex flex-wrap gap-2">
+                {checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="Others (Specify)" checked={form.reviewer.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('reviewer', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.reviewer.includes('Others (Specify)') && <input type="text" value={form.reviewerOther} onChange={(e) => setForm({ ...form, reviewerOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
             </div>
             <div className="space-y-4">
               <div>
@@ -555,7 +576,14 @@ export default function PublicAcceptanceForm() {
           <div className="px-6 py-5 space-y-4">
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Communication Tool</label>
-              <div className="flex flex-wrap gap-2">{checkboxOptions('commsTool', ['Discord', 'Slack'])}</div>
+              <div className="flex flex-wrap gap-2">
+                {checkboxOptions('commsTool', ['Discord', 'Slack'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="Others (Specify)" checked={form.commsTool.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('commsTool', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.commsTool.includes('Others (Specify)') && <input type="text" value={form.commsToolOther} onChange={(e) => setForm({ ...form, commsToolOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
             </div>
             {form.projectType === 'Project Base' && (
             <div className="border-t pt-4" style={{ borderColor: '#E5E7EB' }}>
@@ -567,7 +595,14 @@ export default function PublicAcceptanceForm() {
                 </div>
                 <div>
                   <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Preferred Meeting Time <span className="text-xs font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
-                  <div className="flex flex-wrap gap-2">{radioOptions('meetingTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}</div>
+                  <div className="flex flex-wrap gap-2">
+                {radioOptions('meetingTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="meetingTime" value="Others (Specify)" checked={form.meetingTime === 'Others (Specify)'} onChange={() => handleRadioGroup('meetingTime', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.meetingTime === 'Others (Specify)' && <input type="text" value={form.meetingTimeOther} onChange={(e) => setForm({ ...form, meetingTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
                 </div>
               </div>
             </div>
@@ -582,7 +617,14 @@ export default function PublicAcceptanceForm() {
                 </div>
                 <div>
                   <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Preferred Sync Time <span className="text-xs font-normal" style={{ color: '#9CA3AF' }}>(No graveyard shift)</span></label>
-                  <div className="flex flex-wrap gap-2">{radioOptions('syncTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}</div>
+                  <div className="flex flex-wrap gap-2">
+                {radioOptions('syncTime', ['10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '3:00 PM - 5:00 PM'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="syncTime" value="Others (Specify)" checked={form.syncTime === 'Others (Specify)'} onChange={() => handleRadioGroup('syncTime', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.syncTime === 'Others (Specify)' && <input type="text" value={form.syncTimeOther} onChange={(e) => setForm({ ...form, syncTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
                 </div>
                 <div>
                   <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Training &amp; Onboarding</label>
@@ -603,7 +645,14 @@ export default function PublicAcceptanceForm() {
           <div className="px-6 py-5 space-y-4">
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Game Engine</label>
-              <div className="flex flex-wrap gap-2">{checkboxOptions('gameEngine', ['Unity', 'Unreal', 'Not sure yet'])}</div>
+              <div className="flex flex-wrap gap-2">
+                {checkboxOptions('gameEngine', ['Unity', 'Unreal', 'Not sure yet'])}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="Others (Specify)" checked={form.gameEngine.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('gameEngine', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
+                </label>
+                {form.gameEngine.includes('Others (Specify)') && <input type="text" value={form.gameEngineOther} onChange={(e) => setForm({ ...form, gameEngineOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+              </div>
             </div>
             <div>
               <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Technical Requirements</label>
