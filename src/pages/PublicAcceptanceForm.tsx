@@ -88,7 +88,7 @@ export default function PublicAcceptanceForm() {
     deadline: '',
     budget: '',
     docLink: '',
-    deliverableRows: [] as DeliverableRow[],
+    deliverableRows: [{ name: '', description: '', criteria: '', reference: '', quantity: '', serviceType: '' }] as DeliverableRow[],
     reviewer: [] as string[],
     reviewerOther: '',
     reviewRounds: '',
