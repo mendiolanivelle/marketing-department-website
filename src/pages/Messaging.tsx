@@ -543,11 +543,13 @@ export default function Messaging() {
     register,
     handleSubmit,
     reset,
-    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<TemplateFormData>({
     resolver: zodResolver(templateSchema),
+    defaultValues: {
+      body: emailHtmlStarter,
+    },
   })
   const templateBodyPreview = renderEmailPreview(watch('body') || '')
 
@@ -1198,7 +1200,7 @@ export default function Messaging() {
                 </div>
               </div>
               <button
-                onClick={() => { setShowForm(true); setEditingId(null); reset() }}
+                onClick={() => { setShowForm(true); setEditingId(null); reset({ title: '', category: '', subject: '', body: emailHtmlStarter }) }}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
                 style={{ backgroundColor: 'var(--accent)', boxShadow: '0 4px 12px rgba(255,89,0,0.25)', color: '#FFFFFF' }}
               >
@@ -1268,14 +1270,6 @@ export default function Messaging() {
                   <div>
                     <div className="flex items-center justify-between gap-3 mb-1.5">
                       <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>HTML Email Body</label>
-                      <button
-                        type="button"
-                        onClick={() => setValue('body', emailHtmlStarter, { shouldDirty: true, shouldValidate: true })}
-                        className="px-3 py-1.5 rounded-lg text-xs transition"
-                        style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600 }}
-                      >
-                        Starter HTML
-                      </button>
                     </div>
                     <textarea {...register('body')} rows={16} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-vertical font-mono" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="<div style=&quot;font-family:Arial,sans-serif&quot;>Write your HTML email here...</div>" />
                     {errors.body && <p className="mt-1 text-xs text-red-600">{errors.body.message}</p>}
