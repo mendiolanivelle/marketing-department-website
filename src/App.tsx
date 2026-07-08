@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
 
 const PublicShowcase = lazy(() => import('./pages/PublicShowcase'))
@@ -95,7 +96,7 @@ function App() {
               path="/"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <PublicShowcase />
+                  <ErrorBoundary><PublicShowcase /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -103,7 +104,7 @@ function App() {
               path="/acceptance-form"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <PublicAcceptanceForm />
+                  <ErrorBoundary><PublicAcceptanceForm /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -111,7 +112,7 @@ function App() {
               path="/view-acceptance/:id"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <ViewAcceptanceForm />
+                  <ErrorBoundary><ViewAcceptanceForm /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -119,7 +120,7 @@ function App() {
               path="/submit-request"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <SubmitRequestForm />
+                  <ErrorBoundary><SubmitRequestForm /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -127,7 +128,7 @@ function App() {
               path="/edit-request/:token"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <SubmitRequestForm />
+                  <ErrorBoundary><SubmitRequestForm /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -135,7 +136,7 @@ function App() {
               path="/login"
               element={
                 <Suspense fallback={<RouteFallback fullScreen />}>
-                  <Login />
+                  <ErrorBoundary><Login /></ErrorBoundary>
                 </Suspense>
               }
             />
@@ -147,22 +148,24 @@ function App() {
                     <Sidebar />
                     <div className="flex-1 flex flex-col min-w-0">
                       <main className="flex-1 flex flex-col min-h-0">
-                        <Suspense fallback={<RouteFallback />}>
-                          <Routes>
-                            <Route path="/dashboard" element={<Home />} />
-                            <Route path="/team" element={<About />} />
-                            <Route path="/about" element={<About />} />
-                            <Route path="/timeline" element={<Timeline />} />
-                            <Route path="/templates" element={<Messaging />} />
-                            <Route path="/calendar" element={<Calendar />} />
-<Route path="/files" element={<FileTracker />} />
-                            <Route path="/leads" element={<LeadGeneration />} />
+<Suspense fallback={<RouteFallback />}>
+                          <ErrorBoundary>
+                            <Routes>
+                              <Route path="/dashboard" element={<Home />} />
+                              <Route path="/team" element={<About />} />
+                              <Route path="/about" element={<About />} />
+                              <Route path="/timeline" element={<Timeline />} />
+                              <Route path="/templates" element={<Messaging />} />
+                              <Route path="/calendar" element={<Calendar />} />
+                              <Route path="/files" element={<FileTracker />} />
+                              <Route path="/leads" element={<LeadGeneration />} />
                             <Route path="/campaigns" element={<Campaigns />} />
                             <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
                             <Route path="/requests" element={<MarketingRequests />} />
                             <Route path="/website-requests" element={<WebsiteRequests />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
                           </Routes>
+                          </ErrorBoundary>
                         </Suspense>
                       </main>
                     </div>
