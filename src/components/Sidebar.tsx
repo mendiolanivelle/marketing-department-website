@@ -86,7 +86,7 @@ export default function Sidebar() {
     const handleChange = () => fetchUnread()
     window.addEventListener('acceptance-forms-changed', handleChange)
     window.addEventListener('lead-data-changed', handleChange)
-    const interval = setInterval(fetchUnread, 5000)
+    const interval = setInterval(fetchUnread, 30000)
     if (isSupabaseConfigured && supabase) {
       const channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })

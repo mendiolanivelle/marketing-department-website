@@ -197,7 +197,7 @@ export default function Home() {
   // Poll localStorage every 3s for lead stat changes (syncs with LeadGeneration)
   useEffect(() => {
     if (isSupabaseConfigured && supabase) return
-    const interval = setInterval(fetchLeadStats, 3000)
+    const interval = setInterval(fetchLeadStats, 10000)
     return () => clearInterval(interval)
   }, [fetchLeadStats])
 

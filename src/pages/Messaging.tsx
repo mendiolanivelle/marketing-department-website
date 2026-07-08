@@ -317,7 +317,7 @@ export default function Messaging() {
     }
 
     syncLeadFiles()
-    const interval = setInterval(syncLeadFiles, 3000)
+    const interval = setInterval(syncLeadFiles, 15000)
     // Listen for file deletions
     const handleFileDelete = () => syncLeadFiles()
     window.addEventListener('lead-file-deleted', handleFileDelete)

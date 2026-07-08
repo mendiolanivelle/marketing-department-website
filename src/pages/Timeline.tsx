@@ -178,10 +178,10 @@ export default function Timeline() {
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 3000)
+    const interval = !isSupabaseConfigured || !supabase ? setInterval(fetchData, 15000) : undefined
     window.addEventListener('timeline-data-changed', fetchData)
     if (!isSupabaseConfigured || !supabase) return () => {
-      clearInterval(interval)
+      if (interval) clearInterval(interval)
       window.removeEventListener('timeline-data-changed', fetchData)
     }
     const channel = supabase
