@@ -526,7 +526,7 @@ export default function PublicAcceptanceForm() {
               <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>Select all that apply</p>
               <div className="flex flex-wrap gap-2">{checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}</div>
             </div>
-            <div className="border-t pt-4 space-y-4" style={{ borderColor: '#E5E7EB' }}>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Review Rounds Included</label>
                 <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>How many rounds of revisions are included?</p>
