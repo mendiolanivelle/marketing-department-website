@@ -257,7 +257,7 @@ export default function FileTracker() {
   const thumbnailColor = (cat: string) => CATEGORY_COLORS[cat] || '#FF5900'
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'rgba(202,205,215,0.15)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB' }}>
       {/* Upload modal */}
       {showUpload && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setShowUpload(false)}>
