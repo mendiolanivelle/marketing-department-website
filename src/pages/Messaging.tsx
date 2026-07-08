@@ -744,6 +744,7 @@ export default function Messaging() {
 
   return (
     <div>
+      <div className="hidden">
       {/* ======== REACH OUT SECTION ======== */}
       <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
@@ -1138,6 +1139,7 @@ export default function Messaging() {
       {/* Divider */}
       <div className="px-4 sm:px-6 lg:px-8">
         <hr style={{ borderColor: 'var(--border-primary)' }} />
+      </div>
       </div>
 
       {/* ======== MESSAGE TEMPLATES SECTION ======== */}
