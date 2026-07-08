@@ -459,43 +459,57 @@ export default function PublicAcceptanceForm() {
             <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION B: DELIVERABLES &amp; SPECIFICATIONS</h2>
           </div>
           <div className="px-6 py-5 space-y-4">
-            <p className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
-              List each deliverable, describe what it should include, and define how we will check if it's correct. Each row represents one item from your project scope.
-            </p>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr style={{ backgroundColor: '#F9FAFB' }}>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Deliverable</th>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Description</th>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Acceptance Criteria</th>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Reference Link</th>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Quantity</th>
-                    <th className="p-3 border text-left text-xs font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Service Type</th>
-                    <th className="p-3 border w-10" style={{ borderColor: '#E5E7EB' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {form.deliverableRows.map((row, i) => (
-                    <tr key={i} className="hover:bg-orange-50 transition">
-                      {(['name', 'description', 'criteria', 'reference', 'quantity', 'serviceType'] as const).map((field) => (
-                        <td key={field} className="p-1.5 border" style={{ borderColor: '#E5E7EB' }}>
-                          <input type="text" value={row[field]} onChange={(e) => updateDeliverableRow(i, field, e.target.value)} className="w-full px-2 py-1.5 border rounded outline-none text-xs transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder={`Enter ${field}`} />
-                        </td>
-                      ))}
-                      <td className="p-1.5 border" style={{ borderColor: '#E5E7EB' }}>
-                        <button type="button" onClick={() => removeDeliverableRow(i)} className="p-1 rounded hover:bg-red-50 transition" style={{ color: '#EF4444' }}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-4 rounded-xl flex items-start gap-3" style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#D97706' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <p className="text-sm" style={{ color: '#92400E', fontWeight: 300 }}>
+                List each deliverable below. For every item, tell us what it is, what it should include, and how we'll know it's correct. Add as many rows as you need.
+              </p>
             </div>
-            <button type="button" onClick={addDeliverableRow} className="mt-1 px-4 py-2 text-sm rounded-lg transition flex items-center gap-1.5 hover:-translate-y-0.5" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', fontWeight: 500 }}>
+
+            {form.deliverableRows.map((row, i) => (
+              <div key={i} className="rounded-xl border transition hover:shadow-md" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+                <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' }}>
+                  <span className="text-xs font-semibold" style={{ color: '#374151' }}>Deliverable #{i + 1}</span>
+                  <button type="button" onClick={() => removeDeliverableRow(i)} className="p-1 rounded hover:bg-red-50 transition" style={{ color: '#EF4444' }} title="Remove this deliverable">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Deliverable Name</label>
+                      <input type="text" value={row.name} onChange={(e) => updateDeliverableRow(i, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Game Trailer, Social Media Kit" />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Quantity</label>
+                      <input type="text" value={row.quantity} onChange={(e) => updateDeliverableRow(i, 'quantity', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 1, 5, 10" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Description</label>
+                    <textarea value={row.description} onChange={(e) => updateDeliverableRow(i, 'description', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Describe what this deliverable should include..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Acceptance Criteria</label>
+                    <textarea value={row.criteria} onChange={(e) => updateDeliverableRow(i, 'criteria', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="How will we know this is done? e.g. 1080p resolution, 30fps, approved by client" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Reference Link</label>
+                      <input type="text" value={row.reference} onChange={(e) => updateDeliverableRow(i, 'reference', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Link to reference / inspiration" />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Service Type</label>
+                      <input type="text" value={row.serviceType} onChange={(e) => updateDeliverableRow(i, 'serviceType', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 3D Modeling, Animation, Editing" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button type="button" onClick={addDeliverableRow} className="w-full px-4 py-3 text-sm rounded-xl transition flex items-center justify-center gap-1.5 hover:-translate-y-0.5" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', border: '2px dashed #FFD6B3', fontWeight: 500 }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Add Deliverable Row
+              Add Another Deliverable
             </button>
           </div>
         </div>
