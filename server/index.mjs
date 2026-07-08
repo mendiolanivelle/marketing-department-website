@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
-import { createReadStream, existsSync, readdirSync } from 'node:fs'
-import { basename, extname, join, normalize } from 'node:path'
+import { createReadStream, existsSync } from 'node:fs'
+import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
@@ -238,18 +238,12 @@ async function extractCallingCard(req, res) {
 
 function serveStatic(req, res) {
   const rawPath = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname)
-  const cleanPath = normalize(rawPath).replace(/^(\.\.[/\\])+/, '')
-  const requested = cleanPath === '/' ? '/index.html' : cleanPath
+  const cleanPath = normalize(rawPath).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '')
+  const requested = cleanPath === '' || cleanPath === '.' ? 'index.html' : cleanPath
   const filePath = join(distDir, requested)
   const fallbackPath = join(distDir, 'index.html')
-  const isAsset = requested.startsWith('/assets/')
-  let assetFallback = ''
-  if (isAsset && filePath.startsWith(distDir) && !existsSync(filePath)) {
-    const ext = extname(requested)
-    const name = basename(requested, ext).replace(/-[A-Za-z0-9_-]+$/, '')
-    assetFallback = readdirSync(join(distDir, 'assets')).find(file => file.startsWith(`${name}-`) && file.endsWith(ext)) || ''
-  }
-  if (isAsset && (!filePath.startsWith(distDir) || (!existsSync(filePath) && !assetFallback))) {
+  const isAsset = rawPath.startsWith('/assets/')
+  if (isAsset && (!filePath.startsWith(distDir) || !existsSync(filePath))) {
     res.writeHead(404, {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -258,9 +252,7 @@ function serveStatic(req, res) {
     return
   }
 
-  const safeFilePath = assetFallback
-    ? join(distDir, 'assets', assetFallback)
-    : filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
+  const safeFilePath = filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
   const type = contentTypes[extname(safeFilePath)] || 'application/octet-stream'
   const cacheControl = 'no-cache'
 
