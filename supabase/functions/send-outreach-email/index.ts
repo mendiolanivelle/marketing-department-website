@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { to, name, subject, body, inReplyTo, references, messageId } = await req.json()
+    const { to, name, subject, body, htmlBody, textBody, inReplyTo, references, messageId } = await req.json()
     if (!to || !subject) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
     }
@@ -44,13 +44,13 @@ serve(async (req) => {
     })
 
     const emailBody = body || ''
-    const hasHtml = /<\/?[a-z][\s\S]*>/i.test(emailBody)
+    const htmlContent = htmlBody || (/<\/?[a-z][\s\S]*>/i.test(emailBody) ? emailBody : '')
     const mailOptions: any = {
       from: fromEmail,
       to: to,
       subject: subject,
-      text: hasHtml ? stripHtml(emailBody) : emailBody,
-      html: hasHtml ? emailBody : escapeHtml(emailBody).replace(/\n/g, '<br>'),
+      text: textBody || (htmlContent ? stripHtml(htmlContent) : emailBody),
+      html: htmlContent || escapeHtml(emailBody).replace(/\n/g, '<br>'),
       headers: {
         'Message-ID': messageId,
       },

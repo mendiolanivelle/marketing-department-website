@@ -290,24 +290,34 @@ const plainTextToEmailHtml = (message: string, rowData: Record<string, string>) 
 const ensureDesignedEmailBody = (body: string, rowData: Record<string, string>) =>
   /<\/?[a-z][\s\S]*>/i.test(body) ? body : plainTextToEmailHtml(body, rowData)
 
+const htmlToPlainText = (html: string) =>
+  html.replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+
 const sendColumnTemplateEmail = async (rowData: Record<string, string>, column: TimelineColumn) => {
   const to = rowData.Email.trim()
   if (!to || !isSupabaseConfigured || !supabase) return null
   const template = findTemplateForColumn(await loadMessageTemplates(), column)
   if (!template) return null
   const subject = fillMessageTemplate(template.subject, rowData)
-  const body = ensureDesignedEmailBody(fillMessageTemplate(template.body, rowData), rowData)
+  const htmlBody = ensureDesignedEmailBody(fillMessageTemplate(template.body, rowData), rowData)
   const { error } = await supabase.functions.invoke('send-outreach-email', {
     body: {
       to,
       name: rowData.Name || to,
       subject,
-      body,
+      body: htmlToPlainText(htmlBody),
+      htmlBody,
       messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
     },
   })
   if (error) throw error
-  return { template, subject, body }
+  return { template, subject, body: htmlBody }
 }
 
 const appendTimelineNote = (lead: any, note: string) => ({
