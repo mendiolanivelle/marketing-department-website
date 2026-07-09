@@ -386,6 +386,9 @@ export default function Login() {
             </form>
 
             <div className="mt-8 pt-8 border-t" style={{ borderColor: '#3E4048' }}>
+              <a href="/#/submit-request" target="_blank" rel="noopener noreferrer" className="block text-center mb-4 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(255,89,0,0.25)' }}>
+                Submit a Marketing Request
+              </a>
               <p className="text-center text-sm" style={{ color: '#CACDD7', opacity: 0.5, fontWeight: 300 }}>
                 Need access? Contact{' '}
                 <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#CACDD7', fontWeight: 500 }}>
