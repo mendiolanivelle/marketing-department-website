@@ -56,7 +56,56 @@ const defaultColumns = (): TimelineColumn[] => [
   { key: 'col-5', label: 'Closed Won' },
 ]
 
+const fillTimelineTemplate = (text: string, lead: TimelineLead) =>
+  text
+    .replace(/\{\{contact_name\}\}/g, lead.contact || lead.email || 'there')
+    .replace(/\{\{company_name\}\}/g, lead.company || 'your company')
+    .replace(/\{\{sender_name\}\}/g, 'Marketing Team')
+    .replace(/\{\{sales_rep_name\}\}/g, 'our Sales Team')
+    .replace(/\{\{ops_rep_name\}\}/g, 'our Operations Team')
+    .replace(/\{\{proposed_date\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
+    .replace(/\{\{project_name\}\}/g, lead.company || 'your project')
 
+const escapeEmailHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+const plainTextToEmailHtml = (message: string, lead: TimelineLead) => {
+  const paragraphs = message
+    .split(/\n{2,}/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(part => `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;">${escapeEmailHtml(part).replace(/\n/g, '<br>')}</p>`)
+    .join('\n        ')
+
+  return `<div style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#1B1A1C;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+    <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eceef2;">
+      <div style="background:#FF5900;padding:28px 32px;text-align:center;">
+        <h1 style="margin:0;color:#ffffff;font-size:24px;line-height:1.2;">Exodia Game Development</h1>
+        <p style="margin:8px 0 0;color:#ffe7da;font-size:14px;">Marketing Department</p>
+      </div>
+      <div style="padding:32px;">
+        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi ${escapeEmailHtml(lead.contact || lead.email || 'there')},</p>
+        ${paragraphs}
+        <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
+        <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>Marketing Team</p>
+      </div>
+    </div>
+  </div>
+</div>`
+}
+
+const ensureDesignedEmailBody = (body: string, lead: TimelineLead) =>
+  /<\/?[a-z][\s\S]*>/i.test(body) ? body : plainTextToEmailHtml(body, lead)
+
+const htmlToPlainText = (html: string) =>
+  html.replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 
 export default function Timeline() {
   const { user } = useAuth()
@@ -223,6 +272,32 @@ export default function Timeline() {
     fetchTemplates()
   }, [])
 
+  const sendColumnAutoEmail = async (lead: TimelineLead, column: TimelineColumn) => {
+    if (!column.emailTemplateId || !lead.email || !supabase) return lead
+    const template = templates.find(t => t.id === column.emailTemplateId)
+    if (!template) return lead
+
+    const subject = fillTimelineTemplate(template.subject, lead)
+    const htmlBody = ensureDesignedEmailBody(fillTimelineTemplate(template.body, lead), lead)
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const { error } = await supabase.functions.invoke('send-outreach-email', {
+      body: {
+        to: lead.email,
+        name: lead.contact || lead.email,
+        subject,
+        body: htmlToPlainText(htmlBody),
+        htmlBody,
+        messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
+      },
+    })
+    if (error) throw error
+    const updated = { ...lead, last_email_sent: today }
+    setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
+    await supabase.from('timeline_leads').update({ last_email_sent: today }).eq('id', lead.id)
+    logActivity('Timeline', `Auto emailed "${lead.company}" using "${template.title}"`)
+    return updated
+  }
+
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', leadId)
@@ -254,9 +329,14 @@ export default function Timeline() {
       }
     }
 
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, column_key: columnKey, table_id: tableId } : l))
+    const lead = leads.find(l => l.id === leadId)
+    const targetColumn = table?.columns.find(c => c.key === columnKey)
+    if (!lead || (lead.table_id === tableId && lead.column_key === columnKey)) return
+    const movedLead = { ...lead, column_key: columnKey, table_id: tableId }
+    setLeads(prev => prev.map(l => l.id === leadId ? movedLead : l))
     try {
       await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() }).eq('id', leadId)
+      if (targetColumn) await sendColumnAutoEmail(movedLead, targetColumn)
     } catch (err) { console.error('Error moving lead:', err) }
   }
 
@@ -275,10 +355,12 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: nextCol.key } : l))
+    const movedLead = { ...lead, column_key: nextCol.key }
+    setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
         await supabase.from('timeline_leads').update({ column_key: nextCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+        await sendColumnAutoEmail(movedLead, nextCol)
       } catch (err) { console.error('Error moving lead:', err) }
     }
   }
@@ -298,10 +380,12 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, column_key: prevCol.key } : l))
+    const movedLead = { ...lead, column_key: prevCol.key }
+    setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
         await supabase.from('timeline_leads').update({ column_key: prevCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+        await sendColumnAutoEmail(movedLead, prevCol)
       } catch (err) { console.error('Error moving lead:', err) }
     }
   }
