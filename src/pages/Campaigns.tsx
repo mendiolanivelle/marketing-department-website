@@ -727,37 +727,6 @@ export default function Campaigns() {
                       style={{ borderColor: 'var(--border-primary)' }}
                     />
                   </div>
-                  <div className="flex gap-3 justify-end">
-                    <button onClick={() => { setShowNotifyConfirm(false); setNotifyId(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-                    <button
-                      onClick={async () => {
-                        const camp = campaigns.find(c => c.id === notifyId)
-                        if (!camp) return
-                        const updated = campaigns.map(c => c.id === notifyId ? { ...c, ...form, status: 'Done' } : c)
-                        setCampaigns(updated)
-                        localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
-                        updateInCalendar(camp.name, { ...camp, ...form, status: 'Done', id: notifyId })
-                        if (isSupabaseConfigured && supabase && camp.requesterEmail) {
-                          try {
-                            await supabase.functions.invoke('notify-complete', {
-                              body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: notifyMessage || camp.description || '' },
-                            })
-                          } catch { /* notification failed silently - still show success */ }
-                        }
-                        setShowNotifyConfirm(false)
-                        setNotifyId(null)
-                        setViewingCampaign(null)
-                        setShowNotifySuccess(true)
-                      }}
-                      className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
-                      style={{ backgroundColor: '#16A34A', fontWeight: 500 }}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      Send to Requester
-                    </button>
-                  </div>
                 </div>
               )
             })()}
