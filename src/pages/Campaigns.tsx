@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const MONTH_MAP: Record<string, string> = {
@@ -119,7 +119,6 @@ export default function Campaigns() {
     ]
   })
   const [requests, setRequests] = useState<Campaign[]>([])
-  const [allItems, setAllItems] = useState<Campaign[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editOldName, setEditOldName] = useState('')
@@ -133,6 +132,7 @@ export default function Campaigns() {
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [] as string[], description: '' })
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
+  const allItems = useMemo(() => [...requests, ...campaigns], [requests, campaigns])
   const displayedCampaigns = filterStatus ? allItems.filter(c => c.status === filterStatus) : allItems
   const [note, setNote] = useState('')
 
@@ -262,8 +262,6 @@ status: r.status || 'Pending',
       .subscribe()
     return () => { try { supabase!.removeChannel(channel) } catch (e) {} }
   }, [])
-
-  useEffect(() => { setAllItems([...requests, ...campaigns]) }, [requests, campaigns])
 
   const showNote = (msg: string) => {
     setNote(msg)
