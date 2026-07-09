@@ -1373,9 +1373,18 @@ export default function Messaging() {
                   </div>
                 )
               }
-              return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {results.map((template) => (
+              const grouped: Record<string, typeof results> = {}
+              results.forEach(t => {
+                const cat = t.category || 'Uncategorized'
+                if (!grouped[cat]) grouped[cat] = []
+                grouped[cat].push(t)
+              })
+              return <div className="space-y-8">
+                {Object.entries(grouped).map(([category, items]) => (
+                  <div key={category}>
+                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{category}</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {items.map((template) => (
                     <div key={template.id} className="rounded-2xl border-2 exodia-card p-4 sm:p-6 transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="min-w-0 flex-1">
@@ -1410,12 +1419,13 @@ export default function Messaging() {
                         <p className="text-sm whitespace-pre-wrap line-clamp-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{extractEmailMessage(template.body) || template.body}</p>
                       </div>
                     </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              )
-            })()}
-          </>
-        )}
+              ))}
+            </div>
+          })()}
+          </>)}
       </div>
 
       {/* Notifications */}
