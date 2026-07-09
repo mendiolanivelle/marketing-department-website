@@ -68,27 +68,47 @@ export default function PublicShowcase() {
         )}
 
         {phase === 'ended' && showBtn && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10" style={{ backgroundColor: '#1B1A1C' }}>
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6" style={{ backgroundColor: '#1B1A1C' }}>
             <div className="absolute" style={{ width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
             <button
               onClick={() => navigate('/login')}
               className="relative transition-all duration-500 hover:scale-110 group"
               style={{ animation: 'btnAppear 2s ease-out' }}
             >
-              <div className="absolute inset-0 rounded-2xl transition-all duration-500" style={{ backgroundColor: 'rgba(255,89,0,0.1)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,89,0,0.25)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(255,89,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)' }} />
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500" style={{ backgroundColor: 'rgba(255,89,0,0.08)', boxShadow: '0 0 80px rgba(255,89,0,0.3)' }} />
+              <div className="absolute inset-0 rounded-2xl transition-all duration-500" style={{ backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', inset: '0 1px 0 rgba(255,255,255,0.05)' }} />
+              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
               <div className="relative flex items-center gap-3 px-10 py-5">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
                   <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 <span className="text-lg font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                  Get Started
+                  Employee Portal
                 </span>
                 <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
                   <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </div>
             </button>
+            <a
+              href="/#/submit-request"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative transition-all duration-500 hover:scale-110 group"
+              style={{ animation: 'btnAppear 2.5s ease-out' }}
+            >
+              <div className="absolute inset-0 rounded-2xl transition-all duration-500" style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 20px rgba(255,89,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              <div className="relative flex items-center gap-3 px-10 py-5">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="1.5">
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-lg font-semibold tracking-wide" style={{ color: '#FFFFFF' }}>
+                  Submit a Marketing Request
+                </span>
+                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="1.5">
+                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </a>
           </div>
         )}
       </div>
