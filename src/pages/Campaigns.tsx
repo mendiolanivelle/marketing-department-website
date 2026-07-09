@@ -402,7 +402,7 @@ status: r.status || 'Pending',
               {/* Full-width status bars */}
               <div className="flex gap-3 mb-6">
                 {[
-                  { label: 'Total', key: null, count: campaigns.length, color: '#CACDD7', bg: '#F3F4F6', barColor: '#CACDD7' },
+                  { label: 'Total', key: null, count: allItems.length, color: '#CACDD7', bg: '#F3F4F6', barColor: '#CACDD7' },
                   { label: 'Pending', key: 'Pending', count: statusCounts.pending, color: '#EA580C', bg: '#FFF7ED', barColor: '#EA580C' },
                   { label: 'Ongoing', key: 'Ongoing', count: statusCounts.ongoing, color: '#2563EB', bg: '#EBF5FF', barColor: '#2563EB' },
                   { label: 'Done', key: 'Done', count: statusCounts.done, color: '#16A34A', bg: '#F0FDF4', barColor: '#16A34A' },
