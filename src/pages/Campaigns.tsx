@@ -625,11 +625,14 @@ export default function Campaigns() {
       {/* Email Preview & Send Modal */}
       {showNotifyConfirm && notifyId !== null && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => { setShowNotifyConfirm(false); setNotifyId(null) }}>
-          <div className="relative w-full max-w-lg rounded-2xl border p-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Email Preview</h3>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>This notification will be sent to the requester.</p>
+          <div className="relative w-full max-w-lg rounded-2xl border flex flex-col" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', maxHeight: '90vh' }} onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 pt-6 pb-3 flex-shrink-0">
+              <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Email Preview</h3>
+              <p className="text-xs mb-0" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>This notification will be sent to the requester.</p>
+            </div>
+            <div className="px-6 overflow-y-auto flex-1 space-y-3">
             {(() => {
-              const camp = campaigns.find(c => c.id === notifyId)
+              const camp = viewingCampaign
               return (
                 <div className="space-y-3">
                   <div className="rounded-xl border p-4" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
@@ -758,6 +761,38 @@ export default function Campaigns() {
                 </div>
               )
             })()}
+            </div>
+            <div className="px-6 py-4 border-t flex-shrink-0 flex gap-3 justify-end" style={{ borderColor: '#E5E7EB' }}>
+              <button onClick={() => { setShowNotifyConfirm(false); setNotifyId(null) }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button
+                onClick={async () => {
+                  const camp = viewingCampaign
+                  if (!camp) return
+                  const updated = campaigns.map(c => c.id === notifyId ? { ...c, ...form, status: 'Done' } : c)
+                  setCampaigns(updated)
+                  localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                  updateInCalendar(camp.name, { ...camp, ...form, status: 'Done', id: notifyId })
+                  if (isSupabaseConfigured && supabase && camp.requesterEmail) {
+                    try {
+                      await supabase.functions.invoke('notify-complete', {
+                        body: { to: camp.requesterEmail, name: camp.requesterName || camp.dept, title: form.name, links: notifyLinks, tracking_id: camp.tracking_id || '', priority: camp.priority || '', description: notifyMessage || camp.description || '' },
+                      })
+                    } catch { /* notification failed silently - still show success */ }
+                  }
+                  setShowNotifyConfirm(false)
+                  setNotifyId(null)
+                  setViewingCampaign(null)
+                  setShowNotifySuccess(true)
+                }}
+                className="px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1.5"
+                style={{ backgroundColor: '#16A34A', fontWeight: 500 }}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Send to Requester
+              </button>
+            </div>
           </div>
         </div>
       )}
