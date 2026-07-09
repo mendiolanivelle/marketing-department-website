@@ -110,7 +110,18 @@ interface Campaign {
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('exodia-campaigns')
-    return saved ? JSON.parse(saved) : []
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Remove old default campaigns that may have been saved from previous versions
+      const oldDefaults = new Set(['HR Recruitment Drive', 'Q3 Product Launch', 'Brand Awareness Campaign', 'Holiday Promo Q4', 'Social Media Blitz'])
+      const filtered = parsed.filter((c: any) => !oldDefaults.has(c.name))
+      if (filtered.length !== parsed.length) {
+        localStorage.setItem('exodia-campaigns', JSON.stringify(filtered))
+        return filtered
+      }
+      return parsed
+    }
+    return []
   })
   const [requests, setRequests] = useState<Campaign[]>([])
   const [showAdd, setShowAdd] = useState(false)
@@ -200,6 +211,17 @@ export default function Campaigns() {
       window.removeEventListener('marketing-request-updated', refresh)
     }
   }, [])
+
+  // Deduplicate: remove localStorage campaigns that match a request by name
+  useEffect(() => {
+    if (requests.length === 0) return
+    const requestNames = new Set(requests.map(r => r.name.toLowerCase()))
+    const filtered = campaigns.filter(c => !requestNames.has(c.name.toLowerCase()))
+    if (filtered.length !== campaigns.length) {
+      setCampaigns(filtered)
+      localStorage.setItem('exodia-campaigns', JSON.stringify(filtered))
+    }
+  }, [requests])
 
   // Sync campaigns from Supabase to localStorage on mount
   useEffect(() => {
