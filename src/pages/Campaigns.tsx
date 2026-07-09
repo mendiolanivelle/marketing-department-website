@@ -424,7 +424,7 @@ status: r.status || 'Pending',
                         <span className="text-lg font-bold" style={{ color: stat.color }}>{stat.count}</span>
                       </div>
                       <div className="h-1.5 rounded-full" style={{ backgroundColor: stat.bg }}>
-                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${campaigns.length > 0 ? (stat.count / campaigns.length) * 100 : 0}%`, backgroundColor: stat.barColor }}></div>
+                        <div className="h-1.5 rounded-full transition-all" style={{ width: `${allItems.length > 0 ? (stat.count / allItems.length) * 100 : 0}%`, backgroundColor: stat.barColor }}></div>
                       </div>
                     </button>
                   )
