@@ -570,9 +570,21 @@ status: r.status || 'Pending',
                   value={viewingCampaign.status}
                   onChange={(e) => {
                     const newStatus = e.target.value
-                    const updated = campaigns.map(c => c.id === viewingCampaign.id ? { ...c, status: newStatus } : c)
-                    setCampaigns(updated)
-                    localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                    if (viewingCampaign.id < 0) {
+                      const updated = requests.map(r => r.id === viewingCampaign.id ? { ...r, status: newStatus } : r)
+                      setRequests(updated)
+                    } else {
+                      const updated = campaigns.map(c => c.id === viewingCampaign.id ? { ...c, status: newStatus } : c)
+                      setCampaigns(updated)
+                      localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                    }
+                    if (isSupabaseConfigured && supabase) {
+                      if (viewingCampaign.id < 0) {
+                        supabase!.from('marketing_requests').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', Math.abs(viewingCampaign.id)).then(({ error }) => { if (error) console.error('Failed to update request status:', error) })
+                      } else {
+                        supabase!.from('campaigns').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', viewingCampaign.id).then(({ error }) => { if (error) console.error('Failed to update campaign status:', error) })
+                      }
+                    }
                     updateInCalendar(viewingCampaign.name, { ...viewingCampaign, status: newStatus })
                     setViewingCampaign({ ...viewingCampaign, status: newStatus })
                   }}
