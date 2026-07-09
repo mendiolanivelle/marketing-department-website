@@ -118,6 +118,8 @@ export default function Campaigns() {
       { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: displayDate('2026-07-20') },
     ]
   })
+  const [requests, setRequests] = useState<Campaign[]>([])
+  const [allItems, setAllItems] = useState<Campaign[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [editOldName, setEditOldName] = useState('')
@@ -131,7 +133,7 @@ export default function Campaigns() {
   const [form, setForm] = useState({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [] as string[], description: '' })
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
-  const displayedCampaigns = filterStatus ? campaigns.filter(c => c.status === filterStatus) : campaigns
+  const displayedCampaigns = filterStatus ? allItems.filter(c => c.status === filterStatus) : allItems
   const [note, setNote] = useState('')
 
   useEffect(() => {
@@ -204,6 +206,37 @@ export default function Campaigns() {
       window.removeEventListener('marketing-request-updated', refresh)
     }
   }, [])
+
+  // Fetch marketing requests and merge as campaigns
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const fetchRequests = async () => {
+      const { data } = await supabase!.from('marketing_requests').select('*').order('created_at', { ascending: false })
+      if (data) {
+        const mapped: Campaign[] = data.map((r: any, i: number) => ({
+          id: -(i + 1),
+          name: r.title || r.name || 'Untitled',
+          dept: r.department || '',
+          status: 'Pending',
+          due: r.date_needed ? (r.date_needed.includes('-') ? r.date_needed : r.date_needed) : '',
+          requesterName: r.name || '',
+          requesterEmail: r.email || '',
+          priority: r.priority || '',
+          requestType: r.request_type || [],
+          description: r.description || '',
+          tracking_id: r.tracking_id || null,
+        }))
+        setRequests(mapped)
+      }
+    }
+    fetchRequests()
+    const channel = supabase.channel('campaigns-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => fetchRequests())
+      .subscribe()
+    return () => { try { supabase!.removeChannel(channel) } catch (e) {} }
+  }, [])
+
+  useEffect(() => { setAllItems([...requests, ...campaigns]) }, [requests, campaigns])
 
   const showNote = (msg: string) => {
     setNote(msg)
