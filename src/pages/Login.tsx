@@ -65,6 +65,8 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
+  const [showEmbed, setShowEmbed] = useState(false)
+  const [embedCopied, setEmbedCopied] = useState(false)
 
   const {
     register,
@@ -389,6 +391,18 @@ export default function Login() {
               <a href="/#/submit-request" target="_blank" rel="noopener noreferrer" className="block text-center mb-4 px-4 py-2.5 rounded-xl text-sm font-medium transition hover:-translate-y-0.5" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(255,89,0,0.25)' }}>
                 Submit a Marketing Request
               </a>
+              <button onClick={() => { setShowEmbed(!showEmbed); setEmbedCopied(false) }} className="w-full text-center text-xs mb-4 py-1.5 rounded-lg transition hover:opacity-70" style={{ color: '#CACDD7', opacity: 0.5, fontWeight: 300 }}>
+                {showEmbed ? 'Hide embed code' : 'Embed this form on your website'}
+              </button>
+              {showEmbed && (
+                <div className="mb-4">
+                  <div className="relative">
+                    <textarea readOnly value={'<a href="https://marketing.exodiagamedev.com/#/submit-request" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(255,89,0,0.3);">\n  Submit a Marketing Request\n</a>'} onClick={(e) => { (e.target as HTMLTextAreaElement).select(); navigator.clipboard.writeText((e.target as HTMLTextAreaElement).value); setEmbedCopied(true) }} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none text-xs resize-none" style={{ borderColor: '#3E4048', color: '#CACDD7', backgroundColor: '#1B1A1C' }} />
+                    {embedCopied && <span className="absolute top-2 right-2 text-xs" style={{ color: '#0B8043' }}>Copied!</span>}
+                  </div>
+                  <p className="text-xs mt-1.5 text-center" style={{ color: '#CACDD7', opacity: 0.4, fontWeight: 300 }}>Click the code to copy it, then paste into your website's HTML</p>
+                </div>
+              )}
               <p className="text-center text-sm" style={{ color: '#CACDD7', opacity: 0.5, fontWeight: 300 }}>
                 Need access? Contact{' '}
                 <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#CACDD7', fontWeight: 500 }}>
