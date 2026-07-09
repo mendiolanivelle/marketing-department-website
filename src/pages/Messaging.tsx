@@ -1382,7 +1382,12 @@ export default function Messaging() {
               return <div className="space-y-8">
                 {Object.entries(grouped).map(([category, items]) => (
                   <div key={category}>
-                    <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>{category}</h3>
+                    <h3 className="text-sm font-semibold mb-3 cursor-pointer hover:opacity-70 transition inline-flex items-center gap-1.5" style={{ color: selectedCategory === category ? 'var(--accent)' : 'var(--text-primary)' }} onClick={() => setSelectedCategory(category)}>
+                      {category}
+                      {selectedCategory === category && (
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedCategory('All') }} className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>Clear</button>
+                      )}
+                    </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {items.map((template) => (
                     <div key={template.id} className="rounded-2xl border-2 exodia-card p-4 sm:p-6 transition-all hover:shadow-md" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
