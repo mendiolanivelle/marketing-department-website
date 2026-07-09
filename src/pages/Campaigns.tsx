@@ -392,7 +392,7 @@ export default function Campaigns() {
               </div>
             ) : (
               <div className="space-y-2">
-                {[...displayedCampaigns].reverse().map((camp) => {
+                {displayedCampaigns.map((camp) => {
                   const sc = statusColors[camp.status] || { bg: 'var(--accent-light)', text: 'var(--accent)' }
                   return (
                     <div key={camp.id} className="group flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition hover:opacity-80 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }} onClick={() => setViewingCampaign(camp)}>
