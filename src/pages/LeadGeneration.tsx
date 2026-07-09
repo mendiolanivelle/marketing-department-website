@@ -311,8 +311,9 @@ const sendColumnTemplateEmail = async (rowData: Record<string, string>, column: 
       to,
       name: rowData.Name || to,
       subject,
-      body: htmlToPlainText(htmlBody),
+      body: htmlBody,
       htmlBody,
+      textBody: htmlToPlainText(htmlBody),
       messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
     },
   })

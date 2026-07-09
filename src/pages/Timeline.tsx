@@ -285,8 +285,9 @@ export default function Timeline() {
         to: lead.email,
         name: lead.contact || lead.email,
         subject,
-        body: htmlToPlainText(htmlBody),
+        body: htmlBody,
         htmlBody,
+        textBody: htmlToPlainText(htmlBody),
         messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
       },
     })
