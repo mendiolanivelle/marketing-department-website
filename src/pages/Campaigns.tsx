@@ -460,13 +460,15 @@ status: r.status || 'Pending',
                     <div key={camp.id} className="group flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition hover:opacity-80 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }} onClick={() => setViewingCampaign(camp)}>
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sc.text }}></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{camp.name}</p>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {camp.name}
+                          {camp.priority && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-semibold align-middle" style={{ backgroundColor: camp.priority === 'Rush' ? '#FEF2F2' : camp.priority === 'High' ? '#FFF7ED' : camp.priority === 'Standard' ? '#EFF6FF' : '#F0FDF4', color: camp.priority === 'Rush' ? '#DC2626' : camp.priority === 'High' ? '#FF5900' : camp.priority === 'Standard' ? '#2563EB' : '#16A34A' }}>{camp.priority}</span>
+                          )}
+                        </p>
                         <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{camp.tracking_id && <span style={{ color: '#FF5900' }}>{camp.tracking_id} &middot; </span>}{camp.dept}{camp.requesterName ? ` &middot; ${camp.requesterName}` : ''} &middot; Due: {displayDate(camp.due)}</p>
                       </div>
                       <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium whitespace-nowrap" style={{ backgroundColor: sc.bg, color: sc.text }}>{camp.status}</span>
-                      {camp.priority && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap" style={{ backgroundColor: camp.priority === 'Rush' ? '#FEF2F2' : camp.priority === 'High' ? '#FFF7ED' : camp.priority === 'Standard' ? '#EFF6FF' : '#F0FDF4', color: camp.priority === 'Rush' ? '#DC2626' : camp.priority === 'High' ? '#FF5900' : camp.priority === 'Standard' ? '#2563EB' : '#16A34A' }}>{camp.priority}</span>
-                      )}
                       <span className="relative">
                         <select
                           value={camp.status}
