@@ -1256,11 +1256,28 @@ export default function Messaging() {
           <input
             type="text"
             placeholder="Search templates by name, category, or subject..."
-            value={selectedCategory === 'All' ? '' : selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value || 'All')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 border rounded-xl text-sm outline-none transition"
             style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
           />
+        </div>
+
+        {/* Category filter buttons */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition hover:-translate-y-0.5"
+              style={{
+                backgroundColor: selectedCategory === cat ? '#FF5900' : 'var(--bg-secondary)',
+                color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
+              }}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         {!isSupabaseConfigured && (
@@ -1358,13 +1375,11 @@ export default function Messaging() {
           <>
             {(() => {
               const query = selectedCategory === 'All' ? '' : selectedCategory.toLowerCase()
-              const results = query
-                ? templates.filter(t =>
-                    t.title.toLowerCase().includes(query) ||
-                    t.category.toLowerCase().includes(query) ||
-                    t.subject.toLowerCase().includes(query)
-                  )
-                : templates
+              const results = (query ? templates.filter(t => t.category.toLowerCase() === query) : templates).filter(t =>
+                !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                t.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                t.subject.toLowerCase().includes(searchQuery.toLowerCase())
+              )
               if (results.length === 0) {
                 return (
                   <div className="text-center py-16 rounded-2xl border-2 exodia-card" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
