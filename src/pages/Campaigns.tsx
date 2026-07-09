@@ -241,10 +241,10 @@ export default function Campaigns() {
       const { data } = await supabase!.from('marketing_requests').select('*').order('created_at', { ascending: false })
       if (data) {
         const mapped: Campaign[] = data.map((r: any, i: number) => ({
-          id: -(i + 1),
+          id: -(r.id || i + 1),
           name: r.title || r.name || 'Untitled',
           dept: r.department || '',
-          status: 'Pending',
+status: r.status || 'Pending',
           due: r.date_needed ? (r.date_needed.includes('-') ? r.date_needed : r.date_needed) : '',
           requesterName: r.name || '',
           requesterEmail: r.email || '',
@@ -456,11 +456,20 @@ export default function Campaigns() {
                           onChange={(e) => {
                             e.stopPropagation()
                             const newStatus = e.target.value
-                            const updated = campaigns.map(c => c.id === camp.id ? { ...c, status: newStatus } : c)
-                            setCampaigns(updated)
-                            localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                            if (camp.id < 0) {
+                              const updated = requests.map(r => r.id === camp.id ? { ...r, status: newStatus } : r)
+                              setRequests(updated)
+                            } else {
+                              const updated = campaigns.map(c => c.id === camp.id ? { ...c, status: newStatus } : c)
+                              setCampaigns(updated)
+                              localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+                            }
                             if (isSupabaseConfigured && supabase) {
-                              supabase!.from('campaigns').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', camp.id).then(({ error }) => { if (error) console.error('Failed to update status:', error) })
+                              if (camp.id < 0) {
+                                supabase!.from('marketing_requests').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', Math.abs(camp.id)).then(({ error }) => { if (error) console.error('Failed to update request status:', error) })
+                              } else {
+                                supabase!.from('campaigns').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', camp.id).then(({ error }) => { if (error) console.error('Failed to update campaign status:', error) })
+                              }
                             }
                             updateInCalendar(camp.name, { ...camp, status: newStatus })
                           }}
