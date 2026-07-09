@@ -110,13 +110,7 @@ interface Campaign {
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('exodia-campaigns')
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'HR Recruitment Drive', dept: 'HR', status: 'Ongoing', due: displayDate('2026-07-15') },
-      { id: 2, name: 'Q3 Product Launch', dept: 'Product', status: 'Pending', due: displayDate('2026-08-01') },
-      { id: 3, name: 'Brand Awareness Campaign', dept: 'Marketing', status: 'Pending', due: displayDate('2026-07-30') },
-      { id: 4, name: 'Holiday Promo Q4', dept: 'Sales', status: 'Done', due: displayDate('2026-06-28') },
-      { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: displayDate('2026-07-20') },
-    ]
+    return saved ? JSON.parse(saved) : []
   })
   const [requests, setRequests] = useState<Campaign[]>([])
   const [showAdd, setShowAdd] = useState(false)

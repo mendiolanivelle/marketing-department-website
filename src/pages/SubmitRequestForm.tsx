@@ -242,16 +242,8 @@ export default function SubmitRequestForm() {
     localStorage.removeItem('exodia-marketing-request-draft')
     window.dispatchEvent(new CustomEvent('marketing-request-updated'))
 
-    // Auto-create campaign + calendar task
+    // Auto-create calendar task
     if (!editToken) {
-      const campaignsKey = 'exodia-campaigns'
-      const savedCampaigns = localStorage.getItem(campaignsKey)
-      const campaigns = savedCampaigns ? JSON.parse(savedCampaigns) : []
-      const newId = campaigns.length > 0 ? Math.max(...campaigns.map((c: any) => c.id)) + 1 : 1
-      const campaign = { id: newId, name: form.title, dept: form.department, status: 'Pending', due: form.dateNeeded, requesterName: form.name, requesterEmail: form.email, priority: form.priority, requestType: form.requestType, description: form.description, tracking_id: tid || null }
-      campaigns.push(campaign)
-      localStorage.setItem(campaignsKey, JSON.stringify(campaigns))
-
       const calKey = 'exodia-calendar-items'
       const savedCal = localStorage.getItem(calKey)
       const calItems = savedCal ? JSON.parse(savedCal) : []
