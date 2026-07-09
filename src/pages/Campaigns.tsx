@@ -207,6 +207,33 @@ export default function Campaigns() {
     }
   }, [])
 
+  // Sync campaigns from Supabase to localStorage on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    supabase!.from('campaigns').select('*').then(({ data, error }) => {
+      if (error || !data || data.length === 0) return
+      const localSaved = localStorage.getItem('exodia-campaigns')
+      const localParsed = localSaved ? JSON.parse(localSaved) : []
+      const localIds = new Set(localParsed.map((c: any) => c.id))
+      const merged = [...localParsed]
+      data.forEach((r: any) => {
+        if (!localIds.has(r.id)) {
+          merged.push({
+            id: r.id, name: r.name, dept: r.dept || '', status: r.status || 'Pending',
+            due: r.due || '', requesterName: r.requester_name || '',
+            requesterEmail: r.requester_email || '', priority: r.priority || '',
+            requestType: r.request_type || [], description: r.description || '',
+            tracking_id: r.tracking_id || null,
+          } as Campaign)
+        }
+      })
+      if (merged.length > localParsed.length) {
+        localStorage.setItem('exodia-campaigns', JSON.stringify(merged))
+        setCampaigns(merged)
+      }
+    })
+  }, [])
+
   // Fetch marketing requests and merge as campaigns
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
@@ -246,10 +273,19 @@ export default function Campaigns() {
   const addCampaign = () => {
     if (!form.name.trim()) return
     const id = campaigns.length > 0 ? Math.max(...campaigns.map(c => c.id)) + 1 : 1
-    const campaign = { ...form, id }
+    const campaign = { ...form, id } as Campaign
     const updated = [...campaigns, campaign]
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('campaigns').insert([{
+        id, name: campaign.name, dept: campaign.dept, status: campaign.status,
+        due: campaign.due, requester_name: campaign.requesterName || '',
+        requester_email: campaign.requesterEmail || '', priority: campaign.priority || '',
+        request_type: campaign.requestType || [], description: campaign.description || '',
+        tracking_id: campaign.tracking_id || null,
+      }]).then(({ error }) => { if (error) console.error('Failed to save campaign:', error) })
+    }
     addToCalendar(campaign)
     showNote(`Campaign "${campaign.name}" created — added to Calendar`)
     setShowAdd(false)
@@ -267,6 +303,15 @@ export default function Campaigns() {
     const updated = campaigns.map(c => c.id === editId ? { ...c, ...form } : c)
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('campaigns').update({
+        name: form.name, dept: form.dept, status: form.status,
+        due: form.due, requester_name: form.requesterName || '',
+        requester_email: form.requesterEmail || '', priority: form.priority || '',
+        request_type: form.requestType || [], description: form.description || '',
+        updated_at: new Date().toISOString(),
+      }).eq('id', editId).then(({ error }) => { if (error) console.error('Failed to update campaign:', error) })
+    }
     updateInCalendar(editOldName, { ...form, id: editId } as Campaign)
     showNote(`Campaign "${form.name}" updated — Calendar synced`)
     setEditId(null)
@@ -280,6 +325,9 @@ export default function Campaigns() {
     const updated = campaigns.filter(c => c.id !== id)
     setCampaigns(updated)
     localStorage.setItem('exodia-campaigns', JSON.stringify(updated))
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('campaigns').delete().eq('id', id).then(({ error }) => { if (error) console.error('Failed to delete campaign:', error) })
+    }
     if (camp) { removeFromCalendar(camp.name); showNote(`Campaign "${camp.name}" removed from Calendar`) }
   }
 
