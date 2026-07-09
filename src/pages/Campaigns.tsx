@@ -330,9 +330,9 @@ status: r.status || 'Pending',
   }
 
   const statusCounts = {
-    pending: campaigns.filter(c => c.status === 'Pending').length,
-    ongoing: campaigns.filter(c => c.status === 'Ongoing').length,
-    done: campaigns.filter(c => c.status === 'Done').length,
+    pending: allItems.filter(c => c.status === 'Pending').length,
+    ongoing: allItems.filter(c => c.status === 'Ongoing').length,
+    done: allItems.filter(c => c.status === 'Done').length,
   }
 
   const statusColors: Record<string, { bg: string; text: string }> = {
