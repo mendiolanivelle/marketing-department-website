@@ -568,7 +568,6 @@ export default function Messaging() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
-  const [deleteConfirmCategory, setDeleteConfirmCategory] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -1291,25 +1290,14 @@ export default function Messaging() {
                 {cat}
               </button>
               {cat !== 'All' && (
-                deleteConfirmCategory === cat ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setCategories(prev => prev.filter(c => c !== cat)); setDeleteConfirmCategory(null); if (selectedCategory === cat) setSelectedCategory('All') }}
-                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center animate-pulse"
-                    style={{ backgroundColor: '#DC2626', color: '#FFF' }}
-                    title="Click again to confirm delete"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmCategory(cat); setTimeout(() => setDeleteConfirmCategory(prev => prev === cat ? null : prev), 3000) }}
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110"
-                    style={{ backgroundColor: '#DC2626', color: '#FFF' }}
-                    title={`Delete "${cat}" category`}
-                  >
-                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                )
+                <button
+                  onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete category "${cat}"?`)) { setCategories(prev => prev.filter(c => c !== cat)); if (selectedCategory === cat) setSelectedCategory('All') } }}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110"
+                  style={{ backgroundColor: '#DC2626', color: '#FFF' }}
+                  title={`Delete "${cat}" category`}
+                >
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               )}
             </div>
           ))}
