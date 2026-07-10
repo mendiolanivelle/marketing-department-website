@@ -505,6 +505,8 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
   const saveColumnTemplate = async (tableId: string, colKey: string, emailTemplateId: string) => {
     const table = tables.find(t => t.id === tableId)
     if (!table) return
+    const currentColumn = table.columns.find(c => c.key === colKey)
+    const previousTemplateId = typeof currentColumn?.emailTemplateId === 'string' ? currentColumn.emailTemplateId.trim() : ''
     const selectedTemplateId = emailTemplateId.trim()
     const newColumns = table.columns.map(c => {
       if (c.key !== colKey) return c
@@ -516,6 +518,11 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     try {
       const { error } = await supabase.from('timeline_tables').update({ columns: newColumns }).eq('id', tableId)
       if (error) throw error
+      if (!previousTemplateId && selectedTemplateId) {
+        const selectedColumn = newColumns.find(c => c.key === colKey)
+        const columnLeads = leads.filter(lead => lead.table_id === tableId && lead.column_key === colKey && lead.email)
+        if (selectedColumn) await Promise.all(columnLeads.map(lead => sendColumnAutoEmail(lead, selectedColumn)))
+      }
     } catch (err) { console.error('Error updating column template:', err) }
   }
 
