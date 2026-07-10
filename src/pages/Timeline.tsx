@@ -520,7 +520,14 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       if (error) throw error
       if (!hadActiveTemplate && selectedTemplateId) {
         const selectedColumn = newColumns.find(c => c.key === colKey)
-        const columnLeads = leads.filter(lead => lead.table_id === tableId && lead.column_key === colKey && lead.email)
+        const columnLeads = leads.filter(lead =>
+          lead.table_id === tableId &&
+          lead.column_key === colKey &&
+          lead.email &&
+          !lead.last_email_sent?.trim() &&
+          !lead.email_history?.length &&
+          !lead.notes?.includes('Auto email sent:')
+        )
         if (selectedColumn) await Promise.all(columnLeads.map(lead => sendColumnAutoEmail(lead, selectedColumn)))
       }
     } catch (err) { console.error('Error updating column template:', err) }
