@@ -243,10 +243,7 @@ const loadMessageTemplates = async (): Promise<MessageTemplate[]> => {
 }
 
 const findTemplateForColumn = (templates: MessageTemplate[], column: TimelineColumn) =>
-  templates.find(template => template.id === column.emailTemplateId) ||
-  (column.label.toLowerCase() === INTRODUCTORY_CALL_COLUMN.label.toLowerCase()
-    ? templates.find(template => /introductory call/i.test(`${template.title} ${template.category}`))
-    : undefined)
+  templates.find(template => template.id === column.emailTemplateId)
 
 const fillMessageTemplate = (text: string, rowData: Record<string, string>) =>
   text
@@ -359,7 +356,7 @@ const addCallingCardToTimeline = async (rowData: Record<string, string>, now: st
     const { data: insertedLead, error } = await supabase.from('timeline_leads').insert([{ table_id: table.id, ...supabaseLead }]).select().single()
     if (error) throw error
     try {
-      const sent = await sendColumnTemplateEmail(rowData, { ...supabaseColumn, emailTemplateId: supabaseColumn.emailTemplateId || localColumn.emailTemplateId })
+      const sent = await sendColumnTemplateEmail(rowData, supabaseColumn)
       if (sent) {
         const sentNote = `Auto email sent: ${sent.template.title}`
         const saved = localStorage.getItem('exodia-timeline-leads')
