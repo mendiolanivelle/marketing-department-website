@@ -624,6 +624,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
           table_id: addLeadTableId,
           column_key: addLeadColumnKey,
           ...leadForm,
+          date: leadForm.date || fmtDate(),
           notes: '',
           attachments: [],
           email_history: [],

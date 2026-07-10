@@ -454,7 +454,7 @@ export default function Messaging() {
       contact: lead.name,
       email: lead.email,
       value: '',
-      date: meetingDate,
+      date: new Date(meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       column_key: targetColumnKey,
       notes: 'Auto-created from Meeting Booked',
       attachments: [],
