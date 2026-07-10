@@ -346,10 +346,10 @@ export default function Timeline() {
     const lead = leads.find(l => l.id === leadId)
     const targetColumn = table?.columns.find(c => c.key === columnKey)
     if (!lead || (lead.table_id === tableId && lead.column_key === columnKey)) return
-    const movedLead = { ...lead, column_key: columnKey, table_id: tableId }
+    const movedLead = { ...lead, column_key: columnKey, table_id: tableId, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
     setLeads(prev => prev.map(l => l.id === leadId ? movedLead : l))
     try {
-      await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, updated_at: new Date().toISOString() }).eq('id', leadId)
+      await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', leadId)
       if (targetColumn) await sendColumnAutoEmail(movedLead, targetColumn)
     } catch (err) { console.error('Error moving lead:', err) }
   }
@@ -369,11 +369,11 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    const movedLead = { ...lead, column_key: nextCol.key }
+    const movedLead = { ...lead, column_key: nextCol.key, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
     setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
-        await supabase.from('timeline_leads').update({ column_key: nextCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+        await supabase.from('timeline_leads').update({ column_key: nextCol.key, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', lead.id)
         await sendColumnAutoEmail(movedLead, nextCol)
       } catch (err) { console.error('Error moving lead:', err) }
     }
@@ -394,11 +394,11 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    const movedLead = { ...lead, column_key: prevCol.key }
+    const movedLead = { ...lead, column_key: prevCol.key, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
     setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
-        await supabase.from('timeline_leads').update({ column_key: prevCol.key, updated_at: new Date().toISOString() }).eq('id', lead.id)
+        await supabase.from('timeline_leads').update({ column_key: prevCol.key, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', lead.id)
         await sendColumnAutoEmail(movedLead, prevCol)
       } catch (err) { console.error('Error moving lead:', err) }
     }
