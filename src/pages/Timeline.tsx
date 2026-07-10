@@ -107,6 +107,8 @@ const htmlToPlainText = (html: string) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 
+const fmtDate = (d: string | Date = new Date()) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
 export default function Timeline() {
   const { user } = useAuth()
   const [tables, setTables] = useState<TimelineTable[]>([])
@@ -222,6 +224,20 @@ export default function Timeline() {
         }
       } catch (err) {
         console.error('Error fetching timeline data:', err)
+      }
+    }
+
+    // Migrate existing leads without a date
+    localLeads = localLeads.map(l => ({ ...l, date: l.date || fmtDate(l.created_at) }))
+
+    // Persist to localStorage for cross-page sync
+    localStorage.setItem('exodia-timeline-leads', JSON.stringify(localLeads))
+
+    // Push migrated dates to Supabase
+    if (isSupabaseConfigured && supabase) {
+      const needsUpdate = localLeads.filter(l => !l.date || l.date === l.created_at?.slice(0, 10))
+      for (const lead of needsUpdate) {
+        supabase.from('timeline_leads').update({ date: lead.date }).eq('id', lead.id).then(() => {}, () => {})
       }
     }
 
@@ -346,7 +362,7 @@ export default function Timeline() {
     const lead = leads.find(l => l.id === leadId)
     const targetColumn = table?.columns.find(c => c.key === columnKey)
     if (!lead || (lead.table_id === tableId && lead.column_key === columnKey)) return
-    const movedLead = { ...lead, column_key: columnKey, table_id: tableId, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+    const movedLead = { ...lead, column_key: columnKey, table_id: tableId, date: fmtDate() }
     setLeads(prev => prev.map(l => l.id === leadId ? movedLead : l))
     try {
       await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', leadId)
@@ -369,7 +385,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    const movedLead = { ...lead, column_key: nextCol.key, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+    const movedLead = { ...lead, column_key: nextCol.key, date: fmtDate() }
     setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
@@ -394,7 +410,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       }
     }
 
-    const movedLead = { ...lead, column_key: prevCol.key, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+    const movedLead = { ...lead, column_key: prevCol.key, date: fmtDate() }
     setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
     if (supabase) {
       try {
@@ -589,6 +605,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       table_id: addLeadTableId,
       column_key: addLeadColumnKey,
       ...leadForm,
+      date: leadForm.date || fmtDate(),
       notes: '',
       attachments: [],
       email_history: [],

@@ -212,7 +212,7 @@ const buildTimelineLead = (rowData: Record<string, string>, now: string, columnK
     contact: rowData.Name.trim() || email || 'Unknown Contact',
     email,
     value: '',
-    date: now.slice(0, 10),
+    date: new Date(now).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     column_key: columnKey,
     notes: [
       'Auto-created from calling card upload',
