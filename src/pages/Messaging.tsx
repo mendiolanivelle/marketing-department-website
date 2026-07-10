@@ -1291,7 +1291,7 @@ export default function Messaging() {
               </button>
               {cat !== 'All' && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete category "${cat}"?`)) { setCategories(prev => prev.filter(c => c !== cat)); if (selectedCategory === cat) setSelectedCategory('All') } }}
+                  onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete category "${cat}" and all templates under it?`)) { setCategories(prev => prev.filter(c => c !== cat)); setTemplates(prev => { const remaining = prev.filter(t => t.category !== cat); localStorage.setItem('exodia-message-templates', JSON.stringify(remaining)); return remaining }); if (isSupabaseConfigured && supabase) { supabase.from('message_templates').delete().eq('category', cat).then(() => {}, () => {}) }; if (selectedCategory === cat) setSelectedCategory('All') } }}
                   className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110"
                   style={{ backgroundColor: '#DC2626', color: '#FFF' }}
                   title={`Delete "${cat}" category`}
