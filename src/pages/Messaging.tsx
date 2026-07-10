@@ -66,7 +66,7 @@ interface MessageTemplate {
   updated_at: string
 }
 
-const defaultCategories = [
+const defaultCategoriesList = [
   'Strategy Email',
   'Client Onboarding Process Email',
   'Decline Email',
@@ -571,6 +571,16 @@ export default function Messaging() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  const [categories, setCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('exodia-template-categories')
+    if (saved) { try { return JSON.parse(saved) } catch {} }
+    return [...defaultCategoriesList]
+  })
+
+  useEffect(() => {
+    localStorage.setItem('exodia-template-categories', JSON.stringify(categories))
+  }, [categories])
+
   // === Message Templates Hook ===
   const {
     register,
@@ -647,6 +657,7 @@ export default function Messaging() {
         localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
         setTemplates(updated)
         setSuccessMessage('Template created successfully!')
+        setCategories(prev => prev.includes(data.category) ? prev : [...prev, data.category])
       }
       reset()
       setShowForm(false)
@@ -674,6 +685,7 @@ export default function Messaging() {
         if (newData) setTemplates(prev => [newData[0], ...prev])
         setSuccessMessage('Template created successfully!')
         logActivity('Template', `Created "${data.title}"`)
+        setCategories(prev => prev.includes(data.category) ? prev : [...prev, data.category])
       }
       reset()
       setShowForm(false)
@@ -756,7 +768,7 @@ export default function Messaging() {
     ? templates
     : templates.filter(t => t.category === selectedCategory)
 
-  const categories = ['All', ...defaultCategories]
+  const allCategories = ['All', ...categories]
 
   const renderLeadCard = (lead: OutreachLead) => {
     const status = statusConfig[lead.status]
@@ -1052,7 +1064,7 @@ export default function Messaging() {
                 defaultValue=""
               >
                 <option value="" disabled>Choose a message template...</option>
-                {defaultCategories.map(cat => {
+                {categories.map(cat => {
                   const catTemplates = templates.filter(t => t.category === cat)
                   return (
                     <optgroup key={cat} label={cat}>
@@ -1265,7 +1277,7 @@ export default function Messaging() {
 
         {/* Category filter buttons */}
         <div className="flex flex-wrap gap-2 mb-6">
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -1307,10 +1319,10 @@ export default function Messaging() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Category</label>
-                    <select {...register('category')} className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                      <option value="">Select category</option>
-                      {defaultCategories.map((cat) => (<option key={cat} value={cat}>{cat}</option>))}
-                    </select>
+                    <input {...register('category')} list="category-list" className="w-full px-3 py-2.5 border rounded-lg text-sm outline-none" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} placeholder="Select or type a new category..." />
+                    <datalist id="category-list">
+                      {categories.map((cat) => (<option key={cat} value={cat} />))}
+                    </datalist>
                     {errors.category && <p className="mt-1 text-xs text-red-600">{errors.category.message}</p>}
                   </div>
                 </div>
