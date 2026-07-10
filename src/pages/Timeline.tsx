@@ -261,16 +261,18 @@ export default function Timeline() {
 
   useEffect(() => {
     const fetchTemplates = async () => {
+      const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
       const saved = localStorage.getItem('exodia-message-templates')
       if (saved) {
-        try { setTemplates(JSON.parse(saved)) } catch {}
+        try { const parsed = JSON.parse(saved).map((t: any) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed); localStorage.setItem('exodia-message-templates', JSON.stringify(parsed)) } catch {}
       }
       if (!isSupabaseConfigured || !supabase) return
       try {
         const { data } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
         if (data) {
-          setTemplates(data)
-          localStorage.setItem('exodia-message-templates', JSON.stringify(data))
+          const migrated = data.map((t: any) => ({ ...t, body: migrateUrl(t.body) }))
+          setTemplates(migrated)
+          localStorage.setItem('exodia-message-templates', JSON.stringify(migrated))
         }
       } catch (err) { console.error('Error fetching message templates:', err) }
     }

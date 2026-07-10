@@ -229,14 +229,15 @@ const buildTimelineLead = (rowData: Record<string, string>, now: string, columnK
 }
 
 const loadMessageTemplates = async (): Promise<MessageTemplate[]> => {
+  const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
   const saved = localStorage.getItem('exodia-message-templates')
-  let templates: MessageTemplate[] = saved ? JSON.parse(saved) : []
+  let templates: MessageTemplate[] = saved ? JSON.parse(saved).map((t: any) => ({ ...t, body: migrateUrl(t.body) })) : []
   if (isSupabaseConfigured && supabase) {
     const { data, error } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
     if (error) throw error
     if (data) {
-      templates = data
-      localStorage.setItem('exodia-message-templates', JSON.stringify(data))
+      templates = data.map((t: any) => ({ ...t, body: migrateUrl(t.body) }))
+      localStorage.setItem('exodia-message-templates', JSON.stringify(templates))
     }
   }
   return templates

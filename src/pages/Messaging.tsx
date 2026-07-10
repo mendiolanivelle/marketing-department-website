@@ -599,10 +599,12 @@ export default function Messaging() {
   const templateBodyPreview = renderEmailPreview(watch('body') || '')
 
   // === Message Templates Functions ===
+  const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+
   const fetchTemplates = useCallback(async () => {
     if (!isSupabaseConfigured || !supabase) {
       const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) { try { setTemplates(JSON.parse(saved)) } catch {} }
+      if (saved) { try { const parsed = JSON.parse(saved).map((t: MessageTemplate) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed); localStorage.setItem('exodia-message-templates', JSON.stringify(parsed)) } catch {} }
       setLoading(false)
       return
     }
@@ -612,11 +614,11 @@ export default function Messaging() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) throw error
-      if (data) { setTemplates(data); localStorage.setItem('exodia-message-templates', JSON.stringify(data)) }
+      if (data) { const migrated = data.map((t: any) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(migrated); localStorage.setItem('exodia-message-templates', JSON.stringify(migrated)) }
     } catch (err) {
       console.error('Error fetching templates:', err)
       const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) { try { setTemplates(JSON.parse(saved)) } catch {} }
+      if (saved) { try { const parsed = JSON.parse(saved).map((t: MessageTemplate) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed) } catch {} }
     } finally {
       setLoading(false)
     }
