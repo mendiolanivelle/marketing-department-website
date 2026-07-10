@@ -87,7 +87,7 @@ const plainTextToEmailHtml = (message: string, lead: TimelineLead) => {
       <div style="padding:32px;">
         <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi ${escapeEmailHtml(lead.contact || lead.email || 'there')},</p>
         ${paragraphs}
-        <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
+        <a href="https://calendar.app.google/rV8V8QwCYUr4XrP98" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
         <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>Marketing Team</p>
       </div>
     </div>

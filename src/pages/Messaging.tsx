@@ -93,7 +93,7 @@ const emailHtmlStarter = `<div style="margin:0;padding:0;background:#f4f4f5;font
           <p style="margin:0;color:#9a3412;font-size:14px;line-height:1.6;">Tell us what you want to highlight here.</p>
         </div>
         <!-- EMAIL_MESSAGE_END -->
-        <a href="https://exodiagamedev.com" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
+        <a href="https://calendar.app.google/rV8V8QwCYUr4XrP98" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
         <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>{{sender_name}}</p>
       </div>
     </div>
