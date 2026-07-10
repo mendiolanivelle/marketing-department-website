@@ -160,7 +160,7 @@ export default function Timeline() {
     }
     const savedLeads = localStorage.getItem('exodia-timeline-leads')
     if (savedLeads) {
-      try { localLeads = JSON.parse(savedLeads) } catch {}
+      try { localLeads = JSON.parse(savedLeads).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) } catch {}
     }
     const fallbackTables = localTables
     const fallbackLeads = localLeads
@@ -192,6 +192,7 @@ export default function Timeline() {
         const { data: leadData, error: leadError } = await supabase
           .from('timeline_leads')
           .select('*')
+          .order('created_at', { ascending: false })
         if (!leadError && leadData) {
           localLeads = leadData.map((l: any) => {
             const fallbackLead = fallbackLeads.find(lead => lead.id === l.id)
