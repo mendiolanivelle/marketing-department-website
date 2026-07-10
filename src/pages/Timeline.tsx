@@ -273,8 +273,9 @@ export default function Timeline() {
   }, [])
 
   const sendColumnAutoEmail = async (lead: TimelineLead, column: TimelineColumn) => {
-    if (!column.emailTemplateId || !lead.email || !supabase) return lead
-    const template = templates.find(t => t.id === column.emailTemplateId)
+    const templateId = typeof column.emailTemplateId === 'string' ? column.emailTemplateId.trim() : ''
+    if (!templateId || templateId === 'undefined' || templateId === 'null' || !lead.email || !supabase) return lead
+    const template = templates.find(t => t.id === templateId)
     if (!template) return lead
 
     const subject = fillTimelineTemplate(template.subject, lead)
@@ -504,7 +505,12 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
   const saveColumnTemplate = async (tableId: string, colKey: string, emailTemplateId: string) => {
     const table = tables.find(t => t.id === tableId)
     if (!table) return
-    const newColumns = table.columns.map(c => c.key === colKey ? { ...c, emailTemplateId: emailTemplateId || undefined } : c)
+    const selectedTemplateId = emailTemplateId.trim()
+    const newColumns = table.columns.map(c => {
+      if (c.key !== colKey) return c
+      const { emailTemplateId: _emailTemplateId, ...column } = c
+      return selectedTemplateId ? { ...column, emailTemplateId: selectedTemplateId } : column
+    })
     setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
     if (!supabase) return
     try {
