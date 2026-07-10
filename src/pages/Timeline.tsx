@@ -193,12 +193,16 @@ export default function Timeline() {
           .from('timeline_leads')
           .select('*')
         if (!leadError && leadData) {
-          localLeads = leadData.map((l: any) => ({
-            ...l,
-            attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
-            email_history: typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || []),
-            last_email_sent: l.last_email_sent || '',
-          }))
+          localLeads = leadData.map((l: any) => {
+            const fallbackLead = fallbackLeads.find(lead => lead.id === l.id)
+            const emailHistory = typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || [])
+            return {
+              ...l,
+              attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
+              email_history: emailHistory.length ? emailHistory : (fallbackLead?.email_history || []),
+              last_email_sent: l.last_email_sent || fallbackLead?.last_email_sent || '',
+            }
+          })
           const unsyncedCallingCards = fallbackLeads.filter(localLead =>
             localLead.notes?.includes('Auto-created from calling card upload') &&
             !localLeads.some(remoteLead =>
@@ -274,7 +278,8 @@ export default function Timeline() {
 
   const sendColumnAutoEmail = async (lead: TimelineLead, column: TimelineColumn) => {
     const templateId = typeof column.emailTemplateId === 'string' ? column.emailTemplateId.trim() : ''
-    if (!templateId || templateId === 'undefined' || templateId === 'null' || !lead.email || !supabase) return lead
+    const wasAlreadyEmailed = Boolean(lead.last_email_sent?.trim() || lead.email_history?.length || lead.notes?.includes('Auto email sent:'))
+    if (!templateId || templateId === 'undefined' || templateId === 'null' || !lead.email || !supabase || wasAlreadyEmailed) return lead
     const template = templates.find(t => t.id === templateId)
     if (!template) return lead
 
@@ -293,9 +298,12 @@ export default function Timeline() {
       },
     })
     if (error) throw error
-    const updated = { ...lead, last_email_sent: today }
+    const emailHistory = [...(lead.email_history || []), { date: today, subject, preview: htmlToPlainText(htmlBody).slice(0, 160) }]
+    const notes = [lead.notes, `Auto email sent: ${template.title}`].filter(Boolean).join('\n')
+    const updated = { ...lead, last_email_sent: today, email_history: emailHistory, notes }
     setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
-    await supabase.from('timeline_leads').update({ last_email_sent: today }).eq('id', lead.id)
+    const { error: updateError } = await supabase.from('timeline_leads').update({ email_history: emailHistory, notes }).eq('id', lead.id)
+    if (updateError) throw updateError
     logActivity('Timeline', `Auto emailed "${lead.company}" using "${template.title}"`)
     return updated
   }
@@ -520,14 +528,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       if (error) throw error
       if (!hadActiveTemplate && selectedTemplateId) {
         const selectedColumn = newColumns.find(c => c.key === colKey)
-        const columnLeads = leads.filter(lead =>
-          lead.table_id === tableId &&
-          lead.column_key === colKey &&
-          lead.email &&
-          !lead.last_email_sent?.trim() &&
-          !lead.email_history?.length &&
-          !lead.notes?.includes('Auto email sent:')
-        )
+        const columnLeads = leads.filter(lead => lead.table_id === tableId && lead.column_key === colKey && lead.email)
         if (selectedColumn) await Promise.all(columnLeads.map(lead => sendColumnAutoEmail(lead, selectedColumn)))
       }
     } catch (err) { console.error('Error updating column template:', err) }
