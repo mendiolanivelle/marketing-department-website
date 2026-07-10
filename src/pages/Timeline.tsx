@@ -592,7 +592,7 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
       updated_at: new Date().toISOString(),
     }
     // Add immediately to local state
-    setLeads(prev => [...prev, newLead])
+    setLeads(prev => [newLead, ...prev])
     setShowAddLead(false)
     setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
     logActivity('Timeline', `Added lead "${leadForm.company}"`)
