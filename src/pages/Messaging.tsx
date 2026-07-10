@@ -1278,17 +1278,28 @@ export default function Messaging() {
         {/* Category filter buttons */}
         <div className="flex flex-wrap gap-2 mb-6">
           {allCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition hover:-translate-y-0.5"
-              style={{
-                backgroundColor: selectedCategory === cat ? '#FF5900' : 'var(--bg-secondary)',
-                color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
-              }}
-            >
-              {cat}
-            </button>
+            <div key={cat} className="relative group">
+              <button
+                onClick={() => setSelectedCategory(cat)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition hover:-translate-y-0.5"
+                style={{
+                  backgroundColor: selectedCategory === cat ? '#FF5900' : 'var(--bg-secondary)',
+                  color: selectedCategory === cat ? '#FFFFFF' : 'var(--text-secondary)',
+                }}
+              >
+                {cat}
+              </button>
+              {cat !== 'All' && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setCategories(prev => prev.filter(c => c !== cat)); if (selectedCategory === cat) setSelectedCategory('All') }}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110"
+                  style={{ backgroundColor: '#DC2626', color: '#FFF' }}
+                  title={`Delete "${cat}" category`}
+                >
+                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              )}
+            </div>
           ))}
         </div>
 
