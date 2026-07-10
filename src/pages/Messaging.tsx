@@ -497,12 +497,13 @@ export default function Messaging() {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
+    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
     const now = new Date().toISOString()
     const messageId = `<${crypto.randomUUID()}@exodiagamedev.com>`
     const newEmail: EmailHistoryItem = {
       id: crypto.randomUUID(),
       subject: emailSubject.trim(),
-      body: emailBody.trim(),
+      body: fixUrl(emailBody.trim()),
       sentAt: now,
       direction: 'sent',
     }
@@ -513,7 +514,7 @@ export default function Messaging() {
             to: selectedLead.email,
             name: selectedLead.name,
             subject: emailSubject,
-            body: emailBody,
+            body: fixUrl(emailBody),
             inReplyTo: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
             references: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
             messageId,

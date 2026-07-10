@@ -302,8 +302,9 @@ const sendColumnTemplateEmail = async (rowData: Record<string, string>, column: 
   if (!to || !isSupabaseConfigured || !supabase) return null
   const template = findTemplateForColumn(await loadMessageTemplates(), column)
   if (!template) return null
+  const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
   const subject = fillMessageTemplate(template.subject, rowData)
-  const htmlBody = ensureDesignedEmailBody(fillMessageTemplate(template.body, rowData), rowData)
+  const htmlBody = fixUrl(ensureDesignedEmailBody(fillMessageTemplate(template.body, rowData), rowData))
   const { error } = await supabase.functions.invoke('send-outreach-email', {
     body: {
       to,

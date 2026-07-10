@@ -286,8 +286,9 @@ export default function Timeline() {
     const template = templates.find(t => t.id === templateId)
     if (!template) return lead
 
+    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
     const subject = fillTimelineTemplate(template.subject, lead)
-    const htmlBody = ensureDesignedEmailBody(fillTimelineTemplate(template.body, lead), lead)
+    const htmlBody = fixUrl(ensureDesignedEmailBody(fillTimelineTemplate(template.body, lead), lead))
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     const { error } = await supabase.functions.invoke('send-outreach-email', {
       body: {
@@ -715,7 +716,8 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim() || !supabase) return
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(fixUrl(emailBody))}`
     window.open(gmailUrl, '_blank')
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     const updated = { ...selectedLead, last_email_sent: today }
