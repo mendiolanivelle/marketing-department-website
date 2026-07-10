@@ -922,7 +922,7 @@ const timelineTables = filteredTables.map((table) => {
                 <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No leads in this column</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                 {colLeads.map((lead) => (
             <div
               key={lead.id}
