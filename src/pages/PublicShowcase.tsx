@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const styles = `
 @keyframes folderIn {
@@ -17,13 +18,17 @@ type Phase = 'intro' | 'opening' | 'zoom-in' | 'ended'
 
 export default function PublicShowcase() {
   const [phase, setPhase] = useState<Phase>('intro')
+  const navigate = useNavigate()
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('opening'), 2000)
     const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
-    const t3 = setTimeout(() => setPhase('ended'), 5000)
+    const t3 = setTimeout(() => {
+      setPhase('ended')
+      navigate('/login')
+    }, 5000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [])
+  }, [navigate])
 
   const showFolder = phase === 'intro' || phase === 'opening'
   const folderAnim = 'folderIn 1.2s ease-out forwards'
