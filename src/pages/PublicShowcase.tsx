@@ -93,7 +93,7 @@ export default function PublicShowcase() {
       const img = new Image()
       img.onload = check
       img.onerror = check
-      img.src = `/portfolio/${i}.svg`
+      img.src = `/portfolio/${i}.jpg`
     }
     return () => { cancelled = true }
   }, [restartCount])
@@ -341,7 +341,7 @@ export default function PublicShowcase() {
                 className={`fixed inset-0 transition-all duration-700 ease-in-out ${n === current ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 pointer-events-none z-0'}`}
               >
                 <img
-                  src={`/portfolio/${n}.svg`}
+                  src={`/portfolio/${n}.jpg`}
                   alt=""
                   className="w-full h-full object-contain transition-transform duration-200 ease-out"
                   draggable={false}
