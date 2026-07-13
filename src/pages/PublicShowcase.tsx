@@ -127,14 +127,13 @@ export default function PublicShowcase() {
 
   // Start sequence ΓÇö wait for images to actually load before slideshow
   useEffect(() => {
-    preloadAll()
     const t1 = setTimeout(() => setPhase('opening'), 2000)
     const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
     const t3 = setTimeout(() => {
       setPhase('slideshow')
     }, 5000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [restartCount, preloadAll])
+  }, [restartCount])
 
   // Auto-advance during slideshow ΓÇö stays on last slide, does not auto-close
   useEffect(() => {
