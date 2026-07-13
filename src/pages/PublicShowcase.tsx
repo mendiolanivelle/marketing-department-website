@@ -76,7 +76,7 @@ export default function PublicShowcase() {
   const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [autoPaused, setAutoPaused] = useState(false)
   const [restartCount, setRestartCount] = useState(0)
-  const [imagesReady, setImagesReady] = useState(false)
+  const [imagesReady, setImagesReady] = useState(true)
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
   const [dragStart, setDragStart] = useState<number | null>(null)
   const navigate = useNavigate()
