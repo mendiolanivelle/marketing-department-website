@@ -1,329 +1,1 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-
-const SLIDE_COUNT = 85
-const AUTO_ADVANCE_MS = 15000
-
-const COLORS = ['#FF5900','#2563EB','#0B8043','#7C3AED','#DC2626','#0891B2','#D97706','#059669']
-const LABELS = ['Game Development','Art & Animation','UI/UX Design','Quality Assurance','Porting & Optimization','Technical Consulting','Concept Art','Sound Design']
-const CATS = ['Featured','Upcoming','Completed','In Development']
-
-const slideData = Array.from({ length: SLIDE_COUNT }, (_, i) => {
-  const c = COLORS[i % COLORS.length]
-  return { color: c, label: LABELS[i % LABELS.length], cat: CATS[i % CATS.length], title: `Project ${i + 1}` }
-})
-
-const makeSlideSvg = (s: typeof slideData[0], n: number) => {
-  const cx = 200 + (n * 37) % 1400
-  const cy = 150 + (n * 53) % 700
-  const r = 120 + (n * 17) % 180
-  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
-  <defs>
-    <linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1B1A1C"/><stop offset="100%" stop-color="#2A2A2E"/>
-    </linearGradient>
-    <linearGradient id="a" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="${s.color}"/><stop offset="100%" stop-color="${s.color}CC"/>
-    </linearGradient>
-  </defs>
-  <rect width="1920" height="1080" fill="url(#b)"/>
-  <circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,255,255,0.02)"/>
-  <circle cx="${1500 - n * 7}" cy="${800 - n * 3}" r="${200 - n % 100}" fill="rgba(255,255,255,0.015)"/>
-  <rect x="160" y="240" width="300" height="4" rx="2" fill="url(#a)"/>
-  <text x="160" y="220" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="${s.color}" letter-spacing="2">${s.cat.toUpperCase()}</text>
-  <text x="160" y="320" font-family="system-ui,sans-serif" font-size="52" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">${s.title}</text>
-  <text x="160" y="380" font-family="system-ui,sans-serif" font-size="22" font-weight="300" fill="#9CA3AF">${s.label}</text>
-  <text x="160" y="440" font-family="system-ui,sans-serif" font-size="16" font-weight="300" fill="#6B7280">Showcasing our work in ${s.label.toLowerCase()}.</text>
-  <rect x="1560" y="760" width="200" height="200" rx="16" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
-  <text x="1660" y="880" font-family="system-ui,sans-serif" font-size="64" font-weight="800" fill="rgba(255,255,255,0.04)" text-anchor="middle">${n}</text>
-</svg>`)}`
-}
-
-const preloadedSvgs = Array.from({ length: SLIDE_COUNT }, (_, i) => makeSlideSvg(slideData[i], i + 1))
-
-const styles = `
-@keyframes float1{0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}25%{transform:translate(70px,-50px)rotate(5deg)scale(1.05)}50%{transform:translate(-40px,30px)rotate(-3deg)scale(0.95)}75%{transform:translate(50px,40px)rotate(4deg)scale(1.02)}}
-@keyframes float2{0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}33%{transform:translate(-60px,40px)rotate(-6deg)scale(0.97)}66%{transform:translate(50px,-30px)rotate(4deg)scale(1.06)}}
-@keyframes float3{0%,100%{transform:translate(0,0)rotate(0deg)}25%{transform:translate(-50px,-40px)rotate(-4deg)}50%{transform:translate(40px,50px)rotate(6deg)}75%{transform:translate(-30px,-20px)rotate(-2deg)}}
-@keyframes folderIn{0%{opacity:0;transform:scale(0.6)}100%{opacity:1;transform:scale(1)}}
-@keyframes folderOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.6)}}
-@keyframes flapOpen{0%{transform:perspective(800px)rotateX(0deg)}100%{transform:perspective(800px)rotateX(-120deg)}}
-@keyframes flapClose{0%{transform:perspective(800px)rotateX(-120deg)}100%{transform:perspective(800px)rotateX(0deg)}}
-@keyframes glowPulse{0%{opacity:0;transform:scale(1)}30%{opacity:0.8;transform:scale(1.2)}60%{opacity:0.3;transform:scale(1.5)}100%{opacity:0;transform:scale(2)}}
-@keyframes flashIn{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
-@keyframes btnAppear{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
-@keyframes folderClose{0%{transform:perspective(800px)rotateX(-120deg)}100%{transform:perspective(800px)rotateX(0deg)}}
-@keyframes zoomInBurst{0%{opacity:0}30%{opacity:1}80%{opacity:1}100%{opacity:0}}
-`
-
-type Phase = 'intro' | 'opening' | 'zoom-in' | 'slideshow' | 'closing' | 'flash' | 'ended'
-
-export default function PublicShowcase() {
-  const [phase, setPhase] = useState<Phase>('intro')
-  const [current, setCurrent] = useState(1)
-  const [loaded, setLoaded] = useState<Set<number>>(new Set([1, 2, 3]))
-  const [imagesReady, setImagesReady] = useState(true)
-  const [loginClicks, setLoginClicks] = useState(0)
-  const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
-  const [autoPaused, setAutoPaused] = useState(false)
-  const [restartCount, setRestartCount] = useState(0)
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
-  const [dragStart, setDragStart] = useState<number | null>(null)
-  const navigate = useNavigate()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const preloadAdjacent = useCallback((n: number) => {
-    setLoaded(prev => {
-      const next = new Set(prev)
-      for (let i = Math.max(1, n - 2); i <= Math.min(SLIDE_COUNT, n + 2); i++) next.add(i)
-      return next
-    })
-  }, [])
-
-  const goTo = useCallback((n: number) => {
-    if (phase !== 'slideshow') return
-    const target = Math.max(1, Math.min(SLIDE_COUNT, n))
-    if (target === current) return
-    setCurrent(target)
-    preloadAdjacent(target)
-    setAutoPaused(true)
-    if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
-    autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
-  }, [phase, current, preloadAdjacent])
-
-  // Start sequence
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase('opening'), 2000)
-    const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
-    const t3 = setTimeout(() => { setPhase('slideshow') }, 5000)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [restartCount])
-
-  // Auto-advance during slideshow
-  useEffect(() => {
-    if (phase !== 'slideshow' || autoPaused) return
-    const timer = setInterval(() => {
-      setCurrent(prev => {
-        if (prev >= SLIDE_COUNT) return prev
-        const next = prev + 1
-        preloadAdjacent(next)
-        return next
-      })
-    }, AUTO_ADVANCE_MS)
-    return () => clearInterval(timer)
-  }, [phase, autoPaused, preloadAdjacent])
-
-  // After last slide, wait 3s then flash
-  useEffect(() => {
-    if (phase !== 'slideshow' || current < SLIDE_COUNT) return
-    const timer = setTimeout(() => setPhase('flash'), 3000)
-    return () => clearTimeout(timer)
-  }, [phase, current])
-
-  // Flash → closing
-  useEffect(() => {
-    if (phase !== 'flash') return
-    const t1 = setTimeout(() => setPhase('closing'), 1200)
-    return () => clearTimeout(t1)
-  }, [phase])
-
-  // Closing → ended
-  useEffect(() => {
-    if (phase !== 'closing') return
-    const t1 = setTimeout(() => setPhase('ended'), 2000)
-    return () => clearTimeout(t1)
-  }, [phase])
-
-  // Keyboard
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (phase !== 'slideshow') return
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current + 1) }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1) }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [phase, current, goTo])
-
-  // Click left/right thirds
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (phase !== 'slideshow') return
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = e.clientX - rect.left
-    const third = rect.width / 3
-    if (x < third) goTo(current - 1)
-    else if (x > rect.width - third) goTo(current + 1)
-  }, [phase, current, goTo])
-
-  // Secret login hotspot
-  const handleSecretClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setLoginClicks(prev => {
-      const next = prev + 1
-      if (next >= 3) { setLoginClicks(0); navigate('/login'); return 0 }
-      if (loginTimer) clearTimeout(loginTimer)
-      setLoginTimer(setTimeout(() => setLoginClicks(0), 1000))
-      return next
-    })
-  }, [navigate, loginTimer])
-
-  // Mouse parallax
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (phase !== 'slideshow') return
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    setMouse({ x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height })
-  }, [phase])
-
-  // Drag/swipe
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (phase !== 'slideshow') return
-    setDragStart(e.clientX)
-  }, [phase])
-
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
-    if (phase !== 'slideshow' || dragStart === null) return
-    const diff = e.clientX - dragStart
-    if (Math.abs(diff) > 50) {
-      if (diff < 0) goTo(current + 1)
-      else goTo(current - 1)
-    }
-    setDragStart(null)
-  }, [phase, dragStart, current, goTo])
-
-  const restartShowcase = () => {
-    setPhase('intro')
-    setCurrent(1)
-    setRestartCount(c => c + 1)
-  }
-
-  const showFolder = phase === 'intro' || phase === 'opening'
-
-  return (
-    <>
-      <style>{styles}</style>
-      <div
-        ref={containerRef}
-        className="fixed inset-0 overflow-hidden select-none"
-        style={{ backgroundColor: '#1B1A1C' }}
-        onClick={handleClick}
-      >
-        {/* Kinetic background (visible during slideshow) */}
-        {phase === 'slideshow' && (
-          <div className="fixed inset-0 z-0 pointer-events-none">
-            <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '50%', height: '50%', borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.25, filter: 'blur(80px)', animation: 'float1 20s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', bottom: '-10%', right: '-8%', width: '45%', height: '55%', borderRadius: '60% 40% 30% 70% / 40% 60% 40% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.2, filter: 'blur(90px)', animation: 'float2 25s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', top: '20%', right: '-5%', width: '30%', height: '60%', borderRadius: '50% 50% 30% 70% / 60% 30% 70% 40%', background: 'radial-gradient(ellipse, #3E404860 0%, transparent 70%)', opacity: 0.15, filter: 'blur(70px)', animation: 'float3 22s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', bottom: '10%', left: '5%', width: '25%', height: '30%', borderRadius: '30% 70% 50% 50% / 40% 40% 60% 60%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.12, filter: 'blur(60px)', animation: 'float1 28s ease-in-out infinite reverse' }} />
-          </div>
-        )}
-
-        {/* ====== FOLDER ANIMATION ====== */}
-        {showFolder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div
-              style={{
-                width: 220,
-                height: 170,
-                animation: 'folderIn 1.2s ease-out forwards',
-                position: 'relative',
-                filter: phase === 'intro'
-                  ? 'drop-shadow(0 0 40px rgba(255,89,0,0.4)) drop-shadow(0 0 80px rgba(255,89,0,0.2))'
-                  : 'drop-shadow(0 0 60px rgba(255,89,0,0.7)) drop-shadow(0 0 120px rgba(255,89,0,0.4))',
-                transition: 'filter 1.2s ease-in-out',
-              }}
-            >
-              <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px', boxShadow: 'inset 0 -4px 12px rgba(0,0,0,0.2)' }} />
-              <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', transform: phase === 'opening' ? 'perspective(800px) rotateX(-120deg)' : 'perspective(800px) rotateX(0deg)', transition: 'transform 1.2s ease-in-out', boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)', zIndex: 2 }} />
-              <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
-            </div>
-          </div>
-        )}
-
-        {/* ====== ZOOM-IN TRANSITION ====== */}
-        {phase === 'zoom-in' && (
-          <div className="fixed inset-0 z-50" style={{ backgroundColor: '#FF5900', animation: 'zoomInBurst 1.6s ease-in-out forwards' }} />
-        )}
-
-        {/* ====== SLIDESHOW ====== */}
-        {phase === 'slideshow' && (
-          <div className="fixed inset-0" onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => setDragStart(null)}>
-            {Array.from(loaded).map(n => (
-              <div
-                key={n}
-                className={`fixed inset-0 transition-all duration-700 ease-in-out ${n === current ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 pointer-events-none z-0'}`}
-              >
-                <img
-                  src={preloadedSvgs[n - 1]}
-                  alt=""
-                  className="w-full h-full object-contain transition-transform duration-200 ease-out"
-                  draggable={false}
-                  style={n === current ? {
-                    transform: `perspective(1200px) rotateX(${(mouse.y - 0.5) * -4}deg) rotateY(${(mouse.x - 0.5) * 4}deg) scale(1.03)`,
-                  } : undefined}
-                />
-              </div>
-            ))}
-            <div className="fixed inset-0 pointer-events-none z-20" style={{ background: 'linear-gradient(180deg, rgba(27,26,28,0.15) 0%, transparent 20%, transparent 80%, rgba(27,26,28,0.4) 100%)' }} />
-            <div className="fixed bottom-0 left-0 right-0 h-[2px] z-30" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-              <div className="h-full transition-all duration-500 ease-out" style={{ width: `${(current / SLIDE_COUNT) * 100}%`, backgroundColor: 'rgba(255,89,0,0.5)' }} />
-            </div>
-          </div>
-        )}
-
-        {/* ====== CLOSING ====== */}
-        {phase === 'closing' && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
-            <div className="absolute" style={{ width: 280, height: 230, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.3) 0%, transparent 70%)', filter: 'blur(30px)', animation: 'folderOut 1.2s ease-in forwards', animationDelay: '0.3s' }} />
-            <div style={{ width: 220, height: 170, animation: 'folderOut 1.2s ease-in forwards', animationDelay: '0.3s', position: 'relative' }}>
-              <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px' }} />
-              <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', animation: 'flapClose 1s ease-in-out forwards' }} />
-              <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
-            </div>
-            <div className="absolute" style={{ top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 320, height: 220, background: 'radial-gradient(ellipse, rgba(255,89,0,0.4) 0%, transparent 65%)', opacity: 0.6, transition: 'opacity 0.8s ease-in' }} />
-          </div>
-        )}
-
-        {/* ====== FLASH ====== */}
-        {phase === 'flash' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: '#FF5900', animation: 'flashIn 1.2s ease-in-out forwards' }}>
-            <div style={{ width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,89,0,0.8) 40%, transparent 70%)', filter: 'blur(30px)' }} />
-          </div>
-        )}
-
-        {/* ====== ENDED ====== */}
-        {phase === 'ended' && (
-          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10" style={{ backgroundColor: '#1B1A1C' }}>
-            <div className="absolute" style={{ width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
-            <button
-              onClick={restartShowcase}
-              className="relative transition-all duration-500 hover:scale-110 group"
-              style={{ animation: 'btnAppear 2s ease-out' }}
-            >
-              <div className="absolute inset-0 rounded-2xl transition-all duration-500" style={{ backgroundColor: 'rgba(255,89,0,0.1)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,89,0,0.25)', boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(255,89,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05)' }} />
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-500" style={{ backgroundColor: 'rgba(255,89,0,0.08)', boxShadow: '0 0 80px rgba(255,89,0,0.3)' }} />
-              <div className="relative flex items-center gap-3 px-10 py-5">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
-                  <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span className="text-lg font-semibold tracking-wide" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                  See Exodia's Portfolio
-                </span>
-                <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.5">
-                  <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* Secret login hotspot */}
-        <div onClick={handleSecretClick} className="fixed bottom-0 right-0 z-50 w-8 h-8 flex items-center justify-center cursor-crosshair" title="">
-          <span className="text-white/[0.06] text-[10px] hover:text-white/20 transition-colors duration-500 select-none">◈</span>
-        </div>
-      </div>
-    </>
-  )
-}
+浩潰瑲笠甠敳瑓瑡ⱥ甠敳晅敦瑣‬獵䍥污扬捡Ⱬ甠敳敒⁦⁽牦浯✠敲捡❴਍浩潰瑲笠甠敳慎楶慧整素映潲⁭爧慥瑣爭畯整⵲潤❭਍਍潣獮⁴䱓䑉彅佃乕⁔‽㔸਍潣獮⁴啁佔䅟噄乁䕃䵟⁓‽㔱〰രഊ挊湯瑳猠祴敬⁳‽ൠ䀊敫晹慲敭⁳汦慯ㅴ笠਍†┰‬〱┰笠琠慲獮潦浲›牴湡汳瑡⡥ⰰ〠 潲慴整〨敤⥧猠慣敬ㄨ㬩素਍†㔲‥⁻牴湡晳牯㩭琠慲獮慬整㜨瀰ⱸⴠ〵硰 潲慴整㔨敤⥧猠慣敬ㄨ〮⤵※ൽ 㔠┰笠琠慲獮潦浲›牴湡汳瑡⡥㐭瀰ⱸ㌠瀰⥸爠瑯瑡⡥㌭敤⥧猠慣敬〨㤮⤵※ൽ 㜠┵笠琠慲獮潦浲›牴湡汳瑡⡥〵硰‬〴硰 潲慴整㐨敤⥧猠慣敬ㄨ〮⤲※ൽ紊਍歀祥牦浡獥映潬瑡′ൻ 〠Ⱕㄠ〰‥⁻牴湡晳牯㩭琠慲獮慬整〨‬⤰爠瑯瑡⡥搰来 捳污⡥⤱※ൽ ㌠┳笠琠慲獮潦浲›牴湡汳瑡⡥㘭瀰ⱸ㐠瀰⥸爠瑯瑡⡥㘭敤⥧猠慣敬〨㤮⤷※ൽ 㘠┶笠琠慲獮潦浲›牴湡汳瑡⡥〵硰‬㌭瀰⥸爠瑯瑡⡥搴来 捳污⡥⸱㘰㬩素਍ൽ䀊敫晹慲敭⁳汦慯㍴笠਍†┰‬〱┰笠琠慲獮潦浲›牴湡汳瑡⡥ⰰ〠 潲慴整〨敤⥧※ൽ ㈠┵笠琠慲獮潦浲›牴湡汳瑡⡥㔭瀰ⱸⴠ〴硰 潲慴整⴨搴来㬩素਍†〵‥⁻牴湡晳牯㩭琠慲獮慬整㐨瀰ⱸ㔠瀰⥸爠瑯瑡⡥搶来㬩素਍†㔷‥⁻牴湡晳牯㩭琠慲獮慬整⴨〳硰‬㈭瀰⥸爠瑯瑡⡥㈭敤⥧※ൽ紊਍歀祥牦浡獥映汯敤䥲⁮ൻ 〠‥⁻灯捡瑩㩹〠※牴湡晳牯㩭猠慣敬〨㘮㬩素਍†〱┰笠漠慰楣祴›㬱琠慲獮潦浲›捳污⡥⤱※ൽ紊਍歀祥牦浡獥映汯敤佲瑵笠਍†┰笠漠慰楣祴›㬱琠慲獮潦浲›捳污⡥⤱※ൽ ㄠ〰‥⁻灯捡瑩㩹〠※牴湡晳牯㩭猠慣敬〨㘮㬩素਍ൽ䀊敫晹慲敭⁳汦灡灏湥笠਍†┰笠琠慲獮潦浲›数獲数瑣癩⡥〸瀰⥸爠瑯瑡塥〨敤⥧※ൽ ㄠ〰‥⁻牴湡晳牯㩭瀠牥灳捥楴敶㠨〰硰 潲慴整⡘ㄭ〲敤⥧※ൽ紊਍歀祥牦浡獥映慬䍰潬敳笠਍†┰笠琠慲獮潦浲›数獲数瑣癩⡥〸瀰⥸爠瑯瑡塥⴨㈱搰来㬩素਍†〱┰笠琠慲獮潦浲›数獲数瑣癩⡥〸瀰⥸爠瑯瑡塥〨敤⥧※ൽ紊਍歀祥牦浡獥朠潬偷汵敳笠਍†┰笠漠慰楣祴›㬰琠慲獮潦浲›捳污⡥⤱※ൽ ㌠┰笠漠慰楣祴›⸰㬸琠慲獮潦浲›捳污⡥⸱⤲※ൽ 㘠┰笠漠慰楣祴›⸰㬳琠慲獮潦浲›捳污⡥⸱⤵※ൽ ㄠ〰‥⁻灯捡瑩㩹〠※牴湡晳牯㩭猠慣敬㈨㬩素਍ൽ䀊敫晹慲敭⁳汦獡䥨⁮ൻ 〠‥⁻灯捡瑩㩹〠※ൽ ㈠┰笠漠慰楣祴›㬱素਍†〸‥⁻灯捡瑩㩹ㄠ※ൽ ㄠ〰‥⁻灯捡瑩㩹〠※ൽ紊਍歀祥牦浡獥戠湴灁数牡笠਍†┰笠漠慰楣祴›㬰琠慲獮潦浲›牴湡汳瑡奥㈨瀰⥸※ൽ ㄠ〰‥⁻灯捡瑩㩹ㄠ※牴湡晳牯㩭琠慲獮慬整⡙⤰※ൽ紊਍歀祥牦浡獥映汯敤䍲潬敳笠਍†┰笠琠慲獮潦浲›数獲数瑣癩⡥〸瀰⥸爠瑯瑡塥⴨㈱搰来㬩素਍†〱┰笠琠慲獮潦浲›数獲数瑣癩⡥〸瀰⥸爠瑯瑡塥〨敤⥧※ൽ紊਍歀祥牦浡獥稠潯䥭䉮牵瑳笠਍†┰笠漠慰楣祴›㬰素਍†〳‥⁻灯捡瑩㩹ㄠ※ൽ 㠠┰笠漠慰楣祴›㬱素਍†〱┰笠漠慰楣祴›㬰素਍ൽ怊਍਍祴数倠慨敳㴠✠湩牴❯簠✠灯湥湩❧簠✠潺浯椭❮簠✠汳摩獥潨❷簠✠汣獯湩❧簠✠汦獡❨簠✠湥敤❤਍਍硥潰瑲搠晥畡瑬映湵瑣潩⁮畐汢捩桓睯慣敳⤨笠਍†潣獮⁴灛慨敳‬敳側慨敳⁝‽獵卥慴整值慨敳⠾椧瑮潲⤧਍†潣獮⁴捛牵敲瑮‬敳䍴牵敲瑮⁝‽獵卥慴整ㄨഩ 挠湯瑳嬠潬摡摥‬敳䱴慯敤嵤㴠甠敳瑓瑡㱥敓㱴畮扭牥㸾渨睥匠瑥嬨ⰱ㈠‬崳⤩਍†潣獮⁴汛杯湩汃捩獫‬敳䱴杯湩汃捩獫⁝‽獵卥慴整〨ഩ 挠湯瑳嬠潬楧呮浩牥‬敳䱴杯湩楔敭嵲㴠甠敳瑓瑡㱥敒畴湲祔数琼灹潥⁦敳呴浩潥瑵‾⁼畮汬⠾畮汬ഩ 挠湯瑳嬠畡潴慐獵摥‬敳䅴瑵偯畡敳嵤㴠甠敳瑓瑡⡥慦獬⥥਍†潣獮⁴牛獥慴瑲潃湵ⱴ猠瑥敒瑳牡䍴畯瑮⁝‽獵卥慴整〨ഩ 挠湯瑳嬠浩条獥敒摡ⱹ猠瑥浉条獥敒摡嵹㴠甠敳瑓瑡⡥慦獬⥥਍†潣獮⁴浛畯敳‬敳䵴畯敳⁝‽獵卥慴整笨砠›⸰ⰵ礠›⸰‵⥽਍†潣獮⁴摛慲卧慴瑲‬敳䑴慲卧慴瑲⁝‽獵卥慴整渼浵敢⁲⁼畮汬⠾畮汬ഩ 挠湯瑳渠癡杩瑡⁥‽獵乥癡杩瑡⡥ഩ 挠湯瑳挠湯慴湩牥敒⁦‽獵剥晥䠼䵔䑌癩汅浥湥㹴渨汵⥬਍†潣獮⁴畡潴楔敭割晥㴠甠敳敒㱦敒畴湲祔数琼灹潥⁦敳呴浩潥瑵‾⁼畮汬⠾畮汬ഩഊ ⼠ 牐汥慯⁤捡畴污椠慭敧⁳獵湩⁧牢睯敳⁲浉条⁥偁൉ 甠敳晅敦瑣⠨ 㸽笠਍††敬⁴慣据汥敬⁤‽慦獬൥ †氠瑥氠慯敤⁤‽ര †挠湯瑳琠瑯污㴠㌠਍††潣獮⁴档捥⁫‽⤨㴠‾⁻潬摡摥⬫※晩⠠潬摡摥㸠‽潴慴⁬☦℠慣据汥敬⥤猠瑥浉条獥敒摡⡹牴敵 ൽ †映牯⠠敬⁴⁩‽㬱椠㰠‽潴慴㭬椠⬫ ൻ ††挠湯瑳椠杭㴠渠睥䤠慭敧⤨਍†††浩⹧湯潬摡㴠挠敨正਍†††浩⹧湯牥潲⁲‽档捥൫ ††椠杭献捲㴠怠瀯牯晴汯潩␯楻⹽灪恧਍††ൽ †爠瑥牵⁮⤨㴠‾⁻慣据汥敬⁤‽牴敵素਍†ⱽ嬠敲瑳牡䍴畯瑮⥝਍਍†潣獮⁴牰汥慯䅤汬㴠甠敳慃汬慢正⠨ 㸽笠਍††敳䱴慯敤⡤牰癥㴠‾ൻ ††挠湯瑳渠硥⁴‽敮⁷敓⡴牰癥ഩ ††映牯⠠敬⁴⁩‽㬱椠㰠‽䱓䑉彅佃乕㭔椠⬫ 敮瑸愮摤椨ഩ ††爠瑥牵⁮敮瑸਍††⥽਍†ⱽ嬠⥝਍਍†潣獮⁴牰汥慯䅤橤捡湥⁴‽獵䍥污扬捡⡫渨›畮扭牥 㸽笠਍††敳䱴慯敤⡤牰癥㴠‾ൻ ††挠湯瑳渠硥⁴‽敮⁷敓⡴牰癥ഩ ††映牯⠠敬⁴⁩‽慍桴洮硡ㄨ‬⁮‭⤲※⁩㴼䴠瑡⹨業⡮䱓䑉彅佃乕ⱔ渠⬠㈠㬩椠⬫ 敮瑸愮摤椨ഩ ††爠瑥牵⁮敮瑸਍††⥽਍†ⱽ嬠⥝਍਍†潣獮⁴潧潔㴠甠敳慃汬慢正⠨㩮渠浵敢⥲㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汳摩獥潨❷ 敲畴湲਍††潣獮⁴慴杲瑥㴠䴠瑡⹨慭⡸ⰱ䴠瑡⹨業⡮䱓䑉彅佃乕ⱔ渠⤩਍††晩⠠慴杲瑥㴠㴽挠牵敲瑮 敲畴湲਍††敳䍴牵敲瑮琨牡敧⥴਍††牰汥慯䅤橤捡湥⡴慴杲瑥ഩ †猠瑥畁潴慐獵摥琨畲⥥਍††晩⠠畡潴楔敭割晥挮牵敲瑮 汣慥呲浩潥瑵愨瑵呯浩牥敒⹦畣牲湥⥴਍††畡潴楔敭割晥挮牵敲瑮㴠猠瑥楔敭畯⡴⤨㴠‾敳䅴瑵偯畡敳⡤慦獬⥥‬〸〰ഩ 素‬灛慨敳‬畣牲湥ⱴ瀠敲潬摡摁慪散瑮⥝਍਍†⼯匠慴瑲猠煥敵据⁥鏎蟃뛃眠楡⁴潦⁲浩条獥琠⁯捡畴污祬氠慯⁤敢潦敲猠楬敤桳睯਍†獵䕥晦捥⡴⤨㴠‾ൻ †瀠敲潬摡汁⡬ഩ †挠湯瑳琠‱‽敳呴浩潥瑵⠨ 㸽猠瑥桐獡⡥漧数楮杮⤧‬〲〰ഩ †挠湯瑳琠′‽敳呴浩潥瑵⠨ 㸽猠瑥桐獡⡥稧潯⵭湩⤧‬㐳〰ഩ †挠湯瑳琠″‽敳呴浩潥瑵⠨ 㸽笠਍†††敳側慨敳✨汳摩獥潨❷ഩ †素‬〵〰ഩ †爠瑥牵⁮⤨㴠‾⁻汣慥呲浩潥瑵琨⤱※汣慥呲浩潥瑵琨⤲※汣慥呲浩潥瑵琨⤳素਍†ⱽ嬠敲瑳牡䍴畯瑮‬牰汥慯䅤汬⥝਍਍†⼯䄠瑵ⵯ摡慶据⁥畤楲杮猠楬敤桳睯츠쎓쎇₶瑳祡⁳湯氠獡⁴汳摩ⱥ搠敯⁳潮⁴畡潴挭潬敳਍†獵䕥晦捥⡴⤨㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汳摩獥潨❷簠⁼畡潴慐獵摥 敲畴湲਍††潣獮⁴楴敭⁲‽敳䥴瑮牥慶⡬⤨㴠‾ൻ ††猠瑥畃牲湥⡴牰癥㴠‾ൻ †††椠⁦瀨敲⁶㴾匠䥌䕄䍟問呎 敲畴湲瀠敲൶ †††挠湯瑳渠硥⁴‽牰癥⬠ㄠ਍††††牰汥慯䅤橤捡湥⡴敮瑸ഩ †††爠瑥牵⁮敮瑸਍†††⥽਍††ⱽ䄠呕彏䑁䅖䍎彅卍ഩ †爠瑥牵⁮⤨㴠‾汣慥䥲瑮牥慶⡬楴敭⥲਍†ⱽ嬠桰獡ⱥ愠瑵偯畡敳Ɽ瀠敲潬摡摁慪散瑮⥝਍਍†⼯䄠瑦牥氠獡⁴汳摩ⱥ眠楡⁴猳琠敨⁮汦獡൨ 甠敳晅敦瑣⠨ 㸽笠਍††晩⠠桰獡⁥㴡‽猧楬敤桳睯‧籼挠牵敲瑮㰠匠䥌䕄䍟問呎 敲畴湲਍††潣獮⁴楴敭⁲‽敳呴浩潥瑵⠨ 㸽猠瑥桐獡⡥昧慬桳⤧‬〳〰ഩ †爠瑥牵⁮⤨㴠‾汣慥呲浩潥瑵琨浩牥ഩ 素‬灛慨敳‬畣牲湥嵴ഩഊ ⼠ 汆獡⁨湡浩瑡潩⁮鏎ꗃ蛃挠潬楳杮映汯敤൲ 甠敳晅敦瑣⠨ 㸽笠਍††晩⠠桰獡⁥㴡‽昧慬桳⤧爠瑥牵൮ †挠湯瑳琠‱‽敳呴浩潥瑵⠨ 㸽猠瑥桐獡⡥挧潬楳杮⤧‬㈱〰ഩ †爠瑥牵⁮⤨㴠‾汣慥呲浩潥瑵琨⤱਍†ⱽ嬠桰獡嵥ഩഊ ⼠ 汃獯湩⁧潦摬牥츠쎓쎥₆湥敤⁤畢瑴湯਍†獵䕥晦捥⡴⤨㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汣獯湩❧ 敲畴湲਍††潣獮⁴ㅴ㴠猠瑥楔敭畯⡴⤨㴠‾敳側慨敳✨湥敤❤Ⱙ㈠〰⤰਍††敲畴湲⠠ 㸽挠敬牡楔敭畯⡴ㅴഩ 素‬灛慨敳⥝਍਍†⼯䬠祥潢牡൤ 甠敳晅敦瑣⠨ 㸽笠਍††潣獮⁴慨摮敬敋⁹‽攨›敋批慯摲癅湥⥴㴠‾ൻ ††椠⁦瀨慨敳℠㴽✠汳摩獥潨❷ 敲畴湲਍†††晩⠠⹥敫⁹㴽‽䄧牲睯楒桧❴簠⁼⹥敫⁹㴽‽䄧牲睯潄湷⤧笠攠瀮敲敶瑮敄慦汵⡴㬩朠呯⡯畣牲湥⁴‫⤱素਍†††晩⠠⹥敫⁹㴽‽䄧牲睯敌瑦‧籼攠欮祥㴠㴽✠牁潲啷❰ ⁻⹥牰癥湥䑴晥畡瑬⤨※潧潔挨牵敲瑮ⴠㄠ ൽ †素਍††楷摮睯愮摤癅湥䱴獩整敮⡲欧祥潤湷Ⱗ栠湡汤䭥祥ഩ †爠瑥牵⁮⤨㴠‾楷摮睯爮浥癯䕥敶瑮楌瑳湥牥✨敫摹睯❮‬慨摮敬敋⥹਍†ⱽ嬠桰獡ⱥ挠牵敲瑮‬潧潔⥝਍਍†⼯䌠楬正氠晥⽴楲桧⁴桴物獤搠牵湩⁧汳摩獥潨൷ 挠湯瑳栠湡汤䍥楬正㴠甠敳慃汬慢正⠨㩥删慥瑣䴮畯敳癅湥⥴㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汳摩獥潨❷ 敲畴湲਍††潣獮⁴敲瑣㴠挠湯慴湩牥敒⹦畣牲湥㽴朮瑥潂湵楤杮汃敩瑮敒瑣⤨਍††晩⠠爡捥⥴爠瑥牵൮ †挠湯瑳砠㴠攠挮楬湥塴ⴠ爠捥⹴敬瑦਍††潣獮⁴桴物⁤‽敲瑣眮摩桴⼠㌠਍††晩⠠⁸‼桴物⥤朠呯⡯畣牲湥⁴‭⤱਍††汥敳椠⁦砨㸠爠捥⹴楷瑤⁨‭桴物⥤朠呯⡯畣牲湥⁴‫⤱਍†ⱽ嬠桰獡ⱥ挠牵敲瑮‬潧潔⥝਍਍†潣獮⁴慨摮敬敓牣瑥汃捩⁫‽獵䍥污扬捡⡫攨›敒捡⹴潍獵䕥敶瑮 㸽笠਍††⹥瑳灯牐灯条瑡潩⡮ഩ †猠瑥潌楧䍮楬正⡳牰癥㴠‾ൻ ††挠湯瑳渠硥⁴‽牰癥⬠ㄠ਍†††晩⠠敮瑸㸠‽⤳笠猠瑥潌楧䍮楬正⡳⤰※慮楶慧整✨氯杯湩⤧※敲畴湲〠素਍†††晩⠠潬楧呮浩牥 汣慥呲浩潥瑵氨杯湩楔敭⥲਍†††敳䱴杯湩楔敭⡲敳呴浩潥瑵⠨ 㸽猠瑥潌楧䍮楬正⡳⤰‬〱〰⤩਍†††敲畴湲渠硥൴ †素ഩ 素‬湛癡杩瑡ⱥ氠杯湩楔敭嵲ഩഊ ⼠ 潍獵⁥慰慲汬硡⬠攠杤⁥楨瑮൳ 挠湯瑳栠湡汤䵥畯敳潍敶㴠甠敳慃汬慢正⠨㩥删慥瑣䴮畯敳癅湥⥴㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汳摩獥潨❷ 敲畴湲਍††潣獮⁴敲瑣㴠挠湯慴湩牥敒⹦畣牲湥㽴朮瑥潂湵楤杮汃敩瑮敒瑣⤨਍††晩⠠爡捥⥴爠瑥牵൮ †挠湯瑳砠㴠⠠⹥汣敩瑮⁘‭敲瑣氮晥⥴⼠爠捥⹴楷瑤൨ †挠湯瑳礠㴠⠠⹥汣敩瑮⁙‭敲瑣琮灯  敲瑣栮楥桧൴ †猠瑥潍獵⡥⁻ⱸ礠素ഩ 素‬灛慨敳⥝਍਍†⼯䐠慲⽧睳灩⁥潴渠癡杩瑡൥ 挠湯瑳栠湡汤䵥畯敳潄湷㴠甠敳慃汬慢正⠨㩥删慥瑣䴮畯敳癅湥⥴㴠‾ൻ †椠⁦瀨慨敳℠㴽✠汳摩獥潨❷ 敲畴湲਍††敳䑴慲卧慴瑲攨挮楬湥塴ഩ 素‬灛慨敳⥝਍਍†潣獮⁴慨摮敬潍獵啥⁰‽獵䍥污扬捡⡫攨›敒捡⹴潍獵䕥敶瑮 㸽笠਍††晩⠠桰獡⁥㴡‽猧楬敤桳睯‧籼搠慲卧慴瑲㴠㴽渠汵⥬爠瑥牵൮ †挠湯瑳搠晩⁦‽⹥汣敩瑮⁘‭牤条瑓牡൴ †椠⁦䴨瑡⹨扡⡳楤晦 ‾〵 ൻ ††椠⁦搨晩⁦‼⤰朠呯⡯畣牲湥⁴‫⤱਍†††汥敳朠呯⡯畣牲湥⁴‭⤱਍††ൽ †猠瑥牄条瑓牡⡴畮汬ഩ 素‬灛慨敳‬牤条瑓牡ⱴ挠牵敲瑮‬潧潔⥝਍਍†潣獮⁴敲瑳牡却潨捷獡⁥‽⤨㴠‾ൻ †猠瑥桐獡⡥椧瑮潲⤧਍††敳䍴牵敲瑮ㄨഩ †猠瑥敒瑳牡䍴畯瑮挨㴠‾⁣‫⤱਍†ൽഊ 挠湯瑳猠潨䙷汯敤⁲‽桰獡⁥㴽‽椧瑮潲‧籼瀠慨敳㴠㴽✠灯湥湩❧਍†潣獮⁴潦摬牥湁浩㴠✠潦摬牥湉ㄠ㈮⁳慥敳漭瑵映牯慷摲❳਍਍†敲畴湲⠠਍††㸼਍†††猼祴敬笾瑳汹獥㱽猯祴敬ാ ††㰠楤൶ †††爠晥笽潣瑮楡敮割晥ൽ †††挠慬獳慎敭∽楦數⁤湩敳⵴‰癯牥汦睯栭摩敤⁮敳敬瑣渭湯≥਍††††瑳汹㵥筻戠捡杫潲湵䍤汯牯›⌧䈱䄱䌱‧絽਍††††湯汃捩㵫桻湡汤䍥楬正ൽ ††㸠਍††††⽻‪楋敮楴⁣慢正牧畯摮⠠楶楳汢⁥畤楲杮猠楬敤桳睯 ⼪ൽ †††笠桰獡⁥㴽‽猧楬敤桳睯‧☦⠠਍†††††搼癩挠慬獳慎敭∽楦數⁤湩敳⵴‰⵺‰潰湩整⵲癥湥獴渭湯≥ാ †††††㰠楤⁶瑳汹㵥筻瀠獯瑩潩㩮✠扡潳畬整Ⱗ琠灯›ⴧ〱✥‬敬瑦›ⴧ┵Ⱗ眠摩桴›㔧┰Ⱗ栠楥桧㩴✠〵✥‬潢摲牥慒楤獵›㐧┰㘠┰㜠┰㌠┰⼠㔠┰㐠┰㘠┰㔠┰Ⱗ戠捡杫潲湵㩤✠慲楤污札慲楤湥⡴汥楬獰ⱥ⌠䔳〴㠴〠Ⱕ琠慲獮慰敲瑮㜠┰✩‬灯捡瑩㩹〠㈮ⰵ映汩整㩲✠汢牵㠨瀰⥸Ⱗ愠楮慭楴湯›昧潬瑡‱〲⁳慥敳椭⵮畯⁴湩楦楮整‧絽⼠ാ †††††㰠楤⁶瑳汹㵥筻瀠獯瑩潩㩮✠扡潳畬整Ⱗ戠瑯潴㩭✠ㄭ┰Ⱗ爠杩瑨›ⴧ┸Ⱗ眠摩桴›㐧┵Ⱗ栠楥桧㩴✠㔵✥‬潢摲牥慒楤獵›㘧┰㐠┰㌠┰㜠┰⼠㐠┰㘠┰㐠┰㘠┰Ⱗ戠捡杫潲湵㩤✠慲楤污札慲楤湥⡴汥楬獰ⱥ⌠䔳〴㠴〠Ⱕ琠慲獮慰敲瑮㜠┰✩‬灯捡瑩㩹〠㈮‬楦瑬牥›戧畬⡲〹硰✩‬湡浩瑡潩㩮✠汦慯㉴㈠猵攠獡ⵥ湩漭瑵椠普湩瑩❥素⁽㸯਍††††††搼癩猠祴敬笽⁻潰楳楴湯›愧獢汯瑵❥‬潴㩰✠〲✥‬楲桧㩴✠㔭✥‬楷瑤㩨✠〳✥‬敨杩瑨›㘧┰Ⱗ戠牯敤割摡畩㩳✠〵‥〵‥〳‥〷‥ 〶‥〳‥〷‥〴✥‬慢正牧畯摮›爧摡慩⵬牧摡敩瑮攨汬灩敳‬㌣㑅㐰㘸‰┰‬牴湡灳牡湥⁴〷⤥Ⱗ漠慰楣祴›⸰㔱‬楦瑬牥›戧畬⡲〷硰✩‬湡浩瑡潩㩮✠汦慯㍴㈠猲攠獡ⵥ湩漭瑵椠普湩瑩❥素⁽㸯਍††††††搼癩猠祴敬笽⁻潰楳楴湯›愧獢汯瑵❥‬潢瑴浯›ㄧ┰Ⱗ氠晥㩴✠┵Ⱗ眠摩桴›㈧┵Ⱗ栠楥桧㩴✠〳✥‬潢摲牥慒楤獵›㌧┰㜠┰㔠┰㔠┰⼠㐠┰㐠┰㘠┰㘠┰Ⱗ戠捡杫潲湵㩤✠慲楤污札慲楤湥⡴汥楬獰ⱥ⌠䔳〴㠴〠Ⱕ琠慲獮慰敲瑮㜠┰✩‬灯捡瑩㩹〠ㄮⰲ映汩整㩲✠汢牵㘨瀰⥸Ⱗ愠楮慭楴湯›昧潬瑡‱㠲⁳慥敳椭⵮畯⁴湩楦楮整爠癥牥敳‧絽⼠ാ ††††㰠搯癩ാ †††⤠ൽഊ †††笠⨯㴠㴽㴽‽但䑌剅䄠䥎䅍䥔乏㴠㴽㴽‽⼪ൽ †††笠桳睯潆摬牥☠…ന ††††㰠楤⁶汣獡乳浡㵥昢硩摥椠獮瑥〭稠㔭‰汦硥椠整獭挭湥整⁲番瑳晩⵹散瑮牥瀠楯瑮牥攭敶瑮⵳潮敮㸢਍††††††搼癩਍†††††††瑳汹㵥筻਍††††††††楷瑤㩨㈠〲ബ †††††††栠楥桧㩴ㄠ〷ബ †††††††愠楮慭楴湯›潦摬牥湁浩ബ †††††††瀠獯瑩潩㩮✠敲慬楴敶Ⱗ਍††††††††楦瑬牥›桰獡⁥㴽‽椧瑮潲ധ ††††††††㼠✠牤灯猭慨潤⡷‰‰〴硰爠执⡡㔲ⰵ㤸〬〬㐮⤩搠潲⵰桳摡睯〨〠㠠瀰⁸杲慢㈨㔵㠬ⰹⰰ⸰⤲✩਍†††††††††›搧潲⵰桳摡睯〨〠㘠瀰⁸杲慢㈨㔵㠬ⰹⰰ⸰⤷ 牤灯猭慨潤⡷‰‰㈱瀰⁸杲慢㈨㔵㠬ⰹⰰ⸰⤴✩ബ †††††††琠慲獮瑩潩㩮✠楦瑬牥ㄠ㈮⁳慥敳椭⵮畯❴ബ ††††††素ൽ †††††㸠਍††††††⽻‪潆摬牥戠摯⁹⼪ൽ †††††㰠楤൶ ††††††挠慬獳慎敭∽扡潳畬整戠瑯潴⵭‰敬瑦〭爠杩瑨〭爠畯摮摥戭⵲砲⁬潲湵敤ⵤ汢㈭汸ഢ ††††††猠祴敬笽ൻ †††††††栠楥桧㩴✠〸✥ബ †††††††戠捡杫潲湵䍤汯牯›⌧䙆㤵〰Ⱗ਍††††††††潢摲牥慒楤獵›〧〠ㄠ瀶⁸㘱硰Ⱗ਍††††††††潢卸慨潤㩷✠湩敳⁴‰㐭硰ㄠ瀲⁸杲慢〨〬〬〬㈮✩ബ ††††††素ൽ †††††⼠ാ †††††笠⨯䘠汯敤⁲汦灡⨠累਍††††††搼癩਍†††††††汣獡乳浡㵥愢獢汯瑵⁥潴⵰‰敬瑦〭爠杩瑨〭ഢ ††††††猠祴敬笽ൻ †††††††栠楥桧㩴✠㔵✥ബ †††††††戠捡杫潲湵䍤汯牯›⌧䙆㤵〰Ⱗ਍††††††††潢摲牥慒楤獵›ㄧ瀶⁸㘱硰〠〠Ⱗ਍††††††††牴湡晳牯佭楲楧㩮✠潢瑴浯挠湥整❲ബ †††††††琠慲獮潦浲›桰獡⁥㴽‽漧数楮杮‧‿瀧牥灳捥楴敶㠨〰硰 潲慴整⡘ㄭ〲敤⥧‧›瀧牥灳捥楴敶㠨〰硰 潲慴整⡘搰来✩ബ †††††††琠慲獮瑩潩㩮✠牴湡晳牯⁭⸱猲攠獡ⵥ湩漭瑵Ⱗ਍††††††††潢卸慨潤㩷✠湩敳⁴‰瀴⁸㈱硰爠执⡡ⰰⰰⰰ⸰㔱✩ബ †††††††稠湉敤㩸㈠ബ ††††††素ൽ †††††⼠ാ †††††笠⨯䘠汯敤⁲慴⁢⼪ൽ †††††㰠楤൶ ††††††挠慬獳慎敭∽扡潳畬整ഢ ††††††猠祴敬笽ൻ †††††††琠灯›ㄭⰲ਍††††††††敬瑦›㔧┰Ⱗ਍††††††††牴湡晳牯㩭✠牴湡汳瑡塥⴨〵⤥Ⱗ਍††††††††楷瑤㩨㔠ⰰ਍††††††††敨杩瑨›㘱ബ †††††††戠捡杫潲湵䍤汯牯›⌧䙆㤵〰Ⱗ਍††††††††潢摲牥慒楤獵›㘧硰㘠硰〠〠Ⱗ਍††††††††䥺摮硥›ⰳ਍†††††††絽਍††††††㸯਍††††††⼼楤㹶਍†††††⼼楤㹶਍††††紩਍਍††††⽻‪㴽㴽㴽娠住ⵍ义吠䅒华呉佉⁎㴽㴽㴽⨠累਍††††灻慨敳㴠㴽✠潺浯椭❮☠…ന ††††㰠楤൶ †††††挠慬獳慎敭∽楦數⁤湩敳⵴‰⵺〵ഢ †††††猠祴敬笽ൻ ††††††戠捡杫潲湵䍤汯牯›⌧䙆㤵〰Ⱗ਍†††††††湡浩瑡潩㩮✠潺浯湉畂獲⁴⸱猶攠獡ⵥ湩漭瑵映牯慷摲❳ബ †††††素ൽ ††††⼠ാ †††⤠ൽഊ †††笠⨯㴠㴽㴽‽䱓䑉卅佈⁗㴽㴽㴽⨠累਍††††灻慨敳㴠㴽✠汳摩獥潨❷☠…ന ††††㰠楤൶ †††††挠慬獳慎敭∽楦數⁤湩敳⵴∰਍††††††湯潍獵䵥癯㵥桻湡汤䵥畯敳潍敶ൽ †††††漠䵮畯敳潄湷笽慨摮敬潍獵䑥睯絮਍††††††湯潍獵啥㵰桻湡汤䵥畯敳灕ൽ †††††漠䵮畯敳敌癡㵥⡻ 㸽笠猠瑥牄条瑓牡⡴畮汬 絽਍†††††ാ †††††笠牁慲⹹牦浯氨慯敤⥤洮灡渨㴠‾ന ††††††㰠楤൶ †††††††欠祥笽絮਍††††††††汣獡乳浡㵥恻楦數⁤湩敳⵴‰牴湡楳楴湯愭汬搠牵瑡潩⵮〷‰慥敳椭⵮畯⁴笤⁮㴽‽畣牲湥⁴‿漧慰楣祴ㄭ〰猠慣敬ㄭ〰稠ㄭ✰㨠✠灯捡瑩⵹‰捳污ⵥ〱‵潰湩整⵲癥湥獴渭湯⁥⵺✰恽ൽ ††††††㸠਍††††††††椼杭਍†††††††††牳㵣恻瀯牯晴汯潩␯湻⹽灪恧ൽ ††††††††愠瑬∽ഢ ††††††††挠慬獳慎敭∽⵷畦汬栠昭汵⁬扯敪瑣挭湯慴湩琠慲獮瑩潩⵮牴湡晳牯⁭畤慲楴湯㈭〰攠獡ⵥ畯≴਍†††††††††牤条慧汢㵥晻污敳ൽ ††††††††猠祴敬笽⁮㴽‽畣牲湥⁴‿ൻ †††††††††琠慲獮潦浲›灠牥灳捥楴敶ㄨ〲瀰⥸爠瑯瑡塥␨⡻潭獵⹥⁹‭⸰⤵⨠ⴠ紴敤⥧爠瑯瑡奥␨⡻潭獵⹥⁸‭⸰⤵⨠㐠摽来 捳污⡥⸱㌰怩ബ ††††††††素㨠甠摮晥湩摥ൽ †††††††⼠ാ ††††††㰠搯癩ാ †††††⤠紩਍††††††搼癩挠慬獳慎敭∽楦數⁤湩敳⵴‰潰湩整⵲癥湥獴渭湯⁥⵺〲•瑳汹㵥筻戠捡杫潲湵㩤✠楬敮牡札慲楤湥⡴㠱搰来‬杲慢㈨ⰷ㘲㈬ⰸ⸰㔱 ┰‬牴湡灳牡湥⁴〲Ⱕ琠慲獮慰敲瑮㠠┰‬杲慢㈨ⰷ㘲㈬ⰸ⸰⤴ㄠ〰⤥‧絽⼠ാ †††††㰠楤⁶汣獡乳浡㵥昢硩摥戠瑯潴⵭‰敬瑦〭爠杩瑨〭栠嬭瀲嵸稠㌭∰猠祴敬笽⁻慢正牧畯摮潃潬㩲✠杲慢㈨㔵㈬㔵㈬㔵〮〬⤵‧絽ാ ††††††㰠楤⁶汣獡乳浡㵥栢昭汵⁬牴湡楳楴湯愭汬搠牵瑡潩⵮〵‰慥敳漭瑵•瑳汹㵥筻眠摩桴›①⡻畣牲湥⁴ 䱓䑉彅佃乕⥔⨠ㄠ〰╽Ⱡ戠捡杫潲湵䍤汯牯›爧执⡡㔲ⰵ㤸〬〬㔮✩素⁽㸯਍††††††⼼楤㹶਍†††††⼼楤㹶਍††††紩਍਍††††⽻‪㴽㴽㴽䌠佌䥓䝎츠쎓쎇₶潺浯戠捡⁫潴映汯敤⁲㴽㴽㴽⨠累਍††††灻慨敳㴠㴽✠汣獯湩❧☠…ന ††††㰠楤⁶汣獡乳浡㵥昢硩摥椠獮瑥〭稠㐭‰汦硥椠整獭挭湥整⁲番瑳晩⵹散瑮牥•瑳汹㵥筻戠捡杫潲湵䍤汯牯›⌧䈱䄱䌱‧絽ാ †††††笠⨯䈠桥湩ⵤ潦摬牥朠潬⁷⼪ൽ †††††㰠楤൶ ††††††挠慬獳慎敭∽扡潳畬整ഢ ††††††猠祴敬笽ൻ †††††††眠摩桴›㠲ⰰ਍††††††††敨杩瑨›㌲ⰰ਍††††††††潢摲牥慒楤獵›㔧┰Ⱗ਍††††††††慢正牧畯摮›爧摡慩⵬牧摡敩瑮挨物汣ⱥ爠执⡡㔲ⰵ㤸〬〬㌮ ┰‬牴湡灳牡湥⁴〷⤥Ⱗ਍††††††††楦瑬牥›戧畬⡲〳硰✩ബ †††††††愠楮慭楴湯›昧汯敤佲瑵ㄠ㈮⁳慥敳椭⁮潦睲牡獤Ⱗ਍††††††††湡浩瑡潩䑮汥祡›〧㌮❳ബ ††††††素ൽ †††††⼠ാ †††††㰠楤൶ ††††††猠祴敬笽ൻ †††††††眠摩桴›㈲ⰰ਍††††††††敨杩瑨›㜱ⰰ਍††††††††湡浩瑡潩㩮✠潦摬牥畏⁴⸱猲攠獡ⵥ湩映牯慷摲❳ബ †††††††愠楮慭楴湯敄慬㩹✠⸰猳Ⱗ਍††††††††潰楳楴湯›爧汥瑡癩❥ബ ††††††素ൽ †††††㸠਍†††††††搼癩挠慬獳慎敭∽扡潳畬整戠瑯潴⵭‰敬瑦〭爠杩瑨〭爠畯摮摥戭⵲砲⁬潲湵敤ⵤ汢㈭汸•瑳汹㵥筻栠楥桧㩴✠〸✥‬慢正牧畯摮潃潬㩲✠䘣㕆〹✰‬潢摲牥慒楤獵›〧〠ㄠ瀶⁸㘱硰‧絽⼠ാ ††††††㰠楤⁶汣獡乳浡㵥愢獢汯瑵⁥潴⵰‰敬瑦〭爠杩瑨〭•瑳汹㵥筻栠楥桧㩴✠㔵✥‬慢正牧畯摮潃潬㩲✠䘣㕆〹✰‬潢摲牥慒楤獵›ㄧ瀶⁸㘱硰〠〠Ⱗ琠慲獮潦浲牏杩湩›戧瑯潴⁭散瑮牥Ⱗ愠楮慭楴湯›昧慬䍰潬敳ㄠ⁳慥敳椭⵮畯⁴潦睲牡獤‧絽⼠ാ ††††††㰠楤⁶汣獡乳浡㵥愢獢汯瑵≥猠祴敬笽⁻潴㩰ⴠ㈱‬敬瑦›㔧┰Ⱗ琠慲獮潦浲›琧慲獮慬整⡘㔭┰✩‬楷瑤㩨㔠ⰰ栠楥桧㩴ㄠⰶ戠捡杫潲湵䍤汯牯›⌧䙆㤵〰Ⱗ戠牯敤割摡畩㩳✠瀶⁸瀶⁸‰✰‬䥺摮硥›″絽⼠ാ ††††††笠⨯传慲杮⁥汧睯戠牵瑳眠敨⁮汣獯湩⁧鏎蟃뛃映摡獥愠⁳汦灡挠潬敳⁳⼪ൽ ††††††㰠楤൶ †††††††挠慬獳慎敭∽扡潳畬整ഢ †††††††猠祴敬笽ൻ ††††††††琠灯›㔧┰Ⱗ਍†††††††††敬瑦›㔧┰Ⱗ਍†††††††††牴湡晳牯㩭✠牴湡汳瑡⡥㔭┰‬㔭┰✩ബ ††††††††眠摩桴›㈳ⰰ਍†††††††††敨杩瑨›㈲ⰰ਍†††††††††慢正牧畯摮›爧摡慩⵬牧摡敩瑮攨汬灩敳‬杲慢㈨㔵㠬ⰹⰰ⸰⤴〠Ⱕ琠慲獮慰敲瑮㘠┵✩ബ ††††††††漠慰楣祴›⸰ⰶ਍†††††††††牴湡楳楴湯›漧慰楣祴〠㠮⁳慥敳椭❮ബ †††††††素ൽ ††††††⼠ാ †††††㰠搯癩ാ ††††㰠搯癩ാ †††⤠ൽഊ †††笠⨯㴠㴽㴽‽䱆十⁈㴽㴽㴽⨠累਍††††灻慨敳㴠㴽✠汦獡❨☠…ന ††††㰠楤൶ †††††挠慬獳慎敭∽楦數⁤湩敳⵴‰⵺〵映敬⁸瑩浥⵳散瑮牥樠獵楴祦挭湥整≲਍††††††瑳汹㵥筻਍†††††††慢正牧畯摮潃潬㩲✠䘣㕆〹✰ബ ††††††愠楮慭楴湯›昧慬桳湉ㄠ㈮⁳慥敳椭⵮畯⁴潦睲牡獤Ⱗ਍††††††絽਍†††††ാ †††††㰠楤൶ ††††††猠祴敬笽ൻ †††††††眠摩桴›〴ⰰ਍††††††††敨杩瑨›〴ⰰ਍††††††††潢摲牥慒楤獵›㔧┰Ⱗ਍††††††††慢正牧畯摮›爧摡慩⵬牧摡敩瑮挨物汣ⱥ爠执⡡㔲ⰵ㔲ⰵ㔲ⰵ⸰⤴〠Ⱕ爠执⡡㔲ⰵ㤸〬〬㠮 〴Ⱕ琠慲獮慰敲瑮㜠┰✩ബ †††††††映汩整㩲✠汢牵㌨瀰⥸Ⱗ਍†††††††絽਍††††††㸯਍†††††⼼楤㹶਍††††紩਍਍††††⽻‪㴽㴽㴽䔠䑎䑅㴠㴽㴽‽⼪ൽ †††笠桰獡⁥㴽‽攧摮摥‧☦⠠਍†††††搼癩挠慬獳慎敭∽楦數⁤湩敳⵴‰⵺〵映敬⁸汦硥挭汯椠整獭挭湥整⁲番瑳晩⵹散瑮牥朠灡ㄭ∰猠祴敬笽⁻慢正牧畯摮潃潬㩲✠ㄣㅂㅁ❃素㹽਍††††††⽻‪流楢湥⁴汧睯戠桥湩⁤畢瑴湯⨠累਍††††††搼癩挠慬獳慎敭∽扡潳畬整•瑳汹㵥筻眠摩桴›〵ⰰ栠楥桧㩴㌠〰‬潢摲牥慒楤獵›㔧┰Ⱗ戠捡杫潲湵㩤✠慲楤污札慲楤湥⡴楣捲敬‬杲慢㈨㔵㠬ⰹⰰ⸰㈱ ┰‬牴湡灳牡湥⁴〷⤥Ⱗ映汩整㩲✠汢牵㔨瀰⥸‧絽⼠ാ †††††㰠畢瑴湯਍†††††††湯汃捩㵫牻獥慴瑲桓睯慣敳ൽ ††††††挠慬獳慎敭∽敲慬楴敶琠慲獮瑩潩⵮污⁬畤慲楴湯㔭〰栠癯牥猺慣敬ㄭ〱朠潲灵ഢ ††††††猠祴敬笽ൻ †††††††愠楮慭楴湯›戧湴灁数牡㈠⁳慥敳漭瑵Ⱗ਍†††††††絽਍††††††ാ ††††††笠⨯䜠慬獳洭牯桰獩⁭慢正牧畯摮⨠累਍†††††††搼癩਍††††††††汣獡乳浡㵥愢獢汯瑵⁥湩敳⵴‰潲湵敤ⵤ砲⁬牴湡楳楴湯愭汬搠牵瑡潩⵮〵∰਍††††††††瑳汹㵥筻਍†††††††††慢正牧畯摮潃潬㩲✠杲慢㈨㔵㠬ⰹⰰ⸰⤱Ⱗ਍†††††††††慢正牤灯楆瑬牥›戧畬⡲㘱硰✩ബ ††††††††圠扥楫䉴捡摫潲䙰汩整㩲✠汢牵ㄨ瀶⥸Ⱗ਍†††††††††潢摲牥›ㄧ硰猠汯摩爠执⡡㔲ⰵ㤸〬〬㈮⤵Ⱗ਍†††††††††潢卸慨潤㩷✠‰瀸⁸㈳硰爠执⡡ⰰⰰⰰ⸰⤳‬‰‰〶硰爠执⡡㔲ⰵ㤸〬〬ㄮⰩ椠獮瑥〠ㄠ硰〠爠执⡡㔲ⰵ㔲ⰵ㔲ⰵ⸰㔰✩ബ †††††††素ൽ ††††††⼠ാ ††††††笠⨯䠠癯牥朠潬⁷癯牥慬⁹⼪ൽ ††††††㰠楤൶ †††††††挠慬獳慎敭∽扡潳畬整椠獮瑥〭爠畯摮摥㈭汸漠慰楣祴〭朠潲灵栭癯牥漺慰楣祴ㄭ〰琠慲獮瑩潩⵮污⁬畤慲楴湯㔭〰ഢ †††††††猠祴敬笽ൻ ††††††††戠捡杫潲湵䍤汯牯›爧执⡡㔲ⰵ㤸〮〬〬⤸Ⱗ਍†††††††††潢卸慨潤㩷✠‰‰〸硰爠执⡡㔲ⰵ㤸〬〬㌮✩ബ †††††††素ൽ ††††††⼠ാ ††††††笠⨯䌠湯整瑮⨠累਍†††††††搼癩挠慬獳慎敭∽敲慬楴敶映敬⁸瑩浥⵳散瑮牥朠灡㌭瀠⵸〱瀠⵹∵ാ †††††††㰠癳⁧汣獡乳浡㵥眢㔭栠㔭•楶睥潂㵸〢〠㈠‴㐲•楦汬∽潮敮•瑳潲敫∽杲慢㈨㔵㈬㔵㈬㔵〬㤮∩猠牴歯坥摩桴∽⸱∵ാ ††††††††㰠慰桴搠∽㑍ㄠ氶⸴㠵ⴶ⸴㠵愶′′‰㄰⸲㈸‸䰰㘱ㄠ洶㈭㈭ㅬ㔮㘸ㄭ㔮㘸㉡㈠〠〠㈱㠮㠲〠㉌‰㐱⵭ⴶ栶〮䴱‶〲ㅨ愲′′‰〰ⴲ嘲愶′′‰〰㈭㈭㙈㉡㈠〠〠ⴰ′瘲㈱㉡㈠〠〠㈰㈠≺⼠ാ †††††††㰠猯杶ാ †††††††㰠灳湡挠慬獳慎敭∽整瑸氭⁧潦瑮猭浥扩汯⁤牴捡楫杮眭摩≥猠祴敬笽⁻潣潬㩲✠杲慢㈨㔵㈬㔵㈬㔵〬㤮✩素㹽਍†††††††††敓⁥硅摯慩愦潰㭳⁳潐瑲潦楬൯ †††††††㰠猯慰㹮਍††††††††猼杶挠慬獳慎敭∽⵷‴⵨‴牴湡楳楴湯琭慲獮潦浲搠牵瑡潩⵮〳‰牧畯⵰潨敶㩲牴湡汳瑡ⵥ⵸∱瘠敩䉷硯∽‰‰㐲㈠∴映汩㵬渢湯≥猠牴歯㵥爢执⡡㔲ⰵ㔲ⰵ㔲ⰵ⸰⤹•瑳潲敫楗瑤㵨ㄢ㔮㸢਍†††††††††瀼瑡⁨㵤䴢㜱㠠㑬㐠ね〠⵬‴洴ⴴ䠴∳⼠ാ †††††††㰠猯杶ാ ††††††㰠搯癩ാ †††††㰠戯瑵潴㹮਍†††††⼼楤㹶਍††††紩਍਍††††⽻‪敓牣瑥氠杯湩栠瑯灳瑯⨠累਍††††搼癩਍†††††湯汃捩㵫桻湡汤卥捥敲䍴楬正ൽ ††††挠慬獳慎敭∽楦數⁤潢瑴浯〭爠杩瑨〭稠㔭‰⵷‸⵨‸汦硥椠整獭挭湥整⁲番瑳晩⵹散瑮牥挠牵潳⵲牣獯桳楡≲਍†††††楴汴㵥∢਍††††ാ ††††㰠灳湡挠慬獳慎敭∽整瑸眭楨整嬯⸰㘰⁝整瑸嬭〱硰⁝潨敶㩲整瑸眭楨整㈯‰牴湡楳楴湯挭汯牯⁳畤慲楴湯㔭〰猠汥捥⵴潮敮㸢鏎맃꫃⼼灳湡ാ †††㰠搯癩ാ ††㰠搯癩ാ †㰠㸯਍†ഩ紊਍
