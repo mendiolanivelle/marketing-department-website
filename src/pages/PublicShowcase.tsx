@@ -10,12 +10,7 @@ const CATS = ['Featured','Upcoming','Completed','In Development']
 
 const slideData = Array.from({ length: SLIDE_COUNT }, (_, i) => {
   const c = COLORS[i % COLORS.length]
-  return {
-    color: c,
-    label: LABELS[i % LABELS.length],
-    cat: CATS[i % CATS.length],
-    title: `Project ${i + 1}`,
-  }
+  return { color: c, label: LABELS[i % LABELS.length], cat: CATS[i % CATS.length], title: `Project ${i + 1}` }
 })
 
 const makeSlideSvg = (s: typeof slideData[0], n: number) => {
@@ -44,24 +39,12 @@ const makeSlideSvg = (s: typeof slideData[0], n: number) => {
 </svg>`)}`
 }
 
+const preloadedSvgs = Array.from({ length: SLIDE_COUNT }, (_, i) => makeSlideSvg(slideData[i], i + 1))
+
 const styles = `
-@keyframes float1 {
-  0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}
-  25%{transform:translate(70px,-50px)rotate(5deg)scale(1.05)}
-  50%{transform:translate(-40px,30px)rotate(-3deg)scale(0.95)}
-  75%{transform:translate(50px,40px)rotate(4deg)scale(1.02)}
-}
-@keyframes float2 {
-  0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}
-  33%{transform:translate(-60px,40px)rotate(-6deg)scale(0.97)}
-  66%{transform:translate(50px,-30px)rotate(4deg)scale(1.06)}
-}
-@keyframes float3 {
-  0%,100%{transform:translate(0,0)rotate(0deg)}
-  25%{transform:translate(-50px,-40px)rotate(-4deg)}
-  50%{transform:translate(40px,50px)rotate(6deg)}
-  75%{transform:translate(-30px,-20px)rotate(-2deg)}
-}
+@keyframes float1{0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}25%{transform:translate(70px,-50px)rotate(5deg)scale(1.05)}50%{transform:translate(-40px,30px)rotate(-3deg)scale(0.95)}75%{transform:translate(50px,40px)rotate(4deg)scale(1.02)}}
+@keyframes float2{0%,100%{transform:translate(0,0)rotate(0deg)scale(1)}33%{transform:translate(-60px,40px)rotate(-6deg)scale(0.97)}66%{transform:translate(50px,-30px)rotate(4deg)scale(1.06)}}
+@keyframes float3{0%,100%{transform:translate(0,0)rotate(0deg)}25%{transform:translate(-50px,-40px)rotate(-4deg)}50%{transform:translate(40px,50px)rotate(6deg)}75%{transform:translate(-30px,-20px)rotate(-2deg)}}
 @keyframes folderIn{0%{opacity:0;transform:scale(0.6)}100%{opacity:1;transform:scale(1)}}
 @keyframes folderOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.6)}}
 @keyframes flapOpen{0%{transform:perspective(800px)rotateX(0deg)}100%{transform:perspective(800px)rotateX(-120deg)}}
@@ -69,6 +52,7 @@ const styles = `
 @keyframes glowPulse{0%{opacity:0;transform:scale(1)}30%{opacity:0.8;transform:scale(1.2)}60%{opacity:0.3;transform:scale(1.5)}100%{opacity:0;transform:scale(2)}}
 @keyframes flashIn{0%{opacity:0}20%{opacity:1}80%{opacity:1}100%{opacity:0}}
 @keyframes btnAppear{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes folderClose{0%{transform:perspective(800px)rotateX(-120deg)}100%{transform:perspective(800px)rotateX(0deg)}}
 @keyframes zoomInBurst{0%{opacity:0}30%{opacity:1}80%{opacity:1}100%{opacity:0}}
 `
 
@@ -77,6 +61,8 @@ type Phase = 'intro' | 'opening' | 'zoom-in' | 'slideshow' | 'closing' | 'flash'
 export default function PublicShowcase() {
   const [phase, setPhase] = useState<Phase>('intro')
   const [current, setCurrent] = useState(1)
+  const [loaded, setLoaded] = useState<Set<number>>(new Set([1, 2, 3]))
+  const [imagesReady, setImagesReady] = useState(true)
   const [loginClicks, setLoginClicks] = useState(0)
   const [loginTimer, setLoginTimer] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [autoPaused, setAutoPaused] = useState(false)
@@ -87,6 +73,26 @@ export default function PublicShowcase() {
   const containerRef = useRef<HTMLDivElement>(null)
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const preloadAdjacent = useCallback((n: number) => {
+    setLoaded(prev => {
+      const next = new Set(prev)
+      for (let i = Math.max(1, n - 2); i <= Math.min(SLIDE_COUNT, n + 2); i++) next.add(i)
+      return next
+    })
+  }, [])
+
+  const goTo = useCallback((n: number) => {
+    if (phase !== 'slideshow') return
+    const target = Math.max(1, Math.min(SLIDE_COUNT, n))
+    if (target === current) return
+    setCurrent(target)
+    preloadAdjacent(target)
+    setAutoPaused(true)
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current)
+    autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000)
+  }, [phase, current, preloadAdjacent])
+
+  // Start sequence
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('opening'), 2000)
     const t2 = setTimeout(() => setPhase('zoom-in'), 3400)
@@ -94,52 +100,64 @@ export default function PublicShowcase() {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [restartCount])
 
+  // Auto-advance during slideshow
   useEffect(() => {
     if (phase !== 'slideshow' || autoPaused) return
     const timer = setInterval(() => {
-      setCurrent(prev => prev >= SLIDE_COUNT ? prev : prev + 1)
+      setCurrent(prev => {
+        if (prev >= SLIDE_COUNT) return prev
+        const next = prev + 1
+        preloadAdjacent(next)
+        return next
+      })
     }, AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [phase, autoPaused])
+  }, [phase, autoPaused, preloadAdjacent])
 
+  // After last slide, wait 3s then flash
   useEffect(() => {
     if (phase !== 'slideshow' || current < SLIDE_COUNT) return
     const timer = setTimeout(() => setPhase('flash'), 3000)
     return () => clearTimeout(timer)
   }, [phase, current])
 
+  // Flash → closing
   useEffect(() => {
     if (phase !== 'flash') return
     const t1 = setTimeout(() => setPhase('closing'), 1200)
     return () => clearTimeout(t1)
   }, [phase])
 
+  // Closing → ended
   useEffect(() => {
     if (phase !== 'closing') return
     const t1 = setTimeout(() => setPhase('ended'), 2000)
     return () => clearTimeout(t1)
   }, [phase])
 
+  // Keyboard
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (phase !== 'slideshow') return
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); setCurrent(prev => Math.min(SLIDE_COUNT, prev + 1)); setAutoPaused(true); if (autoTimerRef.current) clearTimeout(autoTimerRef.current); autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000) }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); setCurrent(prev => Math.max(1, prev - 1)); setAutoPaused(true); if (autoTimerRef.current) clearTimeout(autoTimerRef.current); autoTimerRef.current = setTimeout(() => setAutoPaused(false), 8000) }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current + 1) }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1) }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [phase])
+  }, [phase, current, goTo])
 
+  // Click left/right thirds
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (phase !== 'slideshow') return
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const x = e.clientX - rect.left
     const third = rect.width / 3
-    if (x < third) setCurrent(prev => Math.max(1, prev - 1))
-    else if (x > rect.width - third) setCurrent(prev => Math.min(SLIDE_COUNT, prev + 1))
-  }, [phase])
+    if (x < third) goTo(current - 1)
+    else if (x > rect.width - third) goTo(current + 1)
+  }, [phase, current, goTo])
 
+  // Secret login hotspot
   const handleSecretClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     setLoginClicks(prev => {
@@ -151,6 +169,7 @@ export default function PublicShowcase() {
     })
   }, [navigate, loginTimer])
 
+  // Mouse parallax
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (phase !== 'slideshow') return
     const rect = containerRef.current?.getBoundingClientRect()
@@ -158,6 +177,7 @@ export default function PublicShowcase() {
     setMouse({ x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height })
   }, [phase])
 
+  // Drag/swipe
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (phase !== 'slideshow') return
     setDragStart(e.clientX)
@@ -167,11 +187,11 @@ export default function PublicShowcase() {
     if (phase !== 'slideshow' || dragStart === null) return
     const diff = e.clientX - dragStart
     if (Math.abs(diff) > 50) {
-      if (diff < 0) setCurrent(prev => Math.min(SLIDE_COUNT, prev + 1))
-      else setCurrent(prev => Math.max(1, prev - 1))
+      if (diff < 0) goTo(current + 1)
+      else goTo(current - 1)
     }
     setDragStart(null)
-  }, [phase, dragStart])
+  }, [phase, dragStart, current, goTo])
 
   const restartShowcase = () => {
     setPhase('intro')
@@ -184,9 +204,13 @@ export default function PublicShowcase() {
   return (
     <>
       <style>{styles}</style>
-      <div ref={containerRef} className="fixed inset-0 overflow-hidden select-none" style={{ backgroundColor: '#1B1A1C' }} onClick={handleClick} onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => setDragStart(null)}>
-
-        {/* Kinetic background */}
+      <div
+        ref={containerRef}
+        className="fixed inset-0 overflow-hidden select-none"
+        style={{ backgroundColor: '#1B1A1C' }}
+        onClick={handleClick}
+      >
+        {/* Kinetic background (visible during slideshow) */}
         {phase === 'slideshow' && (
           <div className="fixed inset-0 z-0 pointer-events-none">
             <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '50%', height: '50%', borderRadius: '40% 60% 70% 30% / 50% 40% 60% 50%', background: 'radial-gradient(ellipse, #3E4048 0%, transparent 70%)', opacity: 0.25, filter: 'blur(80px)', animation: 'float1 20s ease-in-out infinite' }} />
@@ -196,10 +220,21 @@ export default function PublicShowcase() {
           </div>
         )}
 
-        {/* Folder animation */}
+        {/* ====== FOLDER ANIMATION ====== */}
         {showFolder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div style={{ width: 220, height: 170, animation: 'folderIn 1.2s ease-out forwards', position: 'relative', filter: phase === 'intro' ? 'drop-shadow(0 0 40px rgba(255,89,0,0.4)) drop-shadow(0 0 80px rgba(255,89,0,0.2))' : 'drop-shadow(0 0 60px rgba(255,89,0,0.7)) drop-shadow(0 0 120px rgba(255,89,0,0.4))', transition: 'filter 1.2s ease-in-out' }}>
+            <div
+              style={{
+                width: 220,
+                height: 170,
+                animation: 'folderIn 1.2s ease-out forwards',
+                position: 'relative',
+                filter: phase === 'intro'
+                  ? 'drop-shadow(0 0 40px rgba(255,89,0,0.4)) drop-shadow(0 0 80px rgba(255,89,0,0.2))'
+                  : 'drop-shadow(0 0 60px rgba(255,89,0,0.7)) drop-shadow(0 0 120px rgba(255,89,0,0.4))',
+                transition: 'filter 1.2s ease-in-out',
+              }}
+            >
               <div className="absolute bottom-0 left-0 right-0" style={{ height: '80%', backgroundColor: '#FF5900', borderRadius: '0 0 16px 16px', boxShadow: 'inset 0 -4px 12px rgba(0,0,0,0.2)' }} />
               <div className="absolute top-0 left-0 right-0" style={{ height: '55%', backgroundColor: '#FF5900', borderRadius: '16px 16px 0 0', transformOrigin: 'bottom center', transform: phase === 'opening' ? 'perspective(800px) rotateX(-120deg)' : 'perspective(800px) rotateX(0deg)', transition: 'transform 1.2s ease-in-out', boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.15)', zIndex: 2 }} />
               <div className="absolute" style={{ top: -12, left: '50%', transform: 'translateX(-50%)', width: 50, height: 16, backgroundColor: '#FF5900', borderRadius: '6px 6px 0 0', zIndex: 3 }} />
@@ -207,14 +242,30 @@ export default function PublicShowcase() {
           </div>
         )}
 
+        {/* ====== ZOOM-IN TRANSITION ====== */}
         {phase === 'zoom-in' && (
           <div className="fixed inset-0 z-50" style={{ backgroundColor: '#FF5900', animation: 'zoomInBurst 1.6s ease-in-out forwards' }} />
         )}
 
-        {/* Slideshow */}
+        {/* ====== SLIDESHOW ====== */}
         {phase === 'slideshow' && (
-          <div className="fixed inset-0">
-            <img src={makeSlideSvg(slideData[current - 1], current)} alt="" className="w-full h-full object-contain transition-transform duration-200 ease-out" draggable={false} style={{ transform: `perspective(1200px) rotateX(${(mouse.y - 0.5) * -4}deg) rotateY(${(mouse.x - 0.5) * 4}deg) scale(1.03)` }} />
+          <div className="fixed inset-0" onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={() => setDragStart(null)}>
+            {Array.from(loaded).map(n => (
+              <div
+                key={n}
+                className={`fixed inset-0 transition-all duration-700 ease-in-out ${n === current ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 pointer-events-none z-0'}`}
+              >
+                <img
+                  src={preloadedSvgs[n - 1]}
+                  alt=""
+                  className="w-full h-full object-contain transition-transform duration-200 ease-out"
+                  draggable={false}
+                  style={n === current ? {
+                    transform: `perspective(1200px) rotateX(${(mouse.y - 0.5) * -4}deg) rotateY(${(mouse.x - 0.5) * 4}deg) scale(1.03)`,
+                  } : undefined}
+                />
+              </div>
+            ))}
             <div className="fixed inset-0 pointer-events-none z-20" style={{ background: 'linear-gradient(180deg, rgba(27,26,28,0.15) 0%, transparent 20%, transparent 80%, rgba(27,26,28,0.4) 100%)' }} />
             <div className="fixed bottom-0 left-0 right-0 h-[2px] z-30" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
               <div className="h-full transition-all duration-500 ease-out" style={{ width: `${(current / SLIDE_COUNT) * 100}%`, backgroundColor: 'rgba(255,89,0,0.5)' }} />
@@ -222,7 +273,7 @@ export default function PublicShowcase() {
           </div>
         )}
 
-        {/* Closing */}
+        {/* ====== CLOSING ====== */}
         {phase === 'closing' && (
           <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ backgroundColor: '#1B1A1C' }}>
             <div className="absolute" style={{ width: 280, height: 230, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.3) 0%, transparent 70%)', filter: 'blur(30px)', animation: 'folderOut 1.2s ease-in forwards', animationDelay: '0.3s' }} />
@@ -235,14 +286,14 @@ export default function PublicShowcase() {
           </div>
         )}
 
-        {/* Flash */}
+        {/* ====== FLASH ====== */}
         {phase === 'flash' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: '#FF5900', animation: 'flashIn 1.2s ease-in-out forwards' }}>
             <div style={{ width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,89,0,0.8) 40%, transparent 70%)', filter: 'blur(30px)' }} />
           </div>
         )}
 
-        {/* Ended */}
+        {/* ====== ENDED ====== */}
         {phase === 'ended' && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10" style={{ backgroundColor: '#1B1A1C' }}>
             <div className="absolute" style={{ width: 500, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,89,0,0.12) 0%, transparent 70%)', filter: 'blur(50px)' }} />
