@@ -130,6 +130,8 @@ export default function MeetingPlaybook() {
   })
   const [editingScript, setEditingScript] = useState<string | null>(null)
   const [scriptEditValue, setScriptEditValue] = useState('')
+  const [editingLabel, setEditingLabel] = useState<string | null>(null)
+  const [labelEditValue, setLabelEditValue] = useState('')
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(meetings))
@@ -163,6 +165,25 @@ export default function MeetingPlaybook() {
     setTalkScripts(prev => prev.map(s => s.key === editingScript ? { ...s, text: scriptEditValue } : s))
     setEditingScript(null)
     setScriptEditValue('')
+  }
+
+  const addScript = () => {
+    const key = 'custom-' + Date.now()
+    setTalkScripts(prev => [...prev, { key, label: 'New Block', text: 'Write your script here...' }])
+  }
+
+  const deleteScript = (key: string) => {
+    if (talkScripts.length <= 1) return
+    setTalkScripts(prev => prev.filter(s => s.key !== key))
+    if (editingScript === key) { setEditingScript(null); setScriptEditValue('') }
+    if (editingLabel === key) { setEditingLabel(null); setLabelEditValue('') }
+  }
+
+  const saveLabelEdit = () => {
+    if (!editingLabel) return
+    setTalkScripts(prev => prev.map(s => s.key === editingLabel ? { ...s, label: labelEditValue } : s))
+    setEditingLabel(null)
+    setLabelEditValue('')
   }
 
   return (
@@ -270,7 +291,31 @@ export default function MeetingPlaybook() {
             <div key={script.key} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
-                <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{script.label}</h3>
+                {editingLabel === script.key ? (
+                  <input
+                    autoFocus
+                    value={labelEditValue}
+                    onChange={e => setLabelEditValue(e.target.value)}
+                    onBlur={saveLabelEdit}
+                    onKeyDown={e => { if (e.key === 'Enter') saveLabelEdit(); if (e.key === 'Escape') { setEditingLabel(null); setLabelEditValue('') } }}
+                    className="px-2 py-0.5 rounded border outline-none text-xs font-semibold"
+                    style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                  />
+                ) : (
+                  <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => { setEditingLabel(script.key); setLabelEditValue(script.label) }}>{script.label}</h3>
+                )}
+                {talkScripts.length > 1 && (
+                  <button
+                    className="ml-auto p-1 rounded transition hover:opacity-70"
+                    style={{ color: 'var(--text-muted)' }}
+                    onClick={() => deleteScript(script.key)}
+                    title="Delete block"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
               </div>
               {editingScript === script.key ? (
                 <div>
@@ -301,6 +346,13 @@ export default function MeetingPlaybook() {
             </div>
           ))}
         </div>
+        <button
+          className="mt-4 w-full py-2 rounded-lg text-xs font-medium transition border border-dashed"
+          style={{ color: 'var(--accent)', borderColor: 'var(--border-primary)', backgroundColor: 'transparent' }}
+          onClick={addScript}
+        >
+          + Add block
+        </button>
       </div>
 
       {/* Playbook Sections */}
