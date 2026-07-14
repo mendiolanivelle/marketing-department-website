@@ -521,7 +521,8 @@ export default function MeetingPlaybook() {
 
               {/* Merged Card: Links & Checklist */}
               <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <h3 className="text-xs font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Preparation & Assets</h3>
+                <h3 className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Preparation & Assets</h3>
+                <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Links & checklist for the current meeting</p>
 
                 {/* Links */}
                 <div className="mb-4">
@@ -592,7 +593,7 @@ export default function MeetingPlaybook() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {scripts.map(script => (
               <div key={script.id} className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-1">
                   {editingField?.target === 'script-name' && editingField?.id === script.id ? (
                     <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-0.5 rounded border outline-none text-xs font-semibold" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
                   ) : (
@@ -602,6 +603,7 @@ export default function MeetingPlaybook() {
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
+                <p className="text-[10px] mb-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Script for {script.category.toLowerCase()}</p>
                 <div className="mb-2">
                   {editingField?.target === 'script-category' && editingField?.id === script.id ? (
                     <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-[10px]" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
