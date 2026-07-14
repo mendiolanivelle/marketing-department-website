@@ -4,6 +4,7 @@ interface FlowStep {
   id: string
   text: string
   time: string
+  description: string
 }
 
 interface MeetingTemplate {
@@ -53,15 +54,15 @@ const defaultTemplates: MeetingTemplate[] = [
     kpis: ['Client agrees to a proposal meeting', 'At least 3 pain points identified', 'Budget range confirmed'],
     proTips: ['Research the client\'s company and industry 15 minutes before the call', 'Let the client talk 70% of the time', 'Always ask "What does success look like for you?"'],
     flowSteps: [
-      { id: 'f1', text: 'Open & Welcome — brief intro, set agenda, confirm meeting length', time: '2 min' },
-      { id: 'f2', text: 'Client Introductions — each attendee shares their role and what they hope to get out of the meeting', time: '3 min' },
-      { id: 'f3', text: 'Context Recap — recap how we got here, previous conversations, submitted forms', time: '2 min' },
-      { id: 'f4', text: 'Discovery Questions — pain points, goals, timeline, budget, decision criteria', time: '15 min' },
-      { id: 'f5', text: 'Buffer / Follow-up Questions — catch missed topics, dig deeper on key answers', time: '3 min' },
-      { id: 'f6', text: 'Capabilities Overview — 2-3 case studies aligned to their needs', time: '10 min' },
-      { id: 'f7', text: 'Q&A — open floor for client questions', time: '3 min' },
-      { id: 'f8', text: 'Next Steps & Timeline — proposal date, follow-up meeting, internal review', time: '4 min' },
-      { id: 'f9', text: 'Close — summarize key takeaways, confirm next steps, thank attendees', time: '3 min' },
+      { id: 'f1', text: 'Open & Welcome', time: '2 min', description: 'Brief intro, set the agenda, confirm meeting length' },
+      { id: 'f2', text: 'Client Introductions', time: '3 min', description: 'Each attendee shares their role and what they hope to get out of the meeting' },
+      { id: 'f3', text: 'Context Recap', time: '2 min', description: 'Recap how we got here, previous conversations, submitted forms' },
+      { id: 'f4', text: 'Discovery Questions', time: '15 min', description: 'Pain points, goals, timeline, budget, decision criteria' },
+      { id: 'f5', text: 'Buffer / Follow-up Questions', time: '3 min', description: 'Catch missed topics, dig deeper on key answers' },
+      { id: 'f6', text: 'Capabilities Overview', time: '10 min', description: '2-3 case studies aligned to their needs' },
+      { id: 'f7', text: 'Q&A', time: '3 min', description: 'Open floor for client questions' },
+      { id: 'f8', text: 'Next Steps & Timeline', time: '4 min', description: 'Proposal date, follow-up meeting, internal review' },
+      { id: 'f9', text: 'Close', time: '3 min', description: 'Summarize key takeaways, confirm next steps, thank attendees' },
     ],
   },
   {
@@ -72,13 +73,13 @@ const defaultTemplates: MeetingTemplate[] = [
     kpis: ['Client confirms budget alignment', 'Decision timeline established', 'Objections addressed'],
     proTips: ['Start with a recap of their needs before showing the solution', 'Let the pricing slide breathe — pause after showing it', 'Have a printed proposal PDF ready to share'],
     flowSteps: [
-      { id: 'p1', text: 'Open & Agenda — welcome, set expectations', time: '3 min' },
-      { id: 'p2', text: 'Needs Recap — summarize client\'s stated needs and goals from discovery', time: '5 min' },
-      { id: 'p3', text: 'Proposal Walkthrough — solution, scope, timeline, deliverables, pricing', time: '22 min' },
-      { id: 'p4', text: 'Q&A — address questions, clarify scope, discuss concerns', time: '10 min' },
-      { id: 'p5', text: 'Pricing Deep Dive — break down pricing structure, payment terms, ROI', time: '10 min' },
-      { id: 'p6', text: 'Next Steps — review decision timeline, internal review process', time: '5 min' },
-      { id: 'p7', text: 'Close — summarize, confirm understanding, thank them', time: '5 min' },
+      { id: 'p1', text: 'Open & Agenda', time: '3 min', description: 'Welcome, set expectations for the presentation' },
+      { id: 'p2', text: 'Needs Recap', time: '5 min', description: 'Summarize the client\'s stated needs and goals from discovery' },
+      { id: 'p3', text: 'Proposal Walkthrough', time: '22 min', description: 'Solution, scope, timeline, deliverables, and pricing' },
+      { id: 'p4', text: 'Q&A', time: '10 min', description: 'Address questions, clarify scope, discuss concerns' },
+      { id: 'p5', text: 'Pricing Deep Dive', time: '10 min', description: 'Break down pricing structure, payment terms, and ROI' },
+      { id: 'p6', text: 'Next Steps', time: '5 min', description: 'Review decision timeline, internal review process, follow-up date' },
+      { id: 'p7', text: 'Close', time: '5 min', description: 'Summarize, confirm understanding, thank them' },
     ],
   },
   {
@@ -89,15 +90,15 @@ const defaultTemplates: MeetingTemplate[] = [
     kpis: ['All team members introduced', 'Communication channels confirmed', 'First deliverable date set'],
     proTips: ['Set the tone — this is a collaboration, not a handoff', 'Get the client to confirm each milestone date verbally', 'Share the meeting notes and action items within 2 hours'],
     flowSteps: [
-      { id: 'k1', text: 'Welcome & Introductions — introduce team, their roles, and what they bring', time: '5 min' },
-      { id: 'k2', text: 'Project Scope & Goals — review agreed-upon scope, objectives, success criteria', time: '10 min' },
-      { id: 'k3', text: 'Timeline & Milestones — walk through the project timeline, key milestones', time: '10 min' },
-      { id: 'k4', text: 'Roles & Responsibilities — who does what, escalation paths, POCs', time: '5 min' },
-      { id: 'k5', text: 'Communication Plan — meeting cadence, channels, reporting format', time: '5 min' },
-      { id: 'k6', text: 'Tools & Access — grant access to project management tools, shared drives', time: '10 min' },
-      { id: 'k7', text: 'Q&A / Discussion — open discussion for questions, concerns', time: '7 min' },
-      { id: 'k8', text: 'Action Items & Next Steps — assign immediate action items, first deliverable date', time: '5 min' },
-      { id: 'k9', text: 'Close — summarize, confirm understanding, share meeting notes', time: '3 min' },
+      { id: 'k1', text: 'Welcome & Introductions', time: '5 min', description: 'Introduce team, their roles, and what they bring' },
+      { id: 'k2', text: 'Project Scope & Goals', time: '10 min', description: 'Review agreed-upon scope, objectives, and success criteria' },
+      { id: 'k3', text: 'Timeline & Milestones', time: '10 min', description: 'Walk through the project timeline, key milestones, deliverables' },
+      { id: 'k4', text: 'Roles & Responsibilities', time: '5 min', description: 'Who does what, escalation paths, points of contact' },
+      { id: 'k5', text: 'Communication Plan', time: '5 min', description: 'Meeting cadence, communication channels, reporting format' },
+      { id: 'k6', text: 'Tools & Access', time: '10 min', description: 'Grant access to project management tools, shared drives, platforms' },
+      { id: 'k7', text: 'Q&A / Discussion', time: '7 min', description: 'Open discussion for questions, concerns, clarifications' },
+      { id: 'k8', text: 'Action Items & Next Steps', time: '5 min', description: 'Assign immediate action items, set first deliverable date' },
+      { id: 'k9', text: 'Close', time: '3 min', description: 'Summarize, confirm understanding, share meeting notes' },
     ],
   },
 ]
@@ -179,6 +180,9 @@ export default function MeetingPlaybook() {
     if (target === 'step-time') {
       setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.map(s => s.id === id ? { ...s, time: editValue } : s) } : t))
     }
+    if (target === 'step-desc') {
+      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.map(s => s.id === id ? { ...s, description: editValue } : s) } : t))
+    }
     if (target === 'kpi') {
       setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, kpis: t.kpis.map((k, i) => i === Number(id) ? editValue : k) } : t))
     }
@@ -244,7 +248,7 @@ export default function MeetingPlaybook() {
   const addStep = () => {
     if (!selectedTemplate) return
     const id = 'step-' + Date.now()
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: [...t.flowSteps, { id, text: 'New step', time: '5 min' }] } : t))
+    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: [...t.flowSteps, { id, text: 'New step', time: '5 min', description: '' }] } : t))
   }
 
   const deleteStep = (stepId: string) => {
@@ -341,12 +345,126 @@ export default function MeetingPlaybook() {
 
       {/* Main Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <button className="px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap" style={tabStyle('master')} onClick={() => { setActiveTab('master'); setSelectedTemplate(null) }}>Master Playbook</button>
         <button className="px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap" style={tabStyle('active')} onClick={() => setActiveTab('active')}>Active Meeting</button>
+        <button className="px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap" style={tabStyle('master')} onClick={() => { setActiveTab('master'); setSelectedTemplate(null) }}>Master Playbook</button>
         <button className="px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap" style={tabStyle('vault')} onClick={() => setActiveTab('vault')}>Script & Cheat Sheet Vault</button>
       </div>
 
-      {/* TAB 1: MASTER PLAYBOOK */}
+      {/* TAB 1: ACTIVE MEETING WORKSPACE */}
+      {activeTab === 'active' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Active Meeting</h2>
+            <button className="px-3 py-1.5 rounded-lg text-xs font-medium transition" style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }} onClick={createActiveMeeting}>+ Create Active Meeting</button>
+          </div>
+
+          {activeMeetings.length > 0 && activeMeeting ? (
+            <div>
+              {/* Meeting Selector */}
+              <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                {activeMeetings.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedMeeting(m.id)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition whitespace-nowrap flex items-center gap-1.5"
+                    style={{
+                      backgroundColor: selectedMeeting === m.id ? 'var(--accent)' : 'var(--bg-card)',
+                      color: selectedMeeting === m.id ? '#FFFFFF' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-primary)',
+                    }}
+                  >
+                    {editingField?.target === 'meeting-name' && editingField?.id === m.id ? (
+                      <input
+                        autoFocus
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }}
+                        className="w-24 px-1 py-0.5 rounded border outline-none text-xs"
+                        style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span onClick={e => { if (selectedMeeting === m.id) { e.stopPropagation(); startEdit('meeting-name', m.id, m.name) } }} style={{ cursor: selectedMeeting === m.id ? 'pointer' : 'default' }}>{m.name}</span>
+                    )}
+                    <span className="text-[10px] opacity-60">({m.links.length + m.checklist.length})</span>
+                    <button
+                      className="p-0.5 rounded-full hover:opacity-70"
+                      style={{ color: selectedMeeting === m.id ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)' }}
+                      onClick={e => { e.stopPropagation(); deleteActiveMeeting(m.id) }}
+                      title="Delete meeting"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </button>
+                ))}
+              </div>
+
+              {/* Merged Card: Links & Checklist */}
+              <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <h3 className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>Preparation & Assets</h3>
+                <p className="text-[10px] mb-3" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Links & checklist for the current meeting</p>
+
+                {/* Links */}
+                <div className="mb-4">
+                  <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Important Links & Assets</h4>
+                  <div className="space-y-2">
+                    {activeLinks.map(link => (
+                      <div key={link.id} className="flex items-center gap-2 p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        {editingField?.target === 'link-label' && editingField?.id === link.id ? (
+                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                        ) : (
+                          <span className="text-xs font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => startEdit('link-label', link.id, link.label)}>{link.label}</span>
+                        )}
+                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>:</span>
+                        {editingField?.target === 'link-url' && editingField?.id === link.id ? (
+                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} placeholder="Paste URL here..." className="flex-1 px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                        ) : (
+                          <span className="text-xs flex-1 truncate" style={{ color: link.url ? 'var(--accent)' : 'var(--text-muted)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('link-url', link.id, link.url)}>{link.url || 'Paste URL here...'}</span>
+                        )}
+                        <button className="p-0.5 transition hover:opacity-70 flex-shrink-0" style={{ color: 'var(--text-muted)' }} onClick={() => deleteLink(link.id)} title="Delete link">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="text-xs mt-2 font-medium transition" style={{ color: 'var(--accent)' }} onClick={addLink}>➕ Add New Link/Asset</button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t my-4" style={{ borderColor: 'var(--border-secondary)' }}></div>
+
+                {/* Checklist */}
+                <div>
+                  <h4 className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Pre-Meeting Checklist</h4>
+                  <div className="space-y-2">
+                    {activeChecklist.map(item => (
+                      <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        <input type="checkbox" checked={item.checked} onChange={() => toggleChecklistItem(item.id)} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--accent)' }} />
+                        {editingField?.target === 'checklist-text' && editingField?.id === item.id ? (
+                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                        ) : (
+                          <span className="text-xs flex-1" style={{ color: item.checked ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 300, textDecoration: item.checked ? 'line-through' : 'none' }} onClick={() => startEdit('checklist-text', item.id, item.text)}>{item.text}</span>
+                        )}
+                        <button className="p-0.5 transition hover:opacity-70" style={{ color: 'var(--text-muted)' }} onClick={() => deleteChecklistItem(item.id)} title="Delete item">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="text-xs mt-2 font-medium transition" style={{ color: 'var(--accent)' }} onClick={addChecklistItem}>➕ Add Custom Checklist Item</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No active meetings yet. Click "+ Create Active Meeting" to get started.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: MASTER PLAYBOOK */}
       {activeTab === 'master' && (
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -436,24 +554,33 @@ export default function MeetingPlaybook() {
                 <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>The Meeting Flow Guide</h4>
                 <div className="space-y-2">
                   {activeTemplate.flowSteps.map((step, i) => (
-                    <div key={step.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                      <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}>{i + 1}</span>
-                      <div className="flex-1">
-                        {editingField?.target === 'step-text' && editingField?.id === step.id ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
-                        ) : (
-                          <span className="text-xs" style={{ color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('step-text', step.id, step.text)}>{step.text}</span>
-                        )}
+                    <div key={step.id} className="p-2.5 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}>{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          {editingField?.target === 'step-text' && editingField?.id === step.id ? (
+                            <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                          ) : (
+                            <span className="text-xs" style={{ color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }} onClick={() => startEdit('step-text', step.id, step.text)}>{step.text}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {editingField?.target === 'step-time' && editingField?.id === step.id ? (
+                            <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-16 px-2 py-0.5 rounded border outline-none text-xs text-center" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                          ) : (
+                            <span className="text-xs font-mono" style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }} onClick={() => startEdit('step-time', step.id, step.time)}>{step.time}</span>
+                          )}
+                          <button className="p-0.5 transition hover:opacity-70" style={{ color: 'var(--text-muted)' }} onClick={() => deleteStep(step.id)} title="Delete step">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {editingField?.target === 'step-time' && editingField?.id === step.id ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-16 px-2 py-0.5 rounded border outline-none text-xs text-center" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                      <div className="mt-1 ml-7">
+                        {editingField?.target === 'step-desc' && editingField?.id === step.id ? (
+                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-0.5 rounded border outline-none text-[11px]" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} placeholder="Add description..." />
                         ) : (
-                          <span className="text-xs font-mono" style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }} onClick={() => startEdit('step-time', step.id, step.time)}>{step.time}</span>
+                          <span className="text-[11px]" style={{ color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('step-desc', step.id, step.description)}>{step.description || 'Click to add description...'}</span>
                         )}
-                        <button className="p-0.5 transition hover:opacity-70" style={{ color: 'var(--text-muted)' }} onClick={() => deleteStep(step.id)} title="Delete step">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
                       </div>
                     </div>
                   ))}
