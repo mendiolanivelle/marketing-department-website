@@ -530,7 +530,7 @@ export default function MeetingPlaybook() {
 
               {/* Pro-Tips */}
               <div className="mb-4">
-                <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Pro-Tips for the Operator</h4>
+                <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Pro-Tips</h4>
                 <ul className="space-y-1">
                   {activeTemplate.proTips.map((tip, i) => (
                     <li key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
