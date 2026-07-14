@@ -177,6 +177,9 @@ export default function MeetingPlaybook() {
     if (target === 'checklist-text') {
       setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, checklist: m.checklist.map(c => c.id === id ? { ...c, text: editValue } : c) } : m))
     }
+    if (target === 'meeting-name') {
+      setActiveMeetings(prev => prev.map(m => m.id === id ? { ...m, name: editValue } : m))
+    }
     if (target === 'description') {
       setTemplates(prev => prev.map(t => t.id === id ? { ...t, description: editValue } : t))
     }
@@ -463,7 +466,20 @@ export default function MeetingPlaybook() {
                       border: '1px solid var(--border-primary)',
                     }}
                   >
-                    {m.name}
+                    {editingField?.target === 'meeting-name' && editingField?.id === m.id ? (
+                      <input
+                        autoFocus
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }}
+                        className="w-24 px-1 py-0.5 rounded border outline-none text-xs"
+                        style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span onClick={e => { if (selectedMeeting === m.id) { e.stopPropagation(); startEdit('meeting-name', m.id, m.name) } }} style={{ cursor: selectedMeeting === m.id ? 'pointer' : 'default' }}>{m.name}</span>
+                    )}
                     <span className="text-[10px] opacity-60">({m.links.length + m.checklist.length})</span>
                     <button
                       className="p-0.5 rounded-full hover:opacity-70"
