@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react'
 
+interface TalkScriptBlock {
+  key: string
+  label: string
+  text: string
+}
+
 interface RunOfShowRow {
   time: string
   topic: string
@@ -82,7 +88,31 @@ const defaultMeetings: MeetingType[] = [
   },
 ]
 
+const defaultTalkScripts: TalkScriptBlock[] = [
+  {
+    key: 'hook',
+    label: 'The Hook / Opener',
+    text: `Hey everyone, thanks for making the time. I know calendars are full, so I'll be direct — this [Meeting Type] is about [specific outcome]. By the time we're done, you'll walk away with [key takeaway]. My goal is to make this worth your while. Let's jump in.`,
+  },
+  {
+    key: 'context',
+    label: 'The Context Setter',
+    text: `Before we go deeper, let me quickly set the stage. [Brief background — what happened before this meeting, what's been discussed, what's at stake]. That's the reason we're sitting down today. So here's where things stand…`,
+  },
+  {
+    key: 'pivot',
+    label: 'The Core Pivot',
+    text: `Alright — we've laid out where we are. Now let's talk about where we can go. I want to walk you through [solution / proposal], and I think it'll make a lot of sense given what we've just covered.`,
+  },
+  {
+    key: 'close',
+    label: 'The Close & Call to Action',
+    text: `Here's where we land. Today we covered [summary point 1], [point 2], and [point 3]. Next steps: [action 1], [action 2], and [action 3]. I'll send a recap within the hour. Thanks for the real conversation — let's keep the momentum going.`,
+  },
+]
+
 const STORAGE_KEY = 'exodia-meeting-playbook'
+const TALK_SCRIPT_KEY = 'exodia-talk-script'
 
 export default function MeetingPlaybook() {
   const [meetings, setMeetings] = useState<MeetingType[]>(() => {
@@ -93,10 +123,21 @@ export default function MeetingPlaybook() {
   const [activeKey, setActiveKey] = useState(meetings[0]?.key || 'discovery')
   const [editingRow, setEditingRow] = useState<{ meetingKey: string; rowIndex: number; field: keyof RunOfShowRow } | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [talkScripts, setTalkScripts] = useState<TalkScriptBlock[]>(() => {
+    const saved = localStorage.getItem(TALK_SCRIPT_KEY)
+    if (saved) { try { return JSON.parse(saved) } catch {} }
+    return defaultTalkScripts
+  })
+  const [editingScript, setEditingScript] = useState<string | null>(null)
+  const [scriptEditValue, setScriptEditValue] = useState('')
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(meetings))
   }, [meetings])
+
+  useEffect(() => {
+    localStorage.setItem(TALK_SCRIPT_KEY, JSON.stringify(talkScripts))
+  }, [talkScripts])
 
   const activeMeeting = meetings.find(m => m.key === activeKey) || meetings[0]
 
@@ -115,6 +156,13 @@ export default function MeetingPlaybook() {
   const startEdit = (meetingKey: string, rowIndex: number, field: keyof RunOfShowRow, value: string) => {
     setEditingRow({ meetingKey, rowIndex, field })
     setEditValue(value)
+  }
+
+  const saveScriptEdit = () => {
+    if (!editingScript) return
+    setTalkScripts(prev => prev.map(s => s.key === editingScript ? { ...s, text: scriptEditValue } : s))
+    setEditingScript(null)
+    setScriptEditValue('')
   }
 
   return (
@@ -207,6 +255,53 @@ export default function MeetingPlaybook() {
           </div>
         </div>
       )}
+
+      {/* Modular Talk Script */}
+      <div className="rounded-xl border p-5 mb-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Modular Talk Script</h2>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>Click to edit</span>
+        </div>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+          Customize these blocks for your — replace anything in <span style={{ color: 'var(--accent)' }}>[brackets]</span> with your own details.
+        </p>
+        <div className="space-y-4">
+          {talkScripts.map(script => (
+            <div key={script.key} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
+                <h3 className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{script.label}</h3>
+              </div>
+              {editingScript === script.key ? (
+                <div>
+                  <textarea
+                    autoFocus
+                    value={scriptEditValue}
+                    onChange={e => setScriptEditValue(e.target.value)}
+                    onBlur={saveScriptEdit}
+                    onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveScriptEdit() }; if (e.key === 'Escape') { setEditingScript(null); setScriptEditValue('') } }}
+                    className="w-full px-3 py-2 rounded border outline-none resize-y text-xs leading-relaxed"
+                    style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: 80 }}
+                    rows={3}
+                  />
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Shift+Enter to save — Esc to cancel</p>
+                </div>
+              ) : (
+                <div onClick={() => { setEditingScript(script.key); setScriptEditValue(script.text) }} style={{ cursor: 'pointer' }}>
+                  <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{script.text}</p>
+                </div>
+              )}
+              <button
+                className="text-xs mt-2 font-medium transition"
+                style={{ color: 'var(--accent)' }}
+                onClick={() => { navigator.clipboard.writeText(script.text) }}
+              >
+                Copy block
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Playbook Sections */}
       <div className="space-y-4">
