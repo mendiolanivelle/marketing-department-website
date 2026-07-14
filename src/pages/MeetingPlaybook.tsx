@@ -274,12 +274,7 @@ export default function MeetingPlaybook() {
       {/* ZONE 1: THE LIVE COCKPIT */}
       {activeMeeting && (
         <div className="rounded-xl border mb-6" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-          <div className="px-5 pt-4 pb-2 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>Zone 1: The Live Cockpit</span>
-            </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Keep this open during the meeting. Clean, minimal, scannable.</p>
-          </div>
+          
 
           {/* Meeting Goal & North Star */}
           <div className="px-5 pt-4 pb-2">
