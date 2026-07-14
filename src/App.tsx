@@ -23,6 +23,7 @@ const ViewAcceptanceForm = lazy(() => import('./pages/ViewAcceptanceForm'))
 const SubmitRequestForm = lazy(() => import('./pages/SubmitRequestForm'))
 const Workspace = lazy(() => import('./pages/Workspace'))
 const WebsiteRequests = lazy(() => import('./pages/WebsiteRequests'))
+const MeetingPlaybook = lazy(() => import('./pages/MeetingPlaybook'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
   return (
@@ -161,6 +162,7 @@ function App() {
                               <Route path="/leads" element={<LeadGeneration />} />
                             <Route path="/campaigns" element={<Campaigns />} />
                             <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
+                            <Route path="/meeting-playbook" element={<MeetingPlaybook />} />
                             <Route path="/requests" element={<MarketingRequests />} />
                             <Route path="/website-requests" element={<WebsiteRequests />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
