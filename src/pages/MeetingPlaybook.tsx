@@ -209,6 +209,9 @@ export default function MeetingPlaybook() {
     if (target === 'description') {
       setTemplates(prev => prev.map(t => t.id === id ? { ...t, description: editValue } : t))
     }
+    if (target === 'name') {
+      setTemplates(prev => prev.map(t => t.id === id ? { ...t, name: editValue } : t))
+    }
     setEditingField(null)
     setEditValue('')
   }
@@ -357,17 +360,23 @@ export default function MeetingPlaybook() {
                 <div className="flex items-center gap-2">
                   <button className="text-xs font-medium transition" style={{ color: 'var(--accent)' }} onClick={() => setSelectedTemplate(null)}>← Back to list</button>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>/</span>
-                  {editingField?.target === 'description' && editingField?.id === activeTemplate.id ? (
-                    <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs font-semibold" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
-                  ) : (
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => { startEdit('description', activeTemplate.id, activeTemplate.description) }}>{activeTemplate.name}</h3>
-                  )}
+                  <div>
+                    {editingField?.target === 'name' && editingField?.id === activeTemplate.id ? (
+                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs font-semibold" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                    ) : (
+                      <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => startEdit('name', activeTemplate.id, activeTemplate.name)}>{activeTemplate.name}</h3>
+                    )}
+                    {editingField?.target === 'description' && editingField?.id === activeTemplate.id ? (
+                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs mt-0.5" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                    ) : (
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('description', activeTemplate.id, activeTemplate.description)}>{activeTemplate.description || 'Click to add description...'}</p>
+                    )}
+                  </div>
                 </div>
                 <button className="p-1 rounded transition hover:opacity-70" style={{ color: 'var(--text-muted)' }} onClick={() => { deleteTemplate(activeTemplate.id) }} title="Delete template">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
-              <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{activeTemplate.description}</p>
 
               {/* Objective & KPIs */}
               <div className="mb-4">
@@ -456,8 +465,8 @@ export default function MeetingPlaybook() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {templates.map(t => (
                 <div key={t.id} className="rounded-xl border p-4 cursor-pointer transition hover:opacity-80" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={() => setSelectedTemplate(t.id)}>
-                  <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{t.name}</h3>
-                  <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{t.description}</p>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t.name}</h3>
+                  <p className="text-[10px] mt-0.5 mb-3" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{t.description || 'No description'}</p>
                   <div className="flex items-center gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                     <span>{t.flowSteps.length} steps</span>
                     <span>{t.kpis.length} KPIs</span>
