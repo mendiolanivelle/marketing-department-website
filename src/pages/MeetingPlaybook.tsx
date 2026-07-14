@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface FlowStep {
   id: string
@@ -126,15 +126,41 @@ const defaultScripts: ScriptCard[] = [
   { id: 's4', name: 'Handling Tech Failure Gracefully', category: 'General', text: 'Looks like we\'re having a tech hiccup. No worries — I\'ll send you the deck via email right now. Bear with me for one minute while I switch to my backup.' },
 ]
 
+const TEMPLATES_KEY = 'exodia-playbook-templates'
+const ACTIVE_MEETINGS_KEY = 'exodia-playbook-active'
+const SCRIPTS_KEY = 'exodia-playbook-scripts'
+
 export default function MeetingPlaybook() {
   const [activeTab, setActiveTab] = useState<TabKey>('master')
-  const [templates, setTemplates] = useState<MeetingTemplate[]>(defaultTemplates)
+  const [templates, setTemplates] = useState<MeetingTemplate[]>(() => {
+    const saved = localStorage.getItem(TEMPLATES_KEY)
+    if (saved) { try { return JSON.parse(saved) } catch {} }
+    return defaultTemplates
+  })
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [activeMeetings, setActiveMeetings] = useState<ActiveMeeting[]>(defaultActiveMeetings)
-  const [selectedMeeting, setSelectedMeeting] = useState<string>(defaultActiveMeetings[0]?.id || '')
-  const [scripts, setScripts] = useState<ScriptCard[]>(defaultScripts)
+  const [activeMeetings, setActiveMeetings] = useState<ActiveMeeting[]>(() => {
+    const saved = localStorage.getItem(ACTIVE_MEETINGS_KEY)
+    if (saved) { try { return JSON.parse(saved) } catch {} }
+    return defaultActiveMeetings
+  })
+  const [selectedMeeting, setSelectedMeeting] = useState<string>('')
+  const [scripts, setScripts] = useState<ScriptCard[]>(() => {
+    const saved = localStorage.getItem(SCRIPTS_KEY)
+    if (saved) { try { return JSON.parse(saved) } catch {} }
+    return defaultScripts
+  })
   const [editingField, setEditingField] = useState<{ target: string; id: string } | null>(null)
   const [editValue, setEditValue] = useState('')
+
+  useEffect(() => { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates)) }, [templates])
+  useEffect(() => { localStorage.setItem(ACTIVE_MEETINGS_KEY, JSON.stringify(activeMeetings)) }, [activeMeetings])
+  useEffect(() => { localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts)) }, [scripts])
+
+  useEffect(() => {
+    if (!selectedMeeting && activeMeetings.length > 0) {
+      setSelectedMeeting(activeMeetings[0].id)
+    }
+  }, [activeMeetings, selectedMeeting])
 
   const activeTemplate = templates.find(t => t.id === selectedTemplate)
   const activeMeeting = activeMeetings.find(m => m.id === selectedMeeting)
