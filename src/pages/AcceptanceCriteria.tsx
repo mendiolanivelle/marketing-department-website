@@ -565,14 +565,56 @@ export default function AcceptanceCriteria() {
                     <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {formatId(selectedSubmission)}</p>
                   </div>
               </div>
-              <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const w = window.open('', '_blank')
+                    if (!w) return
+                    const content = document.getElementById('printable-acceptance')
+                    if (!content) return
+                    const html = `
+                      <!DOCTYPE html>
+                      <html>
+                      <head>
+                        <title>Acceptance Criteria - ${formatId(selectedSubmission)}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; padding: 40px; color: #1B1A1C; }
+                          h1 { font-size: 20px; margin-bottom: 4px; }
+                          .subtitle { color: #6B7280; font-size: 13px; margin-bottom: 20px; }
+                          .section { margin-bottom: 20px; }
+                          .section-title { font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px; }
+                          .field { display: flex; padding: 4px 0; font-size: 13px; }
+                          .field-label { width: 180px; color: #6B7280; flex-shrink: 0; }
+                          .field-value { color: #1B1A1C; }
+                          .footer { margin-top: 30px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+                          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+                          @media print { body { padding: 20px; } }
+                        </style>
+                      </head>
+                      <body>${content.innerHTML}</body>
+                      </html>
+                    `
+                    w.document.write(html)
+                    w.document.close()
+                    w.onload = () => { w.print() }
+                  }}
+                  className="p-2 rounded-lg text-xs font-medium transition hover:bg-gray-100 flex items-center gap-1.5"
+                  style={{ color: '#6B7280' }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  PDF
+                </button>
+                <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-6">
+            <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6">
               {/* Section 1 */}
               <div>
                 <div className="mb-4 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
