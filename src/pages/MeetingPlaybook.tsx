@@ -442,7 +442,7 @@ export default function MeetingPlaybook() {
                       <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                         <input type="checkbox" checked={item.checked} onChange={() => toggleChecklistItem(item.id)} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--accent)' }} />
                         {editingField?.target === 'checklist-text' && editingField?.id === item.id ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                          <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} />
                         ) : (
                           <span className="text-xs flex-1" style={{ color: item.checked ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 300, textDecoration: item.checked ? 'line-through' : 'none' }} onClick={() => startEdit('checklist-text', item.id, item.text)}>{item.text}</span>
                         )}
@@ -485,7 +485,7 @@ export default function MeetingPlaybook() {
                       <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => startEdit('name', activeTemplate.id, activeTemplate.name)}>{activeTemplate.name}</h3>
                     )}
                     {editingField?.target === 'description' && editingField?.id === activeTemplate.id ? (
-                      <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs mt-0.5" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                      <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-xs resize-y mt-0.5" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 60 }} rows={2} />
                     ) : (
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('description', activeTemplate.id, activeTemplate.description)}>{activeTemplate.description || 'Click to add description...'}</p>
                     )}
@@ -502,7 +502,7 @@ export default function MeetingPlaybook() {
                 <div className="mb-2">
                   <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Goal: </span>
                   {editingField?.target === 'goal' && editingField?.id === activeTemplate.id ? (
-                    <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                    <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 60 }} rows={2} />
                   ) : (
                     <span className="text-xs" style={{ color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('goal', activeTemplate.id, activeTemplate.goal)}>{activeTemplate.goal} <span className="text-[10px]" style={{ color: 'var(--accent)' }}>✏️</span></span>
                   )}
@@ -514,7 +514,7 @@ export default function MeetingPlaybook() {
                       <li key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
                         <span style={{ color: 'var(--accent)' }}>•</span>
                         {editingField?.target === 'kpi' && editingField?.id === String(i) ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs flex-1" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                          <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} />
                         ) : (
                           <span style={{ cursor: 'pointer' }} onClick={() => startEdit('kpi', String(i), kpi)}>{kpi}</span>
                         )}
@@ -536,7 +536,7 @@ export default function MeetingPlaybook() {
                     <li key={i} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
                       <span style={{ color: 'var(--accent)' }}>💡</span>
                       {editingField?.target === 'tip' && editingField?.id === String(i) ? (
-                        <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="px-2 py-0.5 rounded border outline-none text-xs flex-1" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }} />
+                        <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} />
                       ) : (
                         <span style={{ cursor: 'pointer' }} onClick={() => startEdit('tip', String(i), tip)}>{tip}</span>
                       )}
@@ -559,7 +559,7 @@ export default function MeetingPlaybook() {
                         <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}>{i + 1}</span>
                         <div className="flex-1 min-w-0">
                           {editingField?.target === 'step-text' && editingField?.id === step.id ? (
-                            <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                            <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} />
                           ) : (
                             <span className="text-xs" style={{ color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }} onClick={() => startEdit('step-text', step.id, step.text)}>{step.text}</span>
                           )}
@@ -577,7 +577,7 @@ export default function MeetingPlaybook() {
                       </div>
                       <div className="mt-1 ml-7">
                         {editingField?.target === 'step-desc' && editingField?.id === step.id ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-0.5 rounded border outline-none text-[11px]" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} placeholder="Add description..." />
+                          <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="w-full px-2 py-1 rounded border outline-none text-[11px] resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} placeholder="Add description..." />
                         ) : (
                           <span className="text-[11px]" style={{ color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 300 }} onClick={() => startEdit('step-desc', step.id, step.description)}>{step.description || 'Click to add description...'}</span>
                         )}
@@ -697,7 +697,7 @@ export default function MeetingPlaybook() {
                       <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                         <input type="checkbox" checked={item.checked} onChange={() => toggleChecklistItem(item.id)} className="w-4 h-4 rounded cursor-pointer" style={{ accentColor: 'var(--accent)' }} />
                         {editingField?.target === 'checklist-text' && editingField?.id === item.id ? (
-                          <input autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-0.5 rounded border outline-none text-xs" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
+                          <textarea autoFocus value={editValue} onChange={e => setEditValue(e.target.value)} onBlur={saveEdit} onKeyDown={e => { if (e.key === 'Enter' && e.shiftKey) { saveEdit() }; if (e.key === 'Escape') { setEditingField(null); setEditValue('') } }} className="flex-1 px-2 py-1 rounded border outline-none text-xs resize-y" style={{ borderColor: 'var(--accent)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: 50 }} rows={1} />
                         ) : (
                           <span className="text-xs flex-1" style={{ color: item.checked ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 300, textDecoration: item.checked ? 'line-through' : 'none' }} onClick={() => startEdit('checklist-text', item.id, item.text)}>{item.text}</span>
                         )}
