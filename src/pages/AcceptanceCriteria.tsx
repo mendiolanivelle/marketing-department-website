@@ -670,25 +670,6 @@ export default function AcceptanceCriteria() {
                   </svg>
                   PDF
                 </button>
-                <button
-                  onClick={() => {
-                    if (!selectedSubmission) return
-                    const blob = generatePDF(selectedSubmission)
-                    const url = URL.createObjectURL(blob)
-                    const a = document.createElement('a')
-                    a.href = url
-                    a.download = `Acceptance-Criteria-${formatId(selectedSubmission)}.pdf`
-                    a.click()
-                    URL.revokeObjectURL(url)
-                  }}
-                  className="p-2 rounded-lg text-xs font-medium transition hover:bg-gray-100 flex items-center gap-1.5"
-                  style={{ color: '#6B7280' }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download PDF
-                </button>
                 <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
