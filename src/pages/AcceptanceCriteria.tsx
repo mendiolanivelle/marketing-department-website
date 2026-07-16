@@ -101,13 +101,14 @@ export default function AcceptanceCriteria() {
   const generatePDF = (sub: Submission): Blob => {
     const esc = (t: string) => (t || '—').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\n/g, '\\n')
     const pt = (mm: number) => Math.round(mm * 2.83465 * 10) / 10
-    const pw = pt(210), ph = 841.89, mg = pt(15), cw = pw - 2 * mg
+    const pw = pt(210), ph = 841.89, mg = pt(18), cw = pw - 2 * mg
 
     const streams: string[] = []
     let curStream = ''
-    let y = 15
+    let y = 18
     let pageIdx = 0
-    const MAX_Y = 275
+    const MAX_Y = 270
+    const PAGE_WIDTH = 174
 
     const w = (s: string) => { curStream += s + '\n' }
     const color = (r: number, g: number, b: number) => w(r / 255 + ' ' + g / 255 + ' ' + b / 255 + ' rg')
@@ -116,110 +117,173 @@ export default function AcceptanceCriteria() {
     const txt = (x: number, yPos: number, t: string) => w(pt(x) + ' ' + pt(yPos) + ' Td (' + esc(t) + ') Tj')
     const rect = (x: number, y2: number, w2: number, h2: number) => w(pt(x) + ' ' + pt(y2) + ' ' + pt(w2) + ' ' + pt(h2) + ' re')
     const fill = () => w('f')
+    const S = () => w('S')
     const nextPage = () => {
       curStream += 'ET'
       streams.push(curStream)
       curStream = 'BT\n'
-      y = 15
+      y = 18
       pageIdx++
     }
 
+    const check = () => { if (y > MAX_Y) nextPage() }
+    const addPageFooter = () => {
+      colorg(200, 200, 205); fnt('F3', 7)
+      txt(18, 8, 'Exodia Game Dev · Marketing Department')
+      txt(PAGE_WIDTH - 25, 8, 'Page ' + (pageIdx + 1))
+    }
+
     w('BT')
-    color(255, 89, 0)
-    rect(15, y, 180, 12)
-    fill()
-    color(255, 255, 255)
-    fnt('F2', 16)
-    txt(17, y + 3.5, 'Exodia Game Dev - Acceptance Criteria Form')
-    y += 9
-    color(255, 255, 255)
-    fnt('F1', 7)
-    txt(17, y + 1.5, 'ID: ' + (formatId(sub)))
+
+    // === HEADER ===
+    // Orange accent bar
+    color(255, 89, 0); rect(18, y, PAGE_WIDTH, 14); fill()
+    color(255, 255, 255); fnt('F2', 14)
+    txt(20, y + 3.5, 'Exodia Game Dev')
+    color(255, 220, 190); fnt('F1', 8)
+    txt(20, y + 9.5, 'Acceptance Criteria Form')
     y += 18
 
-    const check = () => { if (y > MAX_Y) nextPage() }
+    // ID and date line
+    colorg(156, 163, 175); fnt('F3', 7)
+    txt(18, y + 1, 'ID: ' + formatId(sub))
+    txt(PAGE_WIDTH - 45, y + 1, new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+    y += 7
+
+    // Separator line
+    colorg(229, 231, 235); rect(18, y, PAGE_WIDTH, 0.3); fill()
+    y += 6
+
+    // === HELPERS ===
     const section = (title: string, fn: () => void) => {
-      check(); color(255, 89, 0); rect(15, y, 180, 7); fill()
-      color(255, 255, 255); fnt('F1', 9); txt(17, y + 2.5, title); y += 10
-      color(27, 26, 28); fnt('F1', 8); fn(); y += 2
+      check()
+      color(255, 89, 0); rect(18, y, 4, 7); fill()
+      color(255, 89, 0); fnt('F2', 9)
+      txt(26, y + 2.2, title)
+      y += 10
+      color(27, 26, 28); fnt('F1', 8)
+      fn()
+      y += 3
     }
 
     const row = (label: string, value: string) => {
       check()
-      colorg(107, 114, 128); fnt('F1', 8); txt(15, y, label)
+      colorg(156, 163, 175); fnt('F1', 7.5); txt(18, y, label)
       color(27, 26, 28); fnt('F1', 8)
       const val = value || '—'
-      const maxW = Math.floor((cw - 50) / 1.6)
-      for (let i = 0; i < val.length; i += maxW) {
-        if (i > 0) { check(); txt(15, y, '') }
-        txt(i === 0 ? 65 : 15, y, val.substring(i, i + maxW))
-        if (i > 0) y += 3.5
-      }
-      y += 3.5
+      const maxW = Math.floor((cw - 55) / 1.5)
+      const lines: string[] = []
+      for (let i = 0; i < val.length; i += maxW) lines.push(val.substring(i, i + maxW))
+      lines.forEach((line, idx) => {
+        if (idx > 0) { check(); txt(18, y, '') }
+        txt(65, y, line)
+        y += 3.5
+      })
     }
 
     const multi = (label: string, items: string[] | any[]) => row(label, items?.length ? items.join(', ') : '—')
 
-    section('Section 1: Basic Project Information', () => {
+    // === SECTION 1 ===
+    section('Basic Project Information', () => {
       row('Client / Studio Name', sub.client_name); row('Project Name', sub.project_name)
       row('Point of Contact', sub.contact); row('Email', sub.email)
       row('Project Type', sub.project_type); multi('Target Platform', sub.target_platform)
       row('Timezone', sub.timezone); row('Expected Start Date', sub.start_date)
       row('Expected Deadline', sub.deadline); row('Budget Range', sub.budget)
-      row('Project Document Link', sub.doc_link)
+      if (sub.doc_link) row('Project Document Link', sub.doc_link)
     })
 
-    section('Section 2: What You Want Us to Create', () => {
+    // === SECTION 2 ===
+    section('What You Want Us to Create', () => {
       if (sub.deliverables?.length) {
-        colorg(55, 65, 81); fnt('F2', 8)
-        txt(15, y, 'Deliverable'); txt(55, y, 'Description'); txt(115, y, 'Criteria'); txt(175, y, 'Qty')
-        y += 5; color(27, 26, 28); fnt('F1', 8)
+        colorg(107, 114, 128); fnt('F2', 7)
+        txt(18, y, 'Deliverable'); txt(70, y, 'Description'); txt(118, y, 'Acceptance Criteria'); txt(175, y, 'Qty')
+        y += 1
+        colorg(229, 231, 235); rect(18, y, PAGE_WIDTH, 0.3); fill()
+        y += 4
+        color(27, 26, 28); fnt('F1', 7.5)
         sub.deliverables.forEach((d: any) => {
-          check(); txt(15, y, d.name || '—')
-          txt(55, y, (d.description || '—').substring(0, 28))
-          txt(115, y, (d.criteria || '—').substring(0, 28))
+          check()
+          txt(18, y, (d.name || '—').substring(0, 22))
+          txt(70, y, (d.description || '—').substring(0, 18))
+          txt(118, y, (d.criteria || '—').substring(0, 18))
           txt(175, y, String(d.quantity || '—'))
           y += 4
+          colorg(240, 240, 245); rect(18, y, PAGE_WIDTH, 0.2); fill()
+          y += 1
         })
-      } else { fnt('F3', 8); txt(15, y, 'No deliverables specified.'); y += 4 }
+      } else { fnt('F3', 8); txt(18, y, 'No deliverables specified.'); y += 4 }
     })
 
-    section('Section 3: Review & Approval', () => {
+    // === SECTION 3 ===
+    section('Review & Approval', () => {
       multi('Reviewers', sub.reviewer); row('Review Rounds', sub.review_rounds)
       row('Expected Review Time', sub.review_time); multi('Basis for Approval', sub.approval_basis)
     })
 
-    section('Section 4: Project Governance', () => {
+    // === SECTION 4 ===
+    section('Project Governance', () => {
       multi('Communication Tool', sub.comms_tool); multi('Weekly Meeting', sub.weekly_meeting)
       row('Meeting Time', sub.meeting_time); multi('Daily Sync', sub.daily_sync)
       row('Sync Time', sub.sync_time); multi('Training', sub.training)
     })
 
-    section('Section 5: Technical Details', () => {
+    // === SECTION 5 ===
+    section('Technical Details', () => {
       multi('Game Engine', sub.game_engine)
       if (sub.tech_requirements) row('Technical Requirements', sub.tech_requirements)
       if (sub.tools_software) row('Tools & Software', sub.tools_software)
       if (sub.performance_constraints) row('Performance Constraints', sub.performance_constraints)
     })
 
-    section('Section 6: Client Confirmation', () => {
+    // === SECTION 6 ===
+    section('Client Confirmation', () => {
+      // Notice box
       check()
-      color(255, 247, 237); rect(15, y - 1, 180, 18); fill()
-      color(154, 52, 18); fnt('F1', 7)
+      color(255, 247, 237); rect(18, y - 1, PAGE_WIDTH, 22); fill()
+      colorg(255, 89, 0); rect(18, y - 1, 2, 22); fill()
+      color(154, 52, 18); fnt('F3', 7)
       const conf = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
-      for (let i = 0; i < conf.length; i += 110) { check(); txt(17, y, conf.substring(i, i + 110)); y += 3 }
-      y += 5
+      for (let i = 0; i < conf.length; i += 110) { check(); txt(23, y, conf.substring(i, i + 110)); y += 3 }
+      y += 8
       row('Signed by', sub.signature)
       row('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
     })
 
+    // === FOOTER ===
     check()
-    colorg(156, 163, 175); fnt('F1', 7)
-    txt(15, y + 5, 'Exodia Game Dev \u00b7 Marketing Department \u00b7 Submitted ' + new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
+    addPageFooter()
 
     curStream += 'ET'
     streams.push(curStream)
-    const numPages = pageIdx + 1
+
+    // Add footer to all pages
+    for (let i = 0; i < streams.length; i++) {
+      const s = streams[i]
+      if (i === 0) {
+        streams[i] = s.substring(0, s.length - 2) // remove ET
+        let tempStream = ''
+        const temp = curStream
+        curStream = tempStream
+        y = 8
+        pageIdx = i
+        addPageFooter()
+        streams[i] += curStream + 'ET'
+        curStream = temp
+      } else {
+        streams[i] = s.substring(0, s.length - 2)
+        let tempStream = ''
+        const temp = curStream
+        curStream = tempStream
+        y = 8
+        pageIdx = i
+        addPageFooter()
+        streams[i] += curStream + 'ET'
+        curStream = temp
+      }
+    }
+
+    const numPages = streams.length
 
     let objIdx = 1
     const obj = (s: string) => { const n = objIdx++; return { num: n, data: n + ' 0 obj\n' + s + '\nendobj' } }
@@ -247,7 +311,7 @@ export default function AcceptanceCriteria() {
     const offsets: number[] = []
     for (const o of allObjs) {
       offsets[o.num] = currentOff
-      currentOff += o.data.length + 1 // +1 for the '\n' from join
+      currentOff += o.data.length + 1
     }
     const xrefOff = currentOff
     const xref = 'xref\n0 ' + (allObjs.length + 1) + '\n' +
