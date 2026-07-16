@@ -384,67 +384,49 @@ export default function PublicAcceptanceForm() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+<div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
-                <select value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }}>
-                  <option value="" disabled>Select your timezone</option>
-                  <optgroup label="UTC-12 — UTC-9">
-                    <option value="UTC-12">UTC-12 — Baker Island / Howland Island</option>
-                    <option value="UTC-11">UTC-11 — American Samoa / Niue</option>
-                    <option value="UTC-10">UTC-10 — Hawaii / Papeete</option>
-                    <option value="UTC-9:30">UTC-9:30 — Marquesas Islands</option>
-                    <option value="UTC-9">UTC-9 — Alaska / Anchorage</option>
-                  </optgroup>
-                  <optgroup label="UTC-8 — UTC-6">
-                    <option value="UTC-8">UTC-8 — Los Angeles / Vancouver / Tijuana</option>
-                    <option value="UTC-7">UTC-7 — Denver / Phoenix / Calgary</option>
-                    <option value="UTC-6">UTC-6 — Chicago / Mexico City / Winnipeg</option>
-                  </optgroup>
-                  <optgroup label="UTC-5 — UTC-4">
-                    <option value="UTC-5">UTC-5 — New York / Toronto / Miami / Bogotá</option>
-                    <option value="UTC-4">UTC-4 — Santiago / Caracas / Halifax / Manaus</option>
-                    <option value="UTC-3:30">UTC-3:30 — St. John's / Newfoundland</option>
-                  </optgroup>
-                  <optgroup label="UTC-3 — UTC-1">
-                    <option value="UTC-3">UTC-3 — Brasília / Buenos Aires / Montevideo</option>
-                    <option value="UTC-2">UTC-2 — Fernando de Noronha / South Georgia</option>
-                    <option value="UTC-1">UTC-1 — Azores / Cape Verde</option>
-                  </optgroup>
-                  <optgroup label="UTC+0 — UTC+2">
-                    <option value="UTC+0">UTC+0 — London / Lisbon / Dublin / Accra</option>
-                    <option value="UTC+1">UTC+1 — Paris / Berlin / Rome / Madrid / Lagos</option>
-                    <option value="UTC+2">UTC+2 — Athens / Helsinki / Cairo / Jerusalem / Kyiv</option>
-                  </optgroup>
-                  <optgroup label="UTC+3 — UTC+5">
-                    <option value="UTC+3">UTC+3 — Moscow / Istanbul / Nairobi / Baghdad</option>
-                    <option value="UTC+3:30">UTC+3:30 — Tehran</option>
-                    <option value="UTC+4">UTC+4 — Dubai / Baku / Muscat / Tbilisi</option>
-                    <option value="UTC+4:30">UTC+4:30 — Kabul</option>
-                    <option value="UTC+5">UTC+5 — Karachi / Tashkent / Yekaterinburg</option>
-                  </optgroup>
-                  <optgroup label="UTC+5:30 — UTC+7">
-                    <option value="UTC+5:30">UTC+5:30 — India / Sri Lanka</option>
-                    <option value="UTC+5:45">UTC+5:45 — Kathmandu / Nepal</option>
-                    <option value="UTC+6">UTC+6 — Dhaka / Almaty / Omsk</option>
-                    <option value="UTC+6:30">UTC+6:30 — Yangon / Myanmar</option>
-                    <option value="UTC+7">UTC+7 — Bangkok / Jakarta / Hanoi / Krasnoyarsk</option>
-                  </optgroup>
-                  <optgroup label="UTC+8 — UTC+10">
-                    <option value="UTC+8">UTC+8 — Singapore / Beijing / Perth / Manila / Kuala Lumpur</option>
-                    <option value="UTC+8:45">UTC+8:45 — Eucla (Australia)</option>
-                    <option value="UTC+9">UTC+9 — Tokyo / Seoul / Osaka / Yakutsk</option>
-                    <option value="UTC+9:30">UTC+9:30 — Adelaide / Darwin</option>
-                    <option value="UTC+10">UTC+10 — Sydney / Melbourne / Brisbane / Guam</option>
-                  </optgroup>
-                  <optgroup label="UTC+10:30 — UTC+14">
-                    <option value="UTC+10:30">UTC+10:30 — Lord Howe Island</option>
-                    <option value="UTC+11">UTC+11 — Solomon Islands / Nouméa</option>
-                    <option value="UTC+12">UTC+12 — Auckland / Suva / Fiji / Kamchatka</option>
-                    <option value="UTC+12:45">UTC+12:45 — Chatham Islands</option>
-                    <option value="UTC+13">UTC+13 — Apia / Samoa / Tonga</option>
-                    <option value="UTC+14">UTC+14 — Line Islands / Kiritimati</option>
-                  </optgroup>
-                </select>
+                <input type="text" list="timezones" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} placeholder="Type or select your timezone..." className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                <datalist id="timezones">
+                  <option value="UTC-12 — Baker Island / Howland Island">UTC-12</option>
+                  <option value="UTC-11 — American Samoa / Niue">UTC-11</option>
+                  <option value="UTC-10 — Hawaii / Papeete">UTC-10</option>
+                  <option value="UTC-9:30 — Marquesas Islands">UTC-9:30</option>
+                  <option value="UTC-9 — Alaska / Anchorage">UTC-9</option>
+                  <option value="UTC-8 — Los Angeles / Vancouver / Tijuana">UTC-8</option>
+                  <option value="UTC-7 — Denver / Phoenix / Calgary">UTC-7</option>
+                  <option value="UTC-6 — Chicago / Mexico City / Winnipeg">UTC-6</option>
+                  <option value="UTC-5 — New York / Toronto / Miami / Bogotá">UTC-5</option>
+                  <option value="UTC-4 — Santiago / Caracas / Halifax / Manaus">UTC-4</option>
+                  <option value="UTC-3:30 — St. John's / Newfoundland">UTC-3:30</option>
+                  <option value="UTC-3 — Brasília / Buenos Aires / Montevideo">UTC-3</option>
+                  <option value="UTC-2 — Fernando de Noronha / South Georgia">UTC-2</option>
+                  <option value="UTC-1 — Azores / Cape Verde">UTC-1</option>
+                  <option value="UTC+0 — London / Lisbon / Dublin / Accra">UTC+0</option>
+                  <option value="UTC+1 — Paris / Berlin / Rome / Madrid / Lagos">UTC+1</option>
+                  <option value="UTC+2 — Athens / Helsinki / Cairo / Jerusalem / Kyiv">UTC+2</option>
+                  <option value="UTC+3 — Moscow / Istanbul / Nairobi / Baghdad">UTC+3</option>
+                  <option value="UTC+3:30 — Tehran">UTC+3:30</option>
+                  <option value="UTC+4 — Dubai / Baku / Muscat / Tbilisi">UTC+4</option>
+                  <option value="UTC+4:30 — Kabul">UTC+4:30</option>
+                  <option value="UTC+5 — Karachi / Tashkent / Yekaterinburg">UTC+5</option>
+                  <option value="UTC+5:30 — India / Sri Lanka">UTC+5:30</option>
+                  <option value="UTC+5:45 — Kathmandu / Nepal">UTC+5:45</option>
+                  <option value="UTC+6 — Dhaka / Almaty / Omsk">UTC+6</option>
+                  <option value="UTC+6:30 — Yangon / Myanmar">UTC+6:30</option>
+                  <option value="UTC+7 — Bangkok / Jakarta / Hanoi / Krasnoyarsk">UTC+7</option>
+                  <option value="UTC+8 — Singapore / Beijing / Perth / Manila / Kuala Lumpur">UTC+8</option>
+                  <option value="UTC+8:45 — Eucla (Australia)">UTC+8:45</option>
+                  <option value="UTC+9 — Tokyo / Seoul / Osaka / Yakutsk">UTC+9</option>
+                  <option value="UTC+9:30 — Adelaide / Darwin">UTC+9:30</option>
+                  <option value="UTC+10 — Sydney / Melbourne / Brisbane / Guam / Vladivostok">UTC+10</option>
+                  <option value="UTC+10:30 — Lord Howe Island">UTC+10:30</option>
+                  <option value="UTC+11 — Solomon Islands / Nouméa / Sakhalin">UTC+11</option>
+                  <option value="UTC+12 — Auckland / Fiji / Kamchatka">UTC+12</option>
+                  <option value="UTC+12:45 — Chatham Islands">UTC+12:45</option>
+                  <option value="UTC+13 — Samoa / Tonga / Phoenix Islands">UTC+13</option>
+                  <option value="UTC+14 — Line Islands / Kiritimati">UTC+14</option>
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
