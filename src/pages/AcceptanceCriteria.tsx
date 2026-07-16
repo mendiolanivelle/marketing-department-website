@@ -636,26 +636,47 @@ export default function AcceptanceCriteria() {
                     if (!w) return
                     const content = document.getElementById('printable-acceptance')
                     if (!content) return
+                    const selectedSub = selectedSubmission
                     const html = `
                       <!DOCTYPE html>
                       <html>
                       <head>
-                        <title>Acceptance Criteria - ${formatId(selectedSubmission)}</title>
+                        <title>Acceptance Criteria - ${formatId(selectedSub)}</title>
                         <style>
-                          body { font-family: Arial, sans-serif; padding: 40px; color: #1B1A1C; }
-                          h1 { font-size: 20px; margin-bottom: 4px; }
-                          .subtitle { color: #6B7280; font-size: 13px; margin-bottom: 20px; }
-                          .section { margin-bottom: 20px; }
-                          .section-title { font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #E5E7EB; padding-bottom: 4px; }
-                          .field { display: flex; padding: 4px 0; font-size: 13px; }
-                          .field-label { width: 180px; color: #6B7280; flex-shrink: 0; }
-                          .field-value { color: #1B1A1C; }
-                          .footer { margin-top: 30px; font-size: 11px; color: #9CA3AF; border-top: 1px solid #E5E7EB; padding-top: 12px; }
-                          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-                          @media print { body { padding: 20px; } }
+                          @page { margin: 25mm 20mm 20mm 20mm; size: A4; }
+                          * { box-sizing: border-box; }
+                          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1B1A1C; line-height: 1.5; margin: 0; padding: 0; }
+                          .pdf-header { text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 3px solid #FF5900; }
+                          .pdf-header h1 { font-size: 22px; color: #FF5900; margin: 0 0 2px 0; font-weight: 800; letter-spacing: -0.3px; }
+                          .pdf-header .subtitle { font-size: 12px; color: #6B7280; margin: 0; }
+                          .pdf-header .meta { font-size: 10px; color: #9CA3AF; margin-top: 6px; font-family: 'Courier New', monospace; }
+                          .pdf-section { margin-bottom: 22px; page-break-inside: avoid; }
+                          .pdf-section-title { font-size: 11px; font-weight: 700; color: #FF5900; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1.5px solid #FF5900; }
+                          .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; }
+                          .pdf-field { display: flex; padding: 3px 0; font-size: 11px; border-bottom: 1px solid #F3F4F6; }
+                          .pdf-field-label { width: 160px; color: #6B7280; flex-shrink: 0; font-weight: 500; }
+                          .pdf-field-value { color: #1B1A1C; font-weight: 400; }
+                          .pdf-field-full { grid-column: 1 / -1; }
+                          .pdf-deliverables { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
+                          .pdf-deliverables th { background-color: #FF5900; color: #FFFFFF; text-align: left; padding: 6px 8px; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+                          .pdf-deliverables td { padding: 5px 8px; border-bottom: 1px solid #E5E7EB; color: #1B1A1C; }
+                          .pdf-deliverables tr:nth-child(even) td { background-color: #FAFAFA; }
+                          .pdf-deliverables tr:last-child td { border-bottom: 1px solid #D1D5DB; }
+                          .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 12px 14px; margin: 10px 0; font-size: 10px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
+                          .pdf-signature { margin-top: 14px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
+                          .pdf-footer { text-align: center; font-size: 9px; color: #9CA3AF; margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
+                          @media print { body { padding: 0; } .pdf-section { page-break-inside: avoid; } }
                         </style>
                       </head>
-                      <body>${content.innerHTML}</body>
+                      <body>
+                        <div class="pdf-header">
+                          <h1>Exodia Game Dev</h1>
+                          <p class="subtitle">Acceptance Criteria Form</p>
+                          <p class="meta">ID: ${formatId(selectedSub)} &nbsp;|&nbsp; Submitted: ${new Date(selectedSub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        </div>
+                        ${content.innerHTML}
+                        <div class="pdf-footer">Exodia Game Dev · Marketing Department · This document is confidential and intended for project use only.</div>
+                      </body>
                       </html>
                     `
                     w.document.write(html)
@@ -680,84 +701,47 @@ export default function AcceptanceCriteria() {
 
             <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6">
               {/* Section 1 */}
-              <div>
-                <div className="mb-4 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 1: Basic Project Information</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Client / Studio Name</span>
-                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.client_name || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Name</span>
-                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_name || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Point of Contact</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.contact || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Email</span>
-                    <p className="mt-0.5" style={{ color: '#2563EB' }}>{selectedSubmission.email || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Type</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.project_type || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Target Platform</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.target_platform || []).join(', ') || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Timezone</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.timezone || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Start Date</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.start_date || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Deadline</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.deadline || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Budget Range</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.budget || '—'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Project Document Link</span>
-                    <p className="mt-0.5" style={{ color: '#2563EB' }}>{selectedSubmission.doc_link || '—'}</p>
-                  </div>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 1: Basic Project Information</div>
+                <div className="pdf-grid">
+                  <div className="pdf-field"><span className="pdf-field-label">Client / Studio Name</span><span className="pdf-field-value">{selectedSubmission.client_name || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Project Name</span><span className="pdf-field-value">{selectedSubmission.project_name || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Point of Contact</span><span className="pdf-field-value">{selectedSubmission.contact || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Email</span><span className="pdf-field-value">{selectedSubmission.email || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Project Type</span><span className="pdf-field-value">{selectedSubmission.project_type || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Target Platform</span><span className="pdf-field-value">{(selectedSubmission.target_platform || []).join(', ') || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Timezone</span><span className="pdf-field-value">{selectedSubmission.timezone || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Expected Start Date</span><span className="pdf-field-value">{selectedSubmission.start_date || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Expected Deadline</span><span className="pdf-field-value">{selectedSubmission.deadline || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Budget Range</span><span className="pdf-field-value">{selectedSubmission.budget || '—'}</span></div>
+                  <div className="pdf-field pdf-field-full"><span className="pdf-field-label">Project Document Link</span><span className="pdf-field-value">{selectedSubmission.doc_link || '—'}</span></div>
                 </div>
               </div>
 
               {/* Section 2 */}
-              <div>
-                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 2: What You Want Us to Create</h2>
-                </div>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 2: What You Want Us to Create</div>
                 {selectedSubmission.deliverables && selectedSubmission.deliverables.length > 0 ? (
-                  <table className="w-full text-xs border-collapse">
+                  <table className="pdf-deliverables">
                     <thead>
-                      <tr style={{ backgroundColor: '#F9FAFB' }}>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Deliverable</th>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Description</th>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Acceptance Criteria</th>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Reference</th>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Qty</th>
-                        <th className="p-2.5 border text-left font-medium" style={{ borderColor: '#E5E7EB', color: '#374151' }}>Service Type</th>
+                      <tr>
+                        <th>Deliverable</th>
+                        <th>Description</th>
+                        <th>Acceptance Criteria</th>
+                        <th>Reference</th>
+                        <th>Qty</th>
+                        <th>Service Type</th>
                       </tr>
                     </thead>
                     <tbody>
                       {selectedSubmission.deliverables.map((d: any, i: number) => (
-                        <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#FAFAFA' }}>
-                          <td className="p-2.5 border font-medium" style={{ borderColor: '#E5E7EB', color: '#1B1A1C' }}>{d.name || '—'}</td>
-                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.description || '—'}</td>
-                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.criteria || '—'}</td>
-                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#2563EB' }}>{d.reference || '—'}</td>
-                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.quantity || '—'}</td>
-                          <td className="p-2.5 border" style={{ borderColor: '#E5E7EB', color: '#4B5563' }}>{d.serviceType || '—'}</td>
+                        <tr key={i}>
+                          <td style={{ fontWeight: 600 }}>{d.name || '—'}</td>
+                          <td>{d.description || '—'}</td>
+                          <td>{d.criteria || '—'}</td>
+                          <td>{d.reference || '—'}</td>
+                          <td>{d.quantity || '—'}</td>
+                          <td>{d.serviceType || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -768,121 +752,54 @@ export default function AcceptanceCriteria() {
               </div>
 
               {/* Section 3 */}
-              <div>
-                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 3: Review & Approval</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Reviewers</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.reviewer || []).join(', ') || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Review Rounds</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.review_rounds || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Expected Review Time</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.review_time || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Basis for Approval</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.approval_basis || []).join(', ') || '—'}</p>
-                  </div>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 3: Review & Approval</div>
+                <div className="pdf-grid">
+                  <div className="pdf-field"><span className="pdf-field-label">Reviewers</span><span className="pdf-field-value">{(selectedSubmission.reviewer || []).join(', ') || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Review Rounds</span><span className="pdf-field-value">{selectedSubmission.review_rounds || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Expected Review Time</span><span className="pdf-field-value">{selectedSubmission.review_time || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Basis for Approval</span><span className="pdf-field-value">{(selectedSubmission.approval_basis || []).join(', ') || '—'}</span></div>
                 </div>
               </div>
 
               {/* Section 4 */}
-              <div>
-                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 4: Project Governance</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Communication Tool</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.comms_tool || []).join(', ') || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Weekly Meeting</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.weekly_meeting || []).join(', ') || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Meeting Time</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.meeting_time || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Daily Sync</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.daily_sync || []).join(', ') || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Sync Time</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.sync_time || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Training</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.training || []).join(', ') || '—'}</p>
-                  </div>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 4: Project Governance</div>
+                <div className="pdf-grid">
+                  <div className="pdf-field"><span className="pdf-field-label">Communication Tool</span><span className="pdf-field-value">{(selectedSubmission.comms_tool || []).join(', ') || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Weekly Meeting</span><span className="pdf-field-value">{(selectedSubmission.weekly_meeting || []).join(', ') || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Meeting Time</span><span className="pdf-field-value">{selectedSubmission.meeting_time || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Daily Sync</span><span className="pdf-field-value">{(selectedSubmission.daily_sync || []).join(', ') || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Sync Time</span><span className="pdf-field-value">{selectedSubmission.sync_time || '—'}</span></div>
+                  <div className="pdf-field"><span className="pdf-field-label">Training</span><span className="pdf-field-value">{(selectedSubmission.training || []).join(', ') || '—'}</span></div>
                 </div>
               </div>
 
               {/* Section 5 */}
-              <div>
-                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 5: Technical Details</h2>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 5: Technical Details</div>
+                <div className="pdf-grid">
+                  <div className="pdf-field"><span className="pdf-field-label">Game Engine</span><span className="pdf-field-value">{(selectedSubmission.game_engine || []).join(', ') || '—'}</span></div>
+                  {selectedSubmission.tech_requirements && <div className="pdf-field pdf-field-full"><span className="pdf-field-label">Technical Requirements</span><span className="pdf-field-value">{selectedSubmission.tech_requirements}</span></div>}
+                  {selectedSubmission.tools_software && <div className="pdf-field"><span className="pdf-field-label">Tools & Software</span><span className="pdf-field-value">{selectedSubmission.tools_software}</span></div>}
+                  {selectedSubmission.performance_constraints && <div className="pdf-field"><span className="pdf-field-label">Performance Constraints</span><span className="pdf-field-value">{selectedSubmission.performance_constraints}</span></div>}
                 </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Game Engine</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{(selectedSubmission.game_engine || []).join(', ') || '—'}</p>
-                  </div>
-                  <div className={selectedSubmission.tech_requirements ? '' : 'hidden'}>
-                    {selectedSubmission.tech_requirements && <><span className="text-xs" style={{ color: '#6B7280' }}>Technical Requirements</span><p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.tech_requirements}</p></>}
-                  </div>
-                </div>
-                {(selectedSubmission.tools_software || selectedSubmission.performance_constraints) && (
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm mt-3">
-                    {selectedSubmission.tools_software && (
-                      <div>
-                        <span className="text-xs" style={{ color: '#6B7280' }}>Tools & Software</span>
-                        <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.tools_software}</p>
-                      </div>
-                    )}
-                    {selectedSubmission.performance_constraints && (
-                      <div>
-                        <span className="text-xs" style={{ color: '#6B7280' }}>Performance Constraints</span>
-                        <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.performance_constraints}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Section 6 */}
-              <div>
-                <div className="mb-3 pb-2 border-b-2" style={{ borderColor: '#FF5900' }}>
-                  <h2 className="text-sm font-bold" style={{ color: '#1B1A1C' }}>Section 6: Client Confirmation</h2>
-                </div>
-                <div className="p-4 rounded-lg border" style={{ backgroundColor: '#FFF7ED', borderColor: '#FFE4C4' }}>
-                  <p className="text-xs leading-relaxed" style={{ color: '#9A3412' }}>
-                    By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.
-                  </p>
-                </div>
-                <div className="mt-4 flex gap-6 text-sm">
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Signed by</span>
-                    <p className="mt-0.5 font-medium" style={{ color: '#1B1A1C' }}>{selectedSubmission.signature || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs" style={{ color: '#6B7280' }}>Date</span>
-                    <p className="mt-0.5" style={{ color: '#1B1A1C' }}>{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              <div className="pdf-section">
+                <div className="pdf-section-title">Section 6: Client Confirmation</div>
+                <div className="pdf-notice">By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.</div>
+                <div className="pdf-signature">
+                  <div className="pdf-grid">
+                    <div className="pdf-field"><span className="pdf-field-label">Signed by</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.signature || '—'}</span></div>
+                    <div className="pdf-field"><span className="pdf-field-label">Date</span><span className="pdf-field-value">{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
                   </div>
                 </div>
               </div>
 
-              {/* Footer */}
-              <div className="pt-4 border-t text-center" style={{ borderColor: '#E5E7EB' }}>
-                <p className="text-xs" style={{ color: '#9CA3AF' }}>Exodia Game Dev &middot; Marketing Department &middot; Submitted {new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-              </div>
+              {/* Footer (hidden in modal, shown in print) */}
+              <div className="pdf-footer" style={{ display: 'none' }}>Exodia Game Dev · Marketing Department · This document is confidential and intended for project use only.</div>
 
               {/* Prepare to Send */}
               <div className="pt-4 text-center">
