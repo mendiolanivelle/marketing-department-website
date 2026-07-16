@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 interface DeliverableRow {
@@ -8,6 +8,95 @@ interface DeliverableRow {
   reference: string
   quantity: string
   serviceType: string
+}
+
+function SignaturePad({ value, dataUrl, onChange, onDataUrlChange }: { value: string; dataUrl: string; onChange: (v: string) => void; onDataUrlChange: (v: string) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawing = useRef(false)
+
+  const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    drawing.current = true
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left
+    const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }, [])
+
+  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!drawing.current) return
+    e.preventDefault()
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const rect = canvas.getBoundingClientRect()
+    const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left
+    const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = '#1B1A1C'
+    ctx.lineTo(x, y)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }, [])
+
+  const stopDrawing = useCallback(() => {
+    drawing.current = false
+    const canvas = canvasRef.current
+    if (!canvas) return
+    onDataUrlChange(canvas.toDataURL())
+  }, [onDataUrlChange])
+
+  const clearSignature = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    onDataUrlChange('')
+  }, [onDataUrlChange])
+
+  return (
+    <div>
+      <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Signature</label>
+      <div className="border rounded-lg overflow-hidden" style={{ borderColor: '#D1D5DB' }}>
+        <canvas
+          ref={canvasRef}
+          width={400}
+          height={120}
+          className="w-full touch-none"
+          style={{ backgroundColor: '#FFFDF5', cursor: 'crosshair' }}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-1.5">
+        {dataUrl && <span className="text-[10px]" style={{ color: '#059669' }}>✓ Signature captured</span>}
+        <div className="flex gap-2 ml-auto">
+          {dataUrl && (
+            <button type="button" onClick={clearSignature} className="text-[10px] font-medium px-2 py-1 rounded transition hover:opacity-70" style={{ color: '#DC2626' }}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="mt-2">
+        <label className="block text-[10px] mb-1" style={{ color: '#6B7280' }}>Or type your name instead:</label>
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" />
+      </div>
+    </div>
+  )
 }
 
 export default function PublicAcceptanceForm() {
@@ -109,6 +198,7 @@ export default function PublicAcceptanceForm() {
     toolsSoftware: '',
     performanceConstraints: '',
     signature: '',
+    signatureDataUrl: '',
     signatureDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
   })
 
@@ -193,7 +283,7 @@ export default function PublicAcceptanceForm() {
         tech_requirements: form.techRequirements,
         tools_software: form.toolsSoftware,
         performance_constraints: form.performanceConstraints,
-        signature: form.signature,
+        signature: form.signatureDataUrl || form.signature,
         signature_date: form.signatureDate,
         ...(withTracking ? { tracking_id: trackingId } : {}),
         created_at: new Date().toISOString(),
@@ -664,10 +754,12 @@ export default function PublicAcceptanceForm() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name &amp; Signature</label>
-                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
-              </div>
+              <SignaturePad
+                value={form.signature}
+                dataUrl={form.signatureDataUrl}
+                onChange={(v) => setForm({ ...form, signature: v })}
+                onDataUrlChange={(v) => setForm({ ...form, signatureDataUrl: v })}
+              />
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
                 <div className="w-full px-3.5 py-2.5 border rounded-lg text-sm" style={{ borderColor: '#D1D5DB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>{form.signatureDate}</div>
