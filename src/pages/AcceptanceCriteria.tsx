@@ -820,6 +820,7 @@ export default function AcceptanceCriteria() {
                 <div className="pdf-notice">By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.</div>
                 <div className="pdf-signature">
                   <div className="pdf-grid">
+                    <div className="pdf-field"><span className="pdf-field-label">Client Name</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.client_name || '—'}</span></div>
                     <div className="pdf-field"><span className="pdf-field-label">Signed by</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.signature?.startsWith('data:image') ? <img src={selectedSubmission.signature} alt="Signature" style={{ height: 32, display: 'block' }} /> : (selectedSubmission.signature || '—')}</span></div>
                     <div className="pdf-field"><span className="pdf-field-label">Date</span><span className="pdf-field-value">{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
                   </div>
