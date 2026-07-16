@@ -710,8 +710,7 @@ export default function AcceptanceCriteria() {
               </div>
             </div>
 
-            <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-              <style>{`
+            <style>{`
                 .pdf-section { margin-bottom: 22px; }
                 .pdf-section-title { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding: 6px 0 6px 12px; border-left: 3px solid var(--accent); background: linear-gradient(90deg, var(--accent-light), transparent); }
                 .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; }
@@ -728,6 +727,7 @@ export default function AcceptanceCriteria() {
                 .pdf-signature { margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--border-secondary); }
                 .pdf-footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 30px; padding-top: 14px; border-top: 3px solid var(--accent); }
               `}</style>
+            <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}>
               {/* Section 1 */}
               <div className="pdf-section">
                 <div className="pdf-section-title">Section 1: Basic Project Information</div>
