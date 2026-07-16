@@ -608,9 +608,9 @@ export default function AcceptanceCriteria() {
       {selectedSubmission && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => setSelectedSubmission(null)} />
-          <div className="relative rounded-2xl border max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+          <div className="relative rounded-2xl border max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             {/* Print-style header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)' }}>
               <div className="flex items-center gap-3">
 <svg width="28" height="28" viewBox="0 0 1800.000000 1800.000000" preserveAspectRatio="xMidYMid meet">
               <g transform="translate(0.000000,1800.000000) scale(0.100000,-0.100000)" fill="#FF5900" stroke="none">
@@ -624,9 +624,9 @@ export default function AcceptanceCriteria() {
               </g>
             </svg>
 <div>
-                    <p className="text-sm font-medium" style={{ color: '#1B1A1C' }}>Exodia Game Dev</p>
-                    <p className="text-xs" style={{ color: '#6B7280' }}>Acceptance Criteria Form</p>
-                    <p className="text-xs mt-0.5 font-mono" style={{ color: '#9CA3AF' }}>ID: {formatId(selectedSubmission)}</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Exodia Game Dev</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Acceptance Criteria Form</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>ID: {formatId(selectedSubmission)}</p>
                   </div>
               </div>
               <div className="flex items-center gap-2">
@@ -684,14 +684,14 @@ export default function AcceptanceCriteria() {
                     w.onload = () => { w.print() }
                   }}
                   className="p-2 rounded-lg text-xs font-medium transition hover:bg-gray-100 flex items-center gap-1.5"
-                  style={{ color: '#6B7280' }}
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   PDF
                 </button>
-                <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
+                <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: 'var(--text-muted)' }}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -699,23 +699,23 @@ export default function AcceptanceCriteria() {
               </div>
             </div>
 
-            <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6">
+            <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}>
               <style>{`
                 .pdf-section { margin-bottom: 22px; }
-                .pdf-section-title { font-size: 13px; font-weight: 700; color: #FF5900; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #FF5900; }
+                .pdf-section-title { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--accent); }
                 .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; }
-                .pdf-field { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #F3F4F6; }
-                .pdf-field-label { width: 160px; color: #6B7280; flex-shrink: 0; font-weight: 500; }
-                .pdf-field-value { color: #1B1A1C; font-weight: 400; }
+                .pdf-field { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--border-secondary); }
+                .pdf-field-label { width: 160px; color: var(--text-muted); flex-shrink: 0; font-weight: 500; }
+                .pdf-field-value { color: var(--text-primary); font-weight: 400; }
                 .pdf-field-full { grid-column: 1 / -1; }
                 .pdf-deliverables { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
-                .pdf-deliverables th { background-color: #FF5900; color: #FFFFFF; text-align: left; padding: 8px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-                .pdf-deliverables td { padding: 7px 10px; border-bottom: 1px solid #E5E7EB; color: #1B1A1C; }
-                .pdf-deliverables tr:nth-child(even) td { background-color: #FAFAFA; }
-                .pdf-deliverables tr:last-child td { border-bottom: 1px solid #D1D5DB; }
-                .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 14px 16px; margin: 10px 0; font-size: 12px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
-                .pdf-signature { margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
-                .pdf-footer { text-align: center; font-size: 11px; color: #9CA3AF; margin-top: 30px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
+                .pdf-deliverables th { background-color: var(--accent); color: #FFFFFF; text-align: left; padding: 8px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .pdf-deliverables td { padding: 7px 10px; border-bottom: 1px solid var(--border-secondary); color: var(--text-primary); }
+                .pdf-deliverables tr:nth-child(even) td { background-color: var(--bg-secondary); }
+                .pdf-deliverables tr:last-child td { border-bottom: 1px solid var(--border-primary); }
+                .pdf-notice { background-color: var(--accent-light); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 10px 0; font-size: 12px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
+                .pdf-signature { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-secondary); }
+                .pdf-footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--border-secondary); }
               `}</style>
               {/* Section 1 */}
               <div className="pdf-section">
