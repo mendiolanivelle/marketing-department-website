@@ -665,7 +665,7 @@ export default function AcceptanceCriteria() {
                           .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 12px 14px; margin: 10px 0; font-size: 10px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
                           .pdf-signature { margin-top: 14px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
                           .pdf-footer { text-align: center; font-size: 9px; color: #9CA3AF; margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
-                          @media print { body { padding: 0; } .pdf-section { page-break-inside: avoid; } }
+                          @media print { body { padding: 0; } .pdf-section { page-break-inside: avoid; } .pdf-no-print { display: none !important; } }
                         </style>
                       </head>
                       <body>
@@ -819,7 +819,7 @@ export default function AcceptanceCriteria() {
               <div className="pdf-footer" style={{ display: 'none' }}>Exodia Game Dev · Marketing Department · This document is confidential and intended for project use only.</div>
 
               {/* Prepare to Send */}
-              <div className="pt-4 text-center">
+              <div className="pt-4 text-center pdf-no-print">
                 <button
                   onClick={async () => {
                       setSendForm({
