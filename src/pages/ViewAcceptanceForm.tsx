@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
@@ -80,7 +81,7 @@ export default function ViewAcceptanceForm() {
     )
   }
 
-  const Row = ({ label, value }: { label: string; value: string }) => (
+  const Row = ({ label, value }: { label: string; value: string | ReactNode }) => (
     <div className="flex border-b py-2.5" style={{ borderColor: '#F3F4F6' }}>
       <span className="w-56 text-sm flex-shrink-0" style={{ color: '#6B7280' }}>{label}</span>
       <span className="text-sm" style={{ color: '#1B1A1C' }}>{value || '—'}</span>
@@ -216,7 +217,7 @@ export default function ViewAcceptanceForm() {
             <h2 className="text-sm text-white font-medium">Client Confirmation</h2>
           </div>
           <div className="px-6 py-5 space-y-1">
-            <Row label="Signed by" value={sub.signature} />
+            <Row label="Signed by" value={sub.signature?.startsWith('data:image') ? <img src={sub.signature} alt="Signature" style={{ height: 32, display: 'block' }} /> : sub.signature} />
             <Row label="Date" value={sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
           </div>
         </div>

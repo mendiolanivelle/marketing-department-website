@@ -246,7 +246,7 @@ export default function AcceptanceCriteria() {
       const conf = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
       for (let i = 0; i < conf.length; i += 110) { check(); txt(23, y, conf.substring(i, i + 110)); y += 3 }
       y += 8
-      row('Signed by', sub.signature)
+      row('Signed by', sub.signature?.startsWith('data:image') ? 'See signed form' : (sub.signature || '—'))
       row('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
     })
 
@@ -792,7 +792,7 @@ export default function AcceptanceCriteria() {
                 <div className="pdf-notice">By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.</div>
                 <div className="pdf-signature">
                   <div className="pdf-grid">
-                    <div className="pdf-field"><span className="pdf-field-label">Signed by</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.signature || '—'}</span></div>
+                    <div className="pdf-field"><span className="pdf-field-label">Signed by</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.signature?.startsWith('data:image') ? <img src={selectedSubmission.signature} alt="Signature" style={{ height: 32, display: 'block' }} /> : (selectedSubmission.signature || '—')}</span></div>
                     <div className="pdf-field"><span className="pdf-field-label">Date</span><span className="pdf-field-value">{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
                   </div>
                 </div>
