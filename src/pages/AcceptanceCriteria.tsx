@@ -643,28 +643,28 @@ export default function AcceptanceCriteria() {
                       <head>
                         <title>Acceptance Criteria - ${formatId(selectedSub)}</title>
                         <style>
-                          @page { margin: 30mm 22mm 22mm 22mm; size: A4; }
+                          @page { margin: 28mm 22mm 22mm 22mm; size: A4; }
                           * { box-sizing: border-box; }
-                          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1B1A1C; line-height: 1.5; margin: 0; padding: 0; }
-                          .pdf-header { text-align: center; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 3px solid #FF5900; }
-                          .pdf-header h1 { font-size: 24px; color: #FF5900; margin: 0 0 4px 0; font-weight: 800; letter-spacing: -0.5px; }
-                          .pdf-header .subtitle { font-size: 13px; color: #6B7280; margin: 0; }
+                          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1B1A1C; line-height: 1.6; margin: 0; padding: 0; }
+                          .pdf-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #FF5900; }
+                          .pdf-header h1 { font-size: 26px; color: #FF5900; margin: 0 0 4px 0; font-weight: 800; letter-spacing: -0.5px; }
+                          .pdf-header .subtitle { font-size: 13px; color: #6B7280; margin: 0; font-weight: 400; }
                           .pdf-header .meta { font-size: 10px; color: #9CA3AF; margin-top: 8px; font-family: 'Courier New', monospace; }
-                          .pdf-section { margin-bottom: 24px; page-break-inside: avoid; }
-                          .pdf-section-title { font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #E5E7EB; }
-                          .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
-                          .pdf-field { display: flex; padding: 4px 0; font-size: 12px; border-bottom: 1px solid #F3F4F6; }
+                          .pdf-section { margin-bottom: 22px; page-break-inside: avoid; }
+                          .pdf-section-title { font-size: 11px; font-weight: 700; color: #FF5900; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding: 5px 0 5px 10px; border-left: 3px solid #FF5900; }
+                          .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; }
+                          .pdf-field { display: flex; padding: 4px 0; font-size: 11.5px; border-bottom: 1px solid #F3F4F6; }
                           .pdf-field-label { width: 170px; color: #6B7280; flex-shrink: 0; font-weight: 500; }
-                          .pdf-field-value { color: #1B1A1C; }
+                          .pdf-field-value { color: #1B1A1C; font-weight: 400; }
                           .pdf-field-full { grid-column: 1 / -1; }
                           .pdf-deliverables { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
-                          .pdf-deliverables th { background-color: #F3F4F6; color: #374151; text-align: left; padding: 7px 9px; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #FF5900; }
-                          .pdf-deliverables td { padding: 6px 9px; border-bottom: 1px solid #E5E7EB; color: #1B1A1C; }
+                          .pdf-deliverables th { background-color: #FF5900; color: #FFFFFF; text-align: left; padding: 8px 10px; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+                          .pdf-deliverables td { padding: 7px 10px; border-bottom: 1px solid #E5E7EB; color: #1B1A1C; }
                           .pdf-deliverables tr:nth-child(even) td { background-color: #FAFAFA; }
                           .pdf-deliverables tr:last-child td { border-bottom: 1px solid #D1D5DB; }
-                          .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 12px 14px; margin: 10px 0; font-size: 11px; color: #9A3412; line-height: 1.6; }
-                          .pdf-signature { margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
-                          .pdf-footer { text-align: center; font-size: 9px; color: #9CA3AF; margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
+                          .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 14px 16px; margin: 10px 0; font-size: 11px; color: #9A3412; line-height: 1.7; border-radius: 0 4px 4px 0; }
+                          .pdf-signature { margin-top: 16px; padding-top: 14px; border-top: 2px solid #F3F4F6; }
+                          .pdf-footer { text-align: center; font-size: 9px; color: #9CA3AF; margin-top: 30px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
                           @media print { body { padding: 0; } .pdf-section { page-break-inside: avoid; } .pdf-no-print { display: none !important; } }
                         </style>
                       </head>
@@ -702,19 +702,19 @@ export default function AcceptanceCriteria() {
             <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}>
               <style>{`
                 .pdf-section { margin-bottom: 22px; }
-                .pdf-section-title { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--accent); }
+                .pdf-section-title { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding: 5px 0 5px 10px; border-left: 3px solid var(--accent); }
                 .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; }
                 .pdf-field { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--border-secondary); }
                 .pdf-field-label { width: 160px; color: var(--text-muted); flex-shrink: 0; font-weight: 500; }
-                .pdf-field-value { color: var(--text-primary); font-weight: 400; }
+                .pdf-field-value { color: var(--text-primary); }
                 .pdf-field-full { grid-column: 1 / -1; }
                 .pdf-deliverables { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
                 .pdf-deliverables th { background-color: var(--accent); color: #FFFFFF; text-align: left; padding: 8px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
                 .pdf-deliverables td { padding: 7px 10px; border-bottom: 1px solid var(--border-secondary); color: var(--text-primary); }
                 .pdf-deliverables tr:nth-child(even) td { background-color: var(--bg-secondary); }
                 .pdf-deliverables tr:last-child td { border-bottom: 1px solid var(--border-primary); }
-                .pdf-notice { background-color: var(--accent-light); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 10px 0; font-size: 12px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
-                .pdf-signature { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-secondary); }
+                .pdf-notice { background-color: var(--accent-light); border-left: 4px solid var(--accent); padding: 14px 16px; margin: 10px 0; font-size: 12px; color: #9A3412; line-height: 1.7; border-radius: 0 4px 4px 0; }
+                .pdf-signature { margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--border-secondary); }
                 .pdf-footer { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--border-secondary); }
               `}</style>
               {/* Section 1 */}
