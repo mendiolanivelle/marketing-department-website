@@ -700,6 +700,23 @@ export default function AcceptanceCriteria() {
             </div>
 
             <div id="printable-acceptance" className="p-6 sm:p-8 space-y-6">
+              <style>{`
+                .pdf-section { margin-bottom: 22px; }
+                .pdf-section-title { font-size: 13px; font-weight: 700; color: #FF5900; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #FF5900; }
+                .pdf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 20px; }
+                .pdf-field { display: flex; padding: 5px 0; font-size: 13px; border-bottom: 1px solid #F3F4F6; }
+                .pdf-field-label { width: 160px; color: #6B7280; flex-shrink: 0; font-weight: 500; }
+                .pdf-field-value { color: #1B1A1C; font-weight: 400; }
+                .pdf-field-full { grid-column: 1 / -1; }
+                .pdf-deliverables { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+                .pdf-deliverables th { background-color: #FF5900; color: #FFFFFF; text-align: left; padding: 8px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .pdf-deliverables td { padding: 7px 10px; border-bottom: 1px solid #E5E7EB; color: #1B1A1C; }
+                .pdf-deliverables tr:nth-child(even) td { background-color: #FAFAFA; }
+                .pdf-deliverables tr:last-child td { border-bottom: 1px solid #D1D5DB; }
+                .pdf-notice { background-color: #FFF7ED; border-left: 4px solid #FF5900; padding: 14px 16px; margin: 10px 0; font-size: 12px; color: #9A3412; line-height: 1.6; border-radius: 0 4px 4px 0; }
+                .pdf-signature { margin-top: 16px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
+                .pdf-footer { text-align: center; font-size: 11px; color: #9CA3AF; margin-top: 30px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
+              `}</style>
               {/* Section 1 */}
               <div className="pdf-section">
                 <div className="pdf-section-title">Section 1: Basic Project Information</div>
