@@ -10,7 +10,7 @@ interface DeliverableRow {
   serviceType: string
 }
 
-function SignaturePad({ value, dataUrl, onChange, onDataUrlChange }: { value: string; dataUrl: string; onChange: (v: string) => void; onDataUrlChange: (v: string) => void }) {
+function SignaturePad({ dataUrl, onDataUrlChange }: { dataUrl: string; onDataUrlChange: (v: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
 
@@ -64,7 +64,7 @@ function SignaturePad({ value, dataUrl, onChange, onDataUrlChange }: { value: st
 
   return (
     <div>
-      <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Signature</label>
+      <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Signature</label>
       <div className="border rounded-lg overflow-hidden" style={{ borderColor: '#D1D5DB' }}>
         <canvas
           ref={canvasRef}
@@ -90,10 +90,6 @@ function SignaturePad({ value, dataUrl, onChange, onDataUrlChange }: { value: st
             </button>
           )}
         </div>
-      </div>
-      <div className="mt-2">
-        <label className="block text-[10px] mb-1" style={{ color: '#6B7280' }}>Or type your name instead:</label>
-        <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" />
       </div>
     </div>
   )
@@ -754,17 +750,19 @@ export default function PublicAcceptanceForm() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <SignaturePad
-                value={form.signature}
-                dataUrl={form.signatureDataUrl}
-                onChange={(v) => setForm({ ...form, signature: v })}
-                onDataUrlChange={(v) => setForm({ ...form, signatureDataUrl: v })}
-              />
+              <div>
+                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name</label>
+                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
+              </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
                 <div className="w-full px-3.5 py-2.5 border rounded-lg text-sm" style={{ borderColor: '#D1D5DB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>{form.signatureDate}</div>
               </div>
             </div>
+            <SignaturePad
+              dataUrl={form.signatureDataUrl}
+              onDataUrlChange={(v) => setForm({ ...form, signatureDataUrl: v })}
+            />
           </div>
         </div>
 
