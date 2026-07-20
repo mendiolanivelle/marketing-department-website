@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
+declare var google: any
+
+interface Project {
+  id: number
+  tracking_id: string
+  project_name: string
+  client_name: string
+  status: string
+  decision: string | null
+  phase: string
+  pillar: string | null
+  meet_link: string | null
+  event_id: string | null
+  discovery_scheduled_at: string | null
+  feasibility_decision_at: string | null
+  created_at: string
+  sent_at: string | null
+}
+
 function formatDateTime(iso: string | null): string {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -26,23 +45,6 @@ function getFeasibilityDay(createdAt: string | null, referenceDate?: string | nu
   return { text: 'Feasibility Review - Day 1', color: 'bg-yellow-100 text-yellow-700' }
 }
 
-interface Project {
-  id: number
-  tracking_id: string
-  project_name: string
-  client_name: string
-  status: string
-  decision: string | null
-  phase: string
-  pillar: string | null
-  meet_link: string | null
-  event_id: string | null
-  discovery_scheduled_at: string | null
-  feasibility_decision_at: string | null
-  created_at: string
-  sent_at: string | null
-}
-
 function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Project; onClose: () => void; onScheduled: (event: any) => void }) {
   const [date, setDate] = useState(() => {
     const d = new Date()
@@ -59,7 +61,7 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
     const client = google.accounts.oauth2.initTokenClient({
       client_id: '771932544725-5trevl51v4i49g8j0a0vnqkh7hnikd12.apps.googleusercontent.com',
       scope: 'https://www.googleapis.com/auth/calendar.events',
-      callback: async (response) => {
+      callback: async (response: any) => {
         if (response.error) {
           setError('Access denied — please allow Calendar access')
           setSending(false)
@@ -185,10 +187,15 @@ export default function MarketingProjectList() {
   const [error, setError] = useState<string | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [detailDecidedProject, setDetailDecidedProject] = useState<Project | null>(null)
-  const [successProject, setSuccessProject] = useState<Project | null>(null)
+  const [successProject, setSuccessProject] = useState<any>(null)
 
   const fetchProjects = async () => {
     setError(null)
+    if (!supabase) {
+      setError('Supabase is not configured')
+      setLoading(false)
+      return
+    }
     try {
       const { data, error: err } = await supabase
         .from('project_review_tickets')
@@ -197,7 +204,7 @@ export default function MarketingProjectList() {
       if (err) throw err
       setProjects(data || [])
       setLoading(false)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching projects:', err)
       setError(err.message || 'Failed to load projects')
       setLoading(false)
@@ -235,7 +242,7 @@ export default function MarketingProjectList() {
     }
     await fetchProjects()
     setSelectedProject(null)
-    setSuccessProject({ ...selectedProject!, meetLink: event.hangoutLink } as any)
+    setSuccessProject({ ...selectedProject, meetLink: event.hangoutLink })
   }
 
   if (loading) {
@@ -376,7 +383,7 @@ export default function MarketingProjectList() {
                   .map(p => {
                     const isScheduled = p.status === 'discovery_scheduled'
                     const day = getFeasibilityDay(p.created_at)
-                    const diffDays = Math.floor((new Date() - new Date(p.created_at)) / (1000 * 60 * 60 * 24))
+                    const diffDays = Math.floor((new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24))
                     const isDecided = p.decision === 'accepted' || p.decision === 'declined'
                     return (
                       <tr
@@ -410,7 +417,7 @@ export default function MarketingProjectList() {
                                 </span>
                                 {isScheduled ? (
                                   <a
-                                    href={p.meet_link}
+                                    href={p.meet_link || '#'}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
@@ -479,7 +486,7 @@ export default function MarketingProjectList() {
                   {(() => {
                     const refDate = detailDecidedProject.feasibility_decision_at || new Date().toISOString()
                     const ref = new Date(refDate)
-                    const diffDays = Math.floor((ref - new Date(detailDecidedProject.created_at)) / (1000 * 60 * 60 * 24))
+                    const diffDays = Math.floor((ref.getTime() - new Date(detailDecidedProject.created_at).getTime()) / (1000 * 60 * 60 * 24))
                     const isScheduled = detailDecidedProject.status === 'discovery_scheduled'
                     const isOverdue = !isScheduled && diffDays >= 2
                     const disLabel = isScheduled ? 'Discovery Call \u2013 Scheduled' : isOverdue ? 'Discovery Call \u2013 Overdue (Not Scheduled)' : 'Discovery Call \u2013 Not Scheduled'
@@ -496,7 +503,7 @@ export default function MarketingProjectList() {
                   })()}
                   {detailDecidedProject.feasibility_decision_at && (() => {
                     const ref = new Date(detailDecidedProject.feasibility_decision_at)
-                    const diffDays = Math.floor((ref - new Date(detailDecidedProject.created_at)) / (1000 * 60 * 60 * 24))
+                    const diffDays = Math.floor((ref.getTime() - new Date(detailDecidedProject.created_at).getTime()) / (1000 * 60 * 60 * 24))
                     return (
                       <>
                         <span className="text-sm text-[#3E4048] font-medium">Feasibility Decision</span>
