@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-function formatDateTime(iso) {
+function formatDateTime(iso: string | null): string {
   if (!iso) return '-'
   const d = new Date(iso)
   let h = d.getHours()
@@ -10,23 +10,40 @@ function formatDateTime(iso) {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()} ${h}:${String(d.getMinutes()).padStart(2, '0')} ${ampm}`
 }
 
-function formatDateInput(iso) {
+function formatDateInput(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
   return d.toISOString().slice(0, 16)
 }
 
-function getFeasibilityDay(createdAt, referenceDate) {
+function getFeasibilityDay(createdAt: string | null, referenceDate?: string | null): { text: string; color: string } {
   if (!createdAt) return { text: 'Feasibility Review - Day 1', color: 'bg-yellow-100 text-yellow-700' }
   const ref = referenceDate ? new Date(referenceDate) : new Date()
-  const diffDays = Math.floor((ref - new Date(createdAt)) / (1000 * 60 * 60 * 24))
+  const diffDays = Math.floor((ref.getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24))
   if (diffDays >= 3) return { text: 'Overdue: Feasibility Decision', color: 'bg-red-100 text-red-700' }
   if (diffDays >= 2) return { text: 'Pending Feasibility Decision', color: 'bg-blue-100 text-blue-700' }
   if (diffDays >= 1) return { text: 'Feasibility Review - Final Day', color: 'bg-orange-100 text-orange-700' }
   return { text: 'Feasibility Review - Day 1', color: 'bg-yellow-100 text-yellow-700' }
 }
 
-function ScheduleMeetingModal({ project, onClose, onScheduled }) {
+interface Project {
+  id: number
+  tracking_id: string
+  project_name: string
+  client_name: string
+  status: string
+  decision: string | null
+  phase: string
+  pillar: string | null
+  meet_link: string | null
+  event_id: string | null
+  discovery_scheduled_at: string | null
+  feasibility_decision_at: string | null
+  created_at: string
+  sent_at: string | null
+}
+
+function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Project; onClose: () => void; onScheduled: (event: any) => void }) {
   const [date, setDate] = useState(() => {
     const d = new Date()
     d.setHours(d.getHours() + 1, 0, 0, 0)
@@ -163,12 +180,12 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }) {
 }
 
 export default function MarketingProjectList() {
-  const [projects, setProjects] = useState([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [detailDecidedProject, setDetailDecidedProject] = useState(null)
-  const [successProject, setSuccessProject] = useState(null)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [detailDecidedProject, setDetailDecidedProject] = useState<Project | null>(null)
+  const [successProject, setSuccessProject] = useState<Project | null>(null)
 
   const fetchProjects = async () => {
     setError(null)
@@ -200,10 +217,10 @@ export default function MarketingProjectList() {
     }
   }, [])
 
-  const handleScheduled = async (event) => {
+  const handleScheduled = async (event: any) => {
     if (!isSupabaseConfigured || !supabase) return
     const now = new Date().toISOString()
-    const { error } = await supabase
+    const { error: err } = await supabase
       .from('project_review_tickets')
       .update({
         status: 'discovery_scheduled',
@@ -211,14 +228,14 @@ export default function MarketingProjectList() {
         event_id: event.id,
         discovery_scheduled_at: now,
       })
-      .eq('id', selectedProject.id)
-    if (error) {
-      console.error('Failed to update project:', error)
+      .eq('id', selectedProject?.id)
+    if (err) {
+      console.error('Failed to update project:', err)
       return
     }
     await fetchProjects()
     setSelectedProject(null)
-    setSuccessProject({ ...selectedProject, meetLink: event.hangoutLink })
+    setSuccessProject({ ...selectedProject!, meetLink: event.hangoutLink } as any)
   }
 
   if (loading) {
