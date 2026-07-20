@@ -15,6 +15,7 @@
     "jsx": "react-jsx",
 
     "strict": true,
+    "allowJs": true,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
