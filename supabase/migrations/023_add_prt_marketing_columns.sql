@@ -1,3 +1,6 @@
+ALTER TABLE project_review_tickets ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+UPDATE project_review_tickets SET created_at = sent_at WHERE created_at IS NULL AND sent_at IS NOT NULL;
+UPDATE project_review_tickets SET created_at = NOW() WHERE created_at IS NULL;
 ALTER TABLE project_review_tickets ADD COLUMN IF NOT EXISTS phase TEXT DEFAULT 'Initiation';
 ALTER TABLE project_review_tickets ADD COLUMN IF NOT EXISTS pillar TEXT;
 ALTER TABLE project_review_tickets ADD COLUMN IF NOT EXISTS decision TEXT;
