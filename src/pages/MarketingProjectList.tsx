@@ -20,6 +20,17 @@ interface Project {
   sent_at: string | null
 }
 
+interface PotentialProject {
+  id: number
+  project_name: string
+  client_name: string | null
+  status: string
+  notes: string | null
+  source: string | null
+  contact_email: string | null
+  created_at: string
+}
+
 function formatDateTime(iso: string | null): string {
   if (!iso) return '-'
   const d = new Date(iso)
@@ -183,6 +194,9 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
 
 export default function MarketingProjectList() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [potentialProjects, setPotentialProjects] = useState<PotentialProject[]>([])
+  const [loadingPotential, setLoadingPotential] = useState(true)
+  const [activeView, setActiveView] = useState<'tickets' | 'potential'>('tickets')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
@@ -211,16 +225,42 @@ export default function MarketingProjectList() {
     }
   }
 
+  const fetchPotentialProjects = async () => {
+    if (!supabase) {
+      setLoadingPotential(false)
+      return
+    }
+    try {
+      const { data, error: err } = await supabase
+        .from('potential_projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (err) throw err
+      setPotentialProjects(data || [])
+      setLoadingPotential(false)
+    } catch (err: any) {
+      console.error('Error fetching potential projects:', err)
+      setLoadingPotential(false)
+    }
+  }
+
   useEffect(() => {
     fetchProjects()
+    fetchPotentialProjects()
     if (isSupabaseConfigured && supabase) {
-      const channel = supabase
+      const prtChannel = supabase
         .channel('prt-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'project_review_tickets' }, () => {
           fetchProjects()
         })
         .subscribe()
-      return () => { try { supabase?.removeChannel(channel) } catch {} }
+      const ppChannel = supabase
+        .channel('pp-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'potential_projects' }, () => {
+          fetchPotentialProjects()
+        })
+        .subscribe()
+      return () => { try { supabase?.removeChannel(prtChannel); supabase?.removeChannel(ppChannel) } catch {} }
     }
   }, [])
 
@@ -343,105 +383,189 @@ export default function MarketingProjectList() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>Project List - Marketing View</h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>View all leads in the feasibility pipeline</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>
+              {activeView === 'tickets' ? 'View all leads in the feasibility pipeline' : 'View all potential project leads'}
+            </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-            {projects.length} projects
+            {activeView === 'tickets' ? projects.length : potentialProjects.length} projects
           </span>
         </div>
 
-        {projects.length === 0 ? (
-          <div className="text-center py-16">
-            <svg className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-            </svg>
-            <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>{error ? error : 'No leads yet.'}</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-                  <th className="w-6 px-1 py-3"></th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Tracking ID</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>Client</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Received</th>
-                  <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Feasibility Started</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Phase</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Pillar</th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects
-                  .sort((a, b) => {
-                    if (a.status === 'discovery_scheduled' && b.status !== 'discovery_scheduled') return -1
-                    if (a.status !== 'discovery_scheduled' && b.status === 'discovery_scheduled') return 1
-                    return 0
-                  })
-                  .map(p => {
-                    const isScheduled = p.status === 'discovery_scheduled'
-                    const day = getFeasibilityDay(p.created_at)
-                    const diffDays = Math.floor((new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24))
-                    const isDecided = p.decision === 'accepted' || p.decision === 'declined'
-                    return (
-                      <tr
-                        key={p.id}
-                        onClick={isDecided ? () => setDetailDecidedProject(p) : !isScheduled ? () => setSelectedProject(p) : undefined}
-                        className={`border-b transition-colors ${isScheduled || isDecided ? 'hover:bg-gray-50 cursor-pointer' : 'bg-[#1B1A1C] hover:bg-[#2a292c] cursor-pointer'}`}
-                        style={{ borderColor: !isScheduled && !isDecided ? 'var(--border-secondary)' : 'inherit' }}
-                      >
-                        <td className="px-1 py-3">{!isScheduled && !isDecided && <span className="inline-block w-2 h-2 bg-red-500 rounded-full" />}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs font-mono" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.tracking_id || '-'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.client_name || '-'}</td>
-                        <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: isScheduled || isDecided ? 'var(--text-primary)' : '#FFFFFF' }}>{p.project_name || 'Untitled'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{formatDateTime(p.sent_at)}</td>
-                        <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.created_at ? formatDateTime(p.created_at) : 'Today'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg, #ffffff, #d4d4d8)', color: '#1B1A1C' }}>{p.phase ? p.phase.charAt(0).toUpperCase() + p.phase.slice(1) : 'Initiation'}</span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span style={{ color: 'var(--text-muted)' }} className="text-xs">{p.pillar || '-'}</span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            {p.decision === 'accepted' ? (
-                              <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#FF5900] text-white">Feasibility - Accepted</span>
-                            ) : p.decision === 'declined' ? (
-                              <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-600 text-white">Feasibility - Decline</span>
-                            ) : (
-                              <>
-                                <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full ${day.color}`}>
-                                  {day.text}
-                                </span>
-                                {isScheduled ? (
-                                  <a
-                                    href={p.meet_link || '#'}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
-                                  >
-                                    Discovery Call – Scheduled
-                                  </a>
-                                ) : diffDays >= 2 ? (
-                                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">
-                                    Discovery Call – Overdue (Not Scheduled)
-                                  </span>
+        {/* Tab Switcher */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveView('tickets')}
+            className="px-4 py-1.5 rounded-lg text-xs font-medium transition"
+            style={{
+              backgroundColor: activeView === 'tickets' ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: activeView === 'tickets' ? '#FFFFFF' : 'var(--text-secondary)',
+              border: activeView === 'tickets' ? 'none' : '1px solid var(--border-primary)',
+            }}
+          >
+            Review Tickets
+          </button>
+          <button
+            onClick={() => setActiveView('potential')}
+            className="px-4 py-1.5 rounded-lg text-xs font-medium transition"
+            style={{
+              backgroundColor: activeView === 'potential' ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: activeView === 'potential' ? '#FFFFFF' : 'var(--text-secondary)',
+              border: activeView === 'potential' ? 'none' : '1px solid var(--border-primary)',
+            }}
+          >
+            Potential Projects
+          </button>
+        </div>
+
+        {/* Review Tickets Table */}
+        {activeView === 'tickets' && (
+          <div>
+            {projects.length === 0 ? (
+              <div className="text-center py-16">
+                <svg className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                </svg>
+                <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>{error ? error : 'No leads yet.'}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-secondary)' }}>
+                      <th className="w-6 px-1 py-3"></th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Tracking ID</th>
+                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>Client</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
+                      <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Received</th>
+                      <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Feasibility Started</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Phase</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Pillar</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projects
+                      .sort((a, b) => {
+                        if (a.status === 'discovery_scheduled' && b.status !== 'discovery_scheduled') return -1
+                        if (a.status !== 'discovery_scheduled' && b.status === 'discovery_scheduled') return 1
+                        return 0
+                      })
+                      .map(p => {
+                        const isScheduled = p.status === 'discovery_scheduled'
+                        const day = getFeasibilityDay(p.created_at)
+                        const diffDays = Math.floor((new Date().getTime() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24))
+                        const isDecided = p.decision === 'accepted' || p.decision === 'declined'
+                        return (
+                          <tr
+                            key={p.id}
+                            onClick={isDecided ? () => setDetailDecidedProject(p) : !isScheduled ? () => setSelectedProject(p) : undefined}
+                            className={`border-b transition-colors ${isScheduled || isDecided ? 'hover:bg-gray-50 cursor-pointer' : 'bg-[#1B1A1C] hover:bg-[#2a292c] cursor-pointer'}`}
+                            style={{ borderColor: !isScheduled && !isDecided ? 'var(--border-secondary)' : 'inherit' }}
+                          >
+                            <td className="px-1 py-3">{!isScheduled && !isDecided && <span className="inline-block w-2 h-2 bg-red-500 rounded-full" />}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-xs font-mono" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.tracking_id || '-'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.client_name || '-'}</td>
+                            <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: isScheduled || isDecided ? 'var(--text-primary)' : '#FFFFFF' }}>{p.project_name || 'Untitled'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{formatDateTime(p.sent_at)}</td>
+                            <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: isScheduled || isDecided ? 'var(--text-secondary)' : 'var(--text-muted)' }}>{p.created_at ? formatDateTime(p.created_at) : 'Today'}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg, #ffffff, #d4d4d8)', color: '#1B1A1C' }}>{p.phase ? p.phase.charAt(0).toUpperCase() + p.phase.slice(1) : 'Initiation'}</span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span style={{ color: 'var(--text-muted)' }} className="text-xs">{p.pillar || '-'}</span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1">
+                                {p.decision === 'accepted' ? (
+                                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#FF5900] text-white">Feasibility - Accepted</span>
+                                ) : p.decision === 'declined' ? (
+                                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-600 text-white">Feasibility - Decline</span>
                                 ) : (
-                                  <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                                    Discovery Call – Not Scheduled
-                                  </span>
+                                  <>
+                                    <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full ${day.color}`}>
+                                      {day.text}
+                                    </span>
+                                    {isScheduled ? (
+                                      <a
+                                        href={p.meet_link || '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                                      >
+                                        Discovery Call – Scheduled
+                                      </a>
+                                    ) : diffDays >= 2 ? (
+                                      <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-100 text-red-700">
+                                        Discovery Call – Overdue (Not Scheduled)
+                                      </span>
+                                    ) : (
+                                      <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                        Discovery Call – Not Scheduled
+                                      </span>
+                                    )}
+                                  </>
                                 )}
-                              </>
-                            )}
-                          </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Potential Projects Table */}
+        {activeView === 'potential' && (
+          <div>
+            {loadingPotential ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+              </div>
+            ) : potentialProjects.length === 0 ? (
+              <div className="text-center py-16">
+                <svg className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                </svg>
+                <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>No potential projects yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-secondary)' }}>
+                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell" style={{ color: 'var(--text-muted)' }}>Client</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Project</th>
+                      <th className="text-left px-4 py-3 font-medium" style={{ color: 'var(--text-muted)' }}>Status</th>
+                      <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Source</th>
+                      <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Contact</th>
+                      <th className="text-left px-4 py-3 font-medium hidden lg:table-cell" style={{ color: 'var(--text-muted)' }}>Created</th>
+                      <th className="text-left px-4 py-3 font-medium hidden xl:table-cell" style={{ color: 'var(--text-muted)' }}>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {potentialProjects.map(p => (
+                      <tr key={p.id} className="border-b transition-colors" style={{ borderColor: 'var(--border-secondary)' }}>
+                        <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell" style={{ color: 'var(--text-secondary)' }}>{p.client_name || '-'}</td>
+                        <td className="px-4 py-3 font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{p.project_name || 'Untitled'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg, #ffffff, #d4d4d8)', color: '#1B1A1C' }}>{p.status || 'Potential'}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: 'var(--text-secondary)' }}>{p.source || '-'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: 'var(--text-secondary)' }}>{p.contact_email || '-'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell" style={{ color: 'var(--text-secondary)' }}>{p.created_at ? formatDateTime(p.created_at) : '-'}</td>
+                        <td className="px-4 py-3 hidden xl:table-cell" style={{ color: 'var(--text-secondary)', maxWidth: '200px' }}>
+                          <span className="text-xs truncate block" style={{ maxWidth: '200px' }}>{p.notes || '-'}</span>
                         </td>
                       </tr>
-                    )
-                  })}
-              </tbody>
-            </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
