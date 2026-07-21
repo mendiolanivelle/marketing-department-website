@@ -181,6 +181,7 @@ function MarketingProjectList() {
   const [selectedProject, setSelectedProject] = useState(null)
   const [detailDecidedProject, setDetailDecidedProject] = useState(null)
   const [successProject, setSuccessProject] = useState(null)
+  const [tab, setTab] = useState('leads')
 
   useEffect(() => {
     const fetchFromSupabase = async () => {
@@ -191,7 +192,7 @@ function MarketingProjectList() {
           .select('*')
           .order('created_at', { ascending: false })
         if (!error && data) {
-          setProjects(data.filter(p => p.status === 'leads' || p.status === 'discovery_scheduled'))
+          setProjects(data)
         }
       } catch {}
       setLoading(false)
@@ -216,6 +217,18 @@ function MarketingProjectList() {
     setSelectedProject(null)
     setSuccessProject({ ...selectedProject, meetLink: event.hangoutLink })
   }
+
+  const allProjects = projects || []
+  const filteredProjects = allProjects.filter(p => {
+    if (tab === 'leads') return p.status === 'leads' || p.status === 'discovery_scheduled'
+    if (tab === 'qualified') return p.status === 'feasibility_accepted'
+    if (tab === 'archive') return p.status === 'feasibility_declined'
+    return false
+  })
+
+  const leadsCount = allProjects.filter(p => p.status === 'leads' || p.status === 'discovery_scheduled').length
+  const qualifiedCount = allProjects.filter(p => p.status === 'feasibility_accepted').length
+  const archiveCount = allProjects.filter(p => p.status === 'feasibility_declined').length
 
   if (loading) {
     return (
@@ -275,27 +288,41 @@ function MarketingProjectList() {
         </div>
       )}
       <div className="bg-white p-8 rounded-xl shadow-sm">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-[#1B1A1C] text-xl font-semibold mb-1">Project List - Marketing View</h2>
-            <p className="text-[#3E4048] text-sm">View all leads in the feasibility pipeline</p>
+            <p className="text-[#3E4048] text-sm">
+              {tab === 'leads' ? 'View all leads in the feasibility pipeline' : tab === 'qualified' ? 'Projects accepted for feasibility' : 'Archived declined projects'}
+            </p>
           </div>
           <span className="text-sm text-[#3E4048] bg-[#CACDD7]/30 px-3 py-1 rounded-full">
-            {projects.length} projects
+            {filteredProjects.length} projects
           </span>
         </div>
 
-        {projects.length === 0 ? (
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setTab('leads')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${tab === 'leads' ? 'bg-[#FF5900] text-white' : 'bg-[#1B1A1C] text-[#CACDD7]'}`}>
+            Leads {leadsCount}
+          </button>
+          <button onClick={() => setTab('qualified')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${tab === 'qualified' ? 'bg-[#FF5900] text-white' : 'bg-[#1B1A1C] text-[#CACDD7]'}`}>
+            Qualified {qualifiedCount}
+          </button>
+          <button onClick={() => setTab('archive')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer ${tab === 'archive' ? 'bg-[#FF5900] text-white' : 'bg-[#1B1A1C] text-[#CACDD7]'}`}>
+            Archive {archiveCount}
+          </button>
+        </div>
+
+        {filteredProjects.length === 0 ? (
           <div className="text-center py-16">
             <Icon icon="lucide:folder-kanban" className="w-12 h-12 text-[#CACDD7] mx-auto mb-4" />
-            <p className="text-[#3E4048] text-sm">No leads yet.</p>
+            <p className="text-[#3E4048] text-sm">No projects in this view.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#CACDD7]">
-                    <th className="w-6 px-1 py-3"></th>
+                    {tab === 'leads' && <th className="w-6 px-1 py-3"></th>}
                     <th className="text-left px-4 py-3 text-[#3E4048] font-medium">Tracking ID</th>
                     <th className="text-left px-4 py-3 text-[#3E4048] font-medium hidden md:table-cell">Client</th>
                     <th className="text-left px-4 py-3 text-[#3E4048] font-medium">Project</th>
@@ -307,8 +334,9 @@ function MarketingProjectList() {
                   </tr>
               </thead>
               <tbody>
-                {projects
+                {filteredProjects
                   .sort((a, b) => {
+                    if (tab !== 'leads') return 0
                     if (a.status === 'discovery_scheduled' && b.status !== 'discovery_scheduled') return -1
                     if (a.status !== 'discovery_scheduled' && b.status === 'discovery_scheduled') return 1
                     return 0
@@ -317,25 +345,28 @@ function MarketingProjectList() {
                     const isScheduled = p.status === 'discovery_scheduled'
                     const day = getFeasibilityDay(p.createdAt)
                     const diffDays = Math.floor((new Date() - new Date(p.createdAt)) / (1000 * 60 * 60 * 24))
-                    const isDecided = p.decision === 'accepted' || p.decision === 'declined'
+                    const isQualified = tab === 'qualified'
+                    const isArchive = tab === 'archive'
+                    const isLeads = tab === 'leads'
+                    const isDark = isLeads && !isScheduled
                     return (
                     <tr
                       key={p.id}
-                      onClick={isDecided ? () => setDetailDecidedProject(p) : !isScheduled ? () => setSelectedProject(p) : undefined}
+                      onClick={isLeads && !isScheduled ? () => setSelectedProject(p) : (isQualified || isArchive) ? () => setDetailDecidedProject(p) : undefined}
                       className={`border-b transition-colors ${
-                        isDecided
+                        isQualified || isArchive
                           ? 'hover:bg-orange-50 cursor-pointer border-[#CACDD7]/50'
                           : isScheduled
                           ? 'hover:bg-gray-50 border-[#CACDD7]/50'
                           : 'bg-[#1B1A1C] hover:bg-[#2a292c] border-[#3E4048]/50 cursor-pointer'
                       }`}
                     >
-                      <td className="px-1 py-3">{!isScheduled && !isDecided && <span className="inline-block w-2 h-2 bg-red-500 rounded-full" />}</td>
-                      <td className={`px-4 py-3 whitespace-nowrap text-xs font-mono ${isScheduled || isDecided ? 'text-[#3E4048]' : 'text-[#CACDD7]'}`}>{p.tracking_id || '-'}</td>
-                      <td className={`px-4 py-3 whitespace-nowrap hidden md:table-cell ${isScheduled || isDecided ? 'text-[#3E4048]' : 'text-[#CACDD7]'}`}>{p.client_name || '-'}</td>
-                      <td className={`px-4 py-3 font-medium whitespace-nowrap ${isScheduled || isDecided ? 'text-[#1B1A1C]' : 'text-white'}`}>{p.project_name || 'Untitled'}</td>
-                      <td className={`px-4 py-3 whitespace-nowrap hidden lg:table-cell ${isScheduled || isDecided ? 'text-[#3E4048]' : 'text-[#CACDD7]'}`}>{formatDateTime(p.sent_at)}</td>
-                      <td className={`px-4 py-3 whitespace-nowrap hidden lg:table-cell ${isScheduled || isDecided ? 'text-[#3E4048]' : 'text-[#CACDD7]'}`}>{p.createdAt ? formatDateTime(p.createdAt) : 'Today'}</td>
+                      {isLeads && <td className="px-1 py-3">{!isScheduled && <span className="inline-block w-2 h-2 bg-red-500 rounded-full" />}</td>}
+                      <td className={`px-4 py-3 whitespace-nowrap text-xs font-mono ${isDark ? 'text-[#CACDD7]' : 'text-[#3E4048]'}`}>{p.tracking_id || '-'}</td>
+                      <td className={`px-4 py-3 whitespace-nowrap hidden md:table-cell ${isDark ? 'text-[#CACDD7]' : 'text-[#3E4048]'}`}>{p.client_name || '-'}</td>
+                      <td className={`px-4 py-3 font-medium whitespace-nowrap ${isDark ? 'text-white' : 'text-[#1B1A1C]'}`}>{p.project_name || 'Untitled'}</td>
+                      <td className={`px-4 py-3 whitespace-nowrap hidden lg:table-cell ${isDark ? 'text-[#CACDD7]' : 'text-[#3E4048]'}`}>{formatDateTime(p.sent_at)}</td>
+                      <td className={`px-4 py-3 whitespace-nowrap hidden lg:table-cell ${isDark ? 'text-[#CACDD7]' : 'text-[#3E4048]'}`}>{p.createdAt ? formatDateTime(p.createdAt) : 'Today'}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full text-[#1B1A1C]" style={{background: 'linear-gradient(135deg, #ffffff, #d4d4d8)'}}>{p.phase ? p.phase.charAt(0).toUpperCase() + p.phase.slice(1) : 'Initiation'}</span>
                       </td>
@@ -344,9 +375,9 @@ function MarketingProjectList() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-1">
-                          {p.decision === 'accepted' ? (
+                          {isQualified ? (
                             <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#FF5900] text-white">Feasibility - Accepted</span>
-                          ) : p.decision === 'declined' ? (
+                          ) : isArchive ? (
                             <span className="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-red-600 text-white">Feasibility - Decline</span>
                           ) : (
                             <>
