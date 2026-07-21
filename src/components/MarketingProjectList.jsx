@@ -43,10 +43,20 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }) {
   const handleSchedule = () => {
     setSending(true)
     setError('')
+    if (typeof google === 'undefined' || !google.accounts?.oauth2) {
+      setError('Google Calendar API not loaded. Ensure the GSI script is included in your HTML.')
+      setSending(false)
+      return
+    }
+    const timeout = setTimeout(() => {
+      setError('OAuth popup may be blocked. Please allow popups for this site.')
+      setSending(false)
+    }, 10000)
     const client = google.accounts.oauth2.initTokenClient({
       client_id: '771932544725-5trevl51v4i49g8j0a0vnqkh7hnikd12.apps.googleusercontent.com',
       scope: 'https://www.googleapis.com/auth/calendar.events',
       callback: async (response) => {
+        clearTimeout(timeout)
         if (response.error) {
           setError('Access denied — please allow Calendar access')
           setSending(false)
@@ -93,6 +103,7 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }) {
           const created = await res.json()
           onScheduled(created)
         } catch {
+          clearTimeout(timeout)
           setError('Could not create meeting')
           setSending(false)
         }
