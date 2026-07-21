@@ -13,6 +13,11 @@ RUN npm install --no-audit --no-fund && rm -rf /root/.npm
 COPY . .
 RUN npm run build
 
+WORKDIR /app/marketing-app
+RUN npm install --no-audit --no-fund && rm -rf /root/.npm
+RUN npm run build
+RUN mkdir -p /app/dist/marketing-projects && cp -r dist/* /app/dist/marketing-projects/
+
 FROM node:22.14.0-alpine3.21
 
 WORKDIR /app

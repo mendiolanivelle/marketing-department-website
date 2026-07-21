@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { createReadStream, existsSync } from 'node:fs'
+import { createReadStream, existsSync, statSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -240,9 +240,10 @@ function serveStatic(req, res) {
   const rawPath = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname)
   const cleanPath = normalize(rawPath).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '')
   const requested = cleanPath === '' || cleanPath === '.' ? 'index.html' : cleanPath
-  const filePath = join(distDir, requested)
+  let filePath = join(distDir, requested)
+  try { if (statSync(filePath).isDirectory()) filePath = join(filePath, 'index.html') } catch {}
   const fallbackPath = join(distDir, 'index.html')
-  const isAsset = rawPath.startsWith('/assets/')
+  const isAsset = rawPath.includes('/assets/')
   if (isAsset && (!filePath.startsWith(distDir) || !existsSync(filePath))) {
     res.writeHead(404, {
       'Content-Type': 'text/plain; charset=utf-8',
