@@ -367,9 +367,10 @@ export default function AcceptanceCriteria() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
     const fetchAndMerge = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await client
           .from('ops_emails')
           .select('email')
           .order('created_at', { ascending: true })
