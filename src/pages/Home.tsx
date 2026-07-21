@@ -86,6 +86,32 @@ export default function Home() {
   }, [readAnnouncementIds])
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
+    const syncReadAnnouncements = async () => {
+      try {
+        const { data, error } = await client
+          .from('read_announcements')
+          .select('announcement_id')
+        if (error) throw error
+        const supabaseIds = (data || []).map((r: any) => r.announcement_id)
+        const localIds = (() => {
+          try { const s = localStorage.getItem('exodia-read-announcements'); return s ? JSON.parse(s) : [] } catch { return [] }
+        })()
+        const merged = [...new Set([...localIds, ...supabaseIds])]
+        setReadAnnouncementIds(merged)
+        const newIds = localIds.filter((id: string) => !supabaseIds.includes(id))
+        for (const id of newIds) {
+          try { await client.from('read_announcements').insert({ announcement_id: id }) } catch {}
+        }
+      } catch (err) {
+        console.error('Failed to sync read announcements:', err)
+      }
+    }
+    syncReadAnnouncements()
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem('exodia-campaigns', JSON.stringify(campaigns))
   }, [campaigns])
 
@@ -658,10 +684,17 @@ export default function Home() {
               <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{formatCalendarDate(selectedAnnouncement.date)}</span>
               <button
                 onClick={() => {
-                  if (readAnnouncementIds.includes(selectedAnnouncement.id)) {
-                    setReadAnnouncementIds(readAnnouncementIds.filter(id => id !== selectedAnnouncement.id))
+                  const id = selectedAnnouncement.id
+                  if (readAnnouncementIds.includes(id)) {
+                    setReadAnnouncementIds(readAnnouncementIds.filter(i => i !== id))
+                    if (isSupabaseConfigured && supabase) {
+                      try { supabase.from('read_announcements').delete().eq('announcement_id', id) } catch {}
+                    }
                   } else {
-                    setReadAnnouncementIds([...readAnnouncementIds, selectedAnnouncement.id])
+                    setReadAnnouncementIds([...readAnnouncementIds, id])
+                    if (isSupabaseConfigured && supabase) {
+                      try { supabase.from('read_announcements').insert({ announcement_id: id }) } catch {}
+                    }
                   }
                   setSelectedAnnouncement(null)
                 }}

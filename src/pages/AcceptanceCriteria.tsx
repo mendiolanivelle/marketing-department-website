@@ -376,14 +376,17 @@ export default function AcceptanceCriteria() {
           .order('created_at', { ascending: true })
         if (error) throw error
         const supabaseEmails = (data || []).map((r: any) => r.email)
-        if (supabaseEmails.length > 0) {
-          setSavedEmails(prev => {
-            const merged = [...new Set([...prev, ...supabaseEmails])]
-            return merged
-          })
+        const localEmails = (() => {
+          try { const s = localStorage.getItem('exodia-ops-emails'); return s ? JSON.parse(s) : [] } catch { return [] }
+        })()
+        const merged = [...new Set([...localEmails, ...supabaseEmails])]
+        setSavedEmails(merged)
+        const newEmails = localEmails.filter((e: string) => !supabaseEmails.includes(e))
+        for (const email of newEmails) {
+          try { await client.from('ops_emails').insert({ email }) } catch {}
         }
       } catch (err) {
-        console.error('Failed to fetch ops emails:', err)
+        console.error('Failed to sync ops emails:', err)
       }
     }
     fetchAndMerge()
