@@ -66,16 +66,21 @@ export default function Sidebar() {
     const localTotal = JSON.parse(localStorage.getItem('exodia-ac-total') || '0')
     setAcUnreadCount(Math.max(0, localTotal - readIds.size))
 
-    // Also fetch total from Supabase for accurate cross-session count
+    // Also fetch from Supabase for accurate cross-device count
     if (isSupabaseConfigured && supabase) {
       try {
         const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
         setUnreadCount(mr ?? 0)
+
+        const { count: acUnread } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
         const { count: total } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true })
         if (total !== null) {
           localStorage.setItem('exodia-ac-total', JSON.stringify(total))
-          setAcUnreadCount(Math.max(0, total - readIds.size))
+          const supabaseUnread = acUnread ?? 0
+          const localUnread = Math.max(0, total - readIds.size)
+          setAcUnreadCount(Math.max(supabaseUnread, localUnread))
         }
+
         const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
         const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
         setWebsiteRequestCount(wr ?? 0)
