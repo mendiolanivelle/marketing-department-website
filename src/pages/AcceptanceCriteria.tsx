@@ -365,6 +365,53 @@ export default function AcceptanceCriteria() {
     localStorage.setItem('exodia-ops-emails', JSON.stringify(savedEmails))
   }, [savedEmails])
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const fetchAndMerge = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ops_emails')
+          .select('email')
+          .order('created_at', { ascending: true })
+        if (error) throw error
+        const supabaseEmails = (data || []).map((r: any) => r.email)
+        if (supabaseEmails.length > 0) {
+          setSavedEmails(prev => {
+            const merged = [...new Set([...prev, ...supabaseEmails])]
+            return merged
+          })
+        }
+      } catch (err) {
+        console.error('Failed to fetch ops emails:', err)
+      }
+    }
+    fetchAndMerge()
+  }, [])
+
+  const addOpsEmail = async (email: string) => {
+    setSavedEmails(prev => [...prev, email])
+    if (isSupabaseConfigured && supabase) {
+      try { await supabase.from('ops_emails').insert({ email }) } catch {}
+    }
+  }
+
+  const updateOpsEmail = async (oldEmail: string, newEmail: string) => {
+    setSavedEmails(prev => prev.map(e => e === oldEmail ? newEmail : e))
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('ops_emails').delete().eq('email', oldEmail)
+        await supabase.from('ops_emails').insert({ email: newEmail })
+      } catch {}
+    }
+  }
+
+  const deleteOpsEmail = async (email: string) => {
+    setSavedEmails(prev => prev.filter(e => e !== email))
+    if (isSupabaseConfigured && supabase) {
+      try { await supabase.from('ops_emails').delete().eq('email', email) } catch {}
+    }
+  }
+
   // Save total submission count to localStorage for sidebar badge
   useEffect(() => {
     localStorage.setItem('exodia-ac-total', JSON.stringify(submissions.length))
@@ -936,7 +983,7 @@ export default function AcceptanceCriteria() {
                                       </svg>
                                     </button>
                                     <button
-                                      onClick={() => setSavedEmails(prev => prev.filter((_, j) => j !== i))}
+                                      onClick={() => deleteOpsEmail(email)}
                                       className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
                                       style={{ color: '#EF4444' }}
                                       title="Remove"
@@ -965,7 +1012,8 @@ export default function AcceptanceCriteria() {
                                     onClick={() => {
                                       const v = emailManagerValue.trim()
                                       if (v && emailManagerEditIdx !== null) {
-                                        setSavedEmails(prev => prev.map((e, j) => j === emailManagerEditIdx ? v : e))
+                                        const old = savedEmails[emailManagerEditIdx]
+                                        updateOpsEmail(old, v)
                                         setEmailManagerEditIdx(null)
                                         setEmailManagerValue('')
                                       }
@@ -990,7 +1038,7 @@ export default function AcceptanceCriteria() {
                                     onClick={() => {
                                       const v = emailManagerValue.trim()
                                       if (v) {
-                                        setSavedEmails(prev => [...prev, v])
+                                        addOpsEmail(v)
                                         setEmailManagerValue('')
                                       }
                                     }}
