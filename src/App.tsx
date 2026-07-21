@@ -25,6 +25,7 @@ const Workspace = lazy(() => import('./pages/Workspace'))
 const WebsiteRequests = lazy(() => import('./pages/WebsiteRequests'))
 const MeetingPlaybook = lazy(() => import('./pages/MeetingPlaybook'))
 const MarketingProjectList = lazy(() => import('./pages/MarketingProjectList'))
+const MarketingProjectListOps = lazy(() => import('./components/MarketingProjectList.jsx'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
   return (
@@ -165,6 +166,7 @@ function App() {
                             <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
                             <Route path="/meeting-playbook" element={<MeetingPlaybook />} />
                             <Route path="/marketing-project-list" element={<MarketingProjectList />} />
+                            <Route path="/marketing-projects" element={<div className="flex-1 min-h-0"><MarketingProjectListOps /></div>} />
                             <Route path="/requests" element={<MarketingRequests />} />
                             <Route path="/website-requests" element={<WebsiteRequests />} />
 <Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />

@@ -322,7 +322,6 @@ export default function Sidebar() {
                 <div className="space-y-1">
                   {category.items.map((item) => {
                     const active = isActive(item.path)
-                    const isExternal = item.path === '/marketing-projects'
                     const className = `group flex items-center gap-2 rounded-xl transition-all duration-200 theme-transition relative ${
                       isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
                     }`
@@ -372,11 +371,7 @@ export default function Sidebar() {
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ backgroundColor: '#FF5900' }} />
                       )}
                     </>)
-                    return isExternal ? (
-                      <a key={item.path} href={item.path} onClick={onClick} className={className} style={style} {...mouseHandlers} title={isCollapsed ? item.label : undefined}>
-                        {inner}
-                      </a>
-                    ) : (
+                    return (
                       <Link key={item.path} to={item.path} onClick={onClick} className={className} style={style} {...mouseHandlers} title={isCollapsed ? item.label : undefined}>
                         {inner}
                       </Link>

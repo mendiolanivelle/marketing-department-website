@@ -173,6 +173,7 @@ function MarketingProjectList() {
 
   useEffect(() => {
     const fetchFromSupabase = async () => {
+      if (!supabase) { setLoading(false); return }
       try {
         const { data, error } = await supabase
           .from('potential_projects')
@@ -190,6 +191,7 @@ function MarketingProjectList() {
   }, [])
 
   const handleScheduled = async (event) => {
+    if (!supabase) return
     const now = new Date().toISOString()
     const updated = projects.map(p => {
       if (p.id === selectedProject.id) {
