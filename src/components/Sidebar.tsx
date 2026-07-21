@@ -323,74 +323,63 @@ export default function Sidebar() {
                   {category.items.map((item) => {
                     const active = isActive(item.path)
                     const isExternal = item.path === '/marketing-projects'
-                    const linkProps = isExternal
-                      ? { href: item.path }
-                      : { to: item.path }
-                    const Tag = isExternal ? 'a' : Link
-                    return (
-                      <Tag
-                        key={item.path}
-                        {...linkProps}
-                        onClick={() => {
-                          setIsOpen(false)
-                          if (item.path === '/website-requests') markWebsiteRequestsSeen()
-                        }}
-                        className={`group flex items-center gap-2 rounded-xl transition-all duration-200 theme-transition relative ${
-                          isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
-                        }`}
-                        style={{
-                          color: active ? '#FF5900' : 'rgba(255,255,255,0.7)',
-                          backgroundColor: active ? 'rgba(255,89,0,0.15)' : 'transparent',
-                          fontWeight: active ? 500 : 300,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!active) {
-                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
-                            e.currentTarget.style.color = '#FFFFFF'
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!active) {
-                            e.currentTarget.style.backgroundColor = 'transparent'
-                            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-                          }
-                        }}
-                        title={isCollapsed ? item.label : undefined}
-                      >
-                        {active && !isCollapsed && (
-                          <span
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                            style={{ backgroundColor: '#FF5900' }}
-                          />
-                        )}
-                        <svg className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                        </svg>
-                        {!isCollapsed && (
-                          <span className="text-xs truncate">{item.label}</span>
-                        )}
-                        {!isCollapsed && item.path === '/requests' && unreadCount > 0 && (
-                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
-                            {unreadCount}
-                          </span>
-                        )}
-                        {!isCollapsed && item.path === '/acceptance-criteria' && acUnreadCount > 0 && (
-                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
-                            {acUnreadCount}
-                          </span>
-                        )}
-                        {!isCollapsed && item.path === '/website-requests' && websiteRequestCount > 0 && (
-                          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>
-                            {websiteRequestCount}
-                          </span>
-                        )}
-                        {active && isCollapsed && (
-                          <span
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full"
-                            style={{ backgroundColor: '#FF5900' }}
-                          />
-                        )}
-                      </Tag>
+                    const className = `group flex items-center gap-2 rounded-xl transition-all duration-200 theme-transition relative ${
+                      isCollapsed ? 'justify-center py-3' : 'px-4 py-2.5'
+                    }`
+                    const style = {
+                      color: active ? '#FF5900' : 'rgba(255,255,255,0.7)',
+                      backgroundColor: active ? 'rgba(255,89,0,0.15)' : 'transparent',
+                      fontWeight: active ? 500 : 300,
+                    } as React.CSSProperties
+                    const mouseHandlers = {
+                      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)'
+                          e.currentTarget.style.color = '#FFFFFF'
+                        }
+                      },
+                      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                          e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+                        }
+                      },
+                    }
+                    const onClick = () => {
+                      setIsOpen(false)
+                      if (item.path === '/website-requests') markWebsiteRequestsSeen()
+                    }
+                    const inner = (<>
+                      {active && !isCollapsed && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ backgroundColor: '#FF5900' }} />
+                      )}
+                      <svg className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                      </svg>
+                      {!isCollapsed && (
+                        <span className="text-xs truncate">{item.label}</span>
+                      )}
+                      {!isCollapsed && item.path === '/requests' && unreadCount > 0 && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>{unreadCount}</span>
+                      )}
+                      {!isCollapsed && item.path === '/acceptance-criteria' && acUnreadCount > 0 && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>{acUnreadCount}</span>
+                      )}
+                      {!isCollapsed && item.path === '/website-requests' && websiteRequestCount > 0 && (
+                        <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: '#FF5900', color: '#FFFFFF', minWidth: '18px', textAlign: 'center' }}>{websiteRequestCount}</span>
+                      )}
+                      {active && isCollapsed && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ backgroundColor: '#FF5900' }} />
+                      )}
+                    </>)
+                    return isExternal ? (
+                      <a key={item.path} href={item.path} onClick={onClick} className={className} style={style} {...mouseHandlers} title={isCollapsed ? item.label : undefined}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <Link key={item.path} to={item.path} onClick={onClick} className={className} style={style} {...mouseHandlers} title={isCollapsed ? item.label : undefined}>
+                        {inner}
+                      </Link>
                     )
                   })}
                 </div>
