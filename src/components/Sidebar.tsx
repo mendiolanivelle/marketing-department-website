@@ -54,9 +54,20 @@ export default function Sidebar() {
 
   const isActive = (path: string) => location.pathname === path
 
-  const markWebsiteRequestsSeen = () => {
-    localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, new Date().toISOString())
+  const markWebsiteRequestsSeen = async () => {
+    const now = new Date().toISOString()
+    localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, now)
     setWebsiteRequestCount(0)
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await supabase.from('website_requests_seen').select('id').order('id', { ascending: false }).limit(1)
+        if (data && data.length > 0) {
+          await supabase.from('website_requests_seen').update({ seen_at: now }).eq('id', data[0].id)
+        } else {
+          await supabase.from('website_requests_seen').insert({ seen_at: now })
+        }
+      } catch {}
+    }
   }
 
   // Fetch unread counts
@@ -76,12 +87,20 @@ export default function Sidebar() {
         const { count: total } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true })
         if (total !== null) {
           localStorage.setItem('exodia-ac-total', JSON.stringify(total))
-          const supabaseUnread = acUnread ?? 0
-          const localUnread = Math.max(0, total - readIds.size)
-          setAcUnreadCount(Math.max(supabaseUnread, localUnread))
+          setAcUnreadCount(acUnread ?? 0)
         }
 
-        const seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
+        let seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
+        try {
+          const { data: seenData } = await supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1)
+          if (seenData && seenData.length > 0 && seenData[0].seen_at) {
+            const supabaseSeenAt = seenData[0].seen_at
+            if (supabaseSeenAt > seenAt) {
+              seenAt = supabaseSeenAt
+              localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, supabaseSeenAt)
+            }
+          }
+        } catch {}
         const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
         setWebsiteRequestCount(wr ?? 0)
       } catch {}
