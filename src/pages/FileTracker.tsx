@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
 
 interface Asset {
@@ -134,6 +135,74 @@ export default function FileTracker() {
     if (folderInputRef.current) folderInputRef.current.setAttribute('webkitdirectory', '')
   }, [])
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
+    const sync = async () => {
+      try {
+        const { data, error } = await client
+          .from('file_tracker_assets')
+          .select('*')
+          .order('added_at', { ascending: false })
+        if (error) throw error
+        const supabaseAssets = (data || []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          category: r.category,
+          type: r.type,
+          dataUrl: r.data_url,
+          url: r.url,
+          addedAt: r.added_at,
+          size: r.size,
+          isMock: r.is_mock,
+        }))
+        const localAssets = (() => {
+          try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
+        })()
+        const supabaseIds = new Set(supabaseAssets.map((a: Asset) => a.id))
+        const localOnly = localAssets.filter((a: Asset) => !supabaseIds.has(a.id))
+        const merged = [...supabaseAssets, ...localOnly]
+        setUserAssets(merged)
+        for (const asset of localOnly) {
+          try {
+            await client.from('file_tracker_assets').insert({
+              id: asset.id, name: asset.name, category: asset.category, type: asset.type,
+              data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
+              size: asset.size, is_mock: asset.isMock || false,
+            })
+          } catch {}
+        }
+      } catch (err) {
+        console.error('Failed to sync file tracker assets:', err)
+      }
+    }
+    sync()
+  }, [])
+
+  const supabaseInsert = async (asset: Asset) => {
+    if (!isSupabaseConfigured || !supabase || asset.isMock) return
+    try {
+      await supabase.from('file_tracker_assets').insert({
+        id: asset.id, name: asset.name, category: asset.category, type: asset.type,
+        data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
+        size: asset.size, is_mock: false,
+      })
+    } catch {}
+  }
+
+  const supabaseUpdate = async (id: string, fields: Record<string, any>) => {
+    if (!isSupabaseConfigured || !supabase) return
+    const dbFields: Record<string, any> = {}
+    if (fields.name !== undefined) dbFields.name = fields.name
+    if (fields.category !== undefined) dbFields.category = fields.category
+    try { await supabase.from('file_tracker_assets').update(dbFields).eq('id', id) } catch {}
+  }
+
+  const supabaseDelete = async (id: string) => {
+    if (!isSupabaseConfigured || !supabase) return
+    try { await supabase.from('file_tracker_assets').delete().eq('id', id) } catch {}
+  }
+
   const allAssets = [...userAssets, ...mockAssets.filter(m => !deletedMockIds.has(m.id))]
 
   // Persist deleted mock IDs
@@ -175,6 +244,7 @@ export default function FileTracker() {
           size: file.size,
         }
         setUserAssets(prev => [asset, ...prev])
+        supabaseInsert(asset)
         resolve()
         logActivity('Files', `Uploaded "${file.name}"`)
       }
@@ -206,6 +276,7 @@ export default function FileTracker() {
         size: 0,
       }
       setUserAssets(prev => [asset, ...prev])
+      supabaseInsert(asset)
       setLinkName('')
       setLinkUrl('')
       setUploadError('')
@@ -225,6 +296,7 @@ export default function FileTracker() {
       setDeletedMockIds(prev => { const next = new Set(prev); next.add(id); return next })
     } else {
       setUserAssets(prev => prev.filter(a => a.id !== id))
+      supabaseDelete(id)
     }
     if (previewAsset?.id === id) setPreviewAsset(null)
     if (asset) logActivity('Files', `Deleted "${asset.name}"`)
@@ -252,6 +324,7 @@ export default function FileTracker() {
     const trimmed = editValue.trim()
     if (!trimmed || !editingId) { setEditingId(null); return }
     setUserAssets(prev => prev.map(a => a.id === editingId ? { ...a, name: trimmed } : a))
+    supabaseUpdate(editingId, { name: trimmed })
     setEditingId(null)
   }
 
@@ -399,7 +472,7 @@ export default function FileTracker() {
                   <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Name</label>
                   {!previewAsset.isMock ? (
                     <input type="text" defaultValue={previewAsset.name}
-                      onBlur={e => { const v = e.target.value.trim(); if (v) setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, name: v } : a)) }}
+                      onBlur={e => { const v = e.target.value.trim(); if (v) { setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, name: v } : a)); supabaseUpdate(previewAsset.id, { name: v }) } }}
                       onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                       className="w-full px-3 py-1.5 rounded-lg border text-sm outline-none"
                       style={{ borderColor: '#CACDD7', color: '#1B1A1C' }} />
@@ -411,7 +484,7 @@ export default function FileTracker() {
                   <label className="text-xs font-semibold tracking-wider uppercase block mb-1.5" style={{ color: '#CACDD7' }}>Category</label>
                   {!previewAsset.isMock ? (
                     <select defaultValue={previewAsset.category}
-                      onChange={e => setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, category: e.target.value } : a))}
+                      onChange={e => { setUserAssets(prev => prev.map(a => a.id === previewAsset.id ? { ...a, category: e.target.value } : a)); supabaseUpdate(previewAsset.id, { category: e.target.value }) }}
                       className="w-full px-3 py-1.5 rounded-lg border text-sm outline-none"
                       style={{ borderColor: '#CACDD7', color: '#1B1A1C' }}>
                       {CATEGORIES.filter(c => c !== 'All Files').map(c => <option key={c} value={c}>{c}</option>)}
