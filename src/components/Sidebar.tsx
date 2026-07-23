@@ -48,12 +48,17 @@ export default function Sidebar() {
     const saved = localStorage.getItem('user-avatar')
     return saved || null
   })
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const location = useLocation()
+  const { user, signOut } = useAuth()
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !user?.id) return
+    const client = supabase
+    const uid = user.id
     const fetchAvatar = async () => {
       try {
-        const { data } = await supabase.from('user_avatars').select('avatar_url').eq('user_id', user.id).maybeSingle()
+        const { data } = await client.from('user_avatars').select('avatar_url').eq('user_id', uid).maybeSingle()
         if (data?.avatar_url) {
           setAvatarUrl(data.avatar_url)
           localStorage.setItem('user-avatar', data.avatar_url)
@@ -62,9 +67,6 @@ export default function Sidebar() {
     }
     fetchAvatar()
   }, [user?.id])
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const location = useLocation()
-  const { user, signOut } = useAuth()
 
   const isActive = (path: string) => location.pathname === path
 
