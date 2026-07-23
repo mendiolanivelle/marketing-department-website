@@ -321,11 +321,12 @@ export default function Calendar() {
 
     try {
       const now = new Date().toISOString()
+      const { notes, ...dbPayload } = payload
       if (isSupabaseConfigured && supabase) {
         if (editingItem) {
           const { error } = await supabase
             .from('calendar_items')
-            .update({ ...payload, updated_at: now })
+            .update({ ...dbPayload, updated_at: now })
             .eq('id', editingItem.id)
           if (error) throw error
           setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload, updated_at: now } as CalendarItem : i))
@@ -334,7 +335,7 @@ export default function Calendar() {
           const newItem: CalendarItem = { id, ...payload, created_at: now, updated_at: now }
           const { error } = await supabase
             .from('calendar_items')
-            .insert([newItem])
+            .insert([{ id, ...dbPayload, created_at: now, updated_at: now }])
           if (error) throw error
           setItems(prev => [...prev, newItem])
         }
