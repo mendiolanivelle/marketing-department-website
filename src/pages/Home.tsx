@@ -109,6 +109,13 @@ export default function Home() {
       }
     }
     syncReadAnnouncements()
+    const channel = client
+      .channel('read-announcements-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'read_announcements' }, () => {
+        syncReadAnnouncements()
+      })
+      .subscribe()
+    return () => { try { client.removeChannel(channel) } catch {} }
   }, [])
 
   useEffect(() => {
@@ -159,6 +166,13 @@ export default function Home() {
       }
     }
     sync()
+    const calChannel = client
+      .channel('calendar-items-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items' }, () => {
+        sync()
+      })
+      .subscribe()
+    return () => { try { client.removeChannel(calChannel) } catch {} }
   }, [])
 
   useEffect(() => {
