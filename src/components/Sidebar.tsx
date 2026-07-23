@@ -55,13 +55,13 @@ export default function Sidebar() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !user?.id) return
     const client = supabase
-    const uid = user.id
     const fetchAvatar = async () => {
       try {
-        const { data } = await client.from('user_avatars').select('avatar_url').eq('user_id', uid).maybeSingle()
-        if (data?.avatar_url) {
-          setAvatarUrl(data.avatar_url)
-          localStorage.setItem('user-avatar', data.avatar_url)
+        const { data: { user: authUser } } = await client.auth.getUser()
+        const metaUrl = authUser?.user_metadata?.avatar_url
+        if (metaUrl) {
+          setAvatarUrl(metaUrl)
+          localStorage.setItem('user-avatar', metaUrl)
         }
       } catch {}
     }
@@ -148,10 +148,8 @@ export default function Sidebar() {
         const result = reader.result as string
         setAvatarUrl(result)
         localStorage.setItem('user-avatar', result)
-        if (isSupabaseConfigured && supabase && user?.id) {
-          try {
-            await supabase.from('user_avatars').upsert({ user_id: user.id, avatar_url: result, updated_at: new Date().toISOString() })
-          } catch {}
+        if (isSupabaseConfigured && supabase) {
+          try { await supabase.auth.updateUser({ data: { avatar_url: result } }) } catch {}
         }
       }
       reader.readAsDataURL(file)
@@ -161,8 +159,8 @@ export default function Sidebar() {
   const handleRemoveAvatar = async () => {
     setAvatarUrl(null)
     localStorage.removeItem('user-avatar')
-    if (isSupabaseConfigured && supabase && user?.id) {
-      try { await supabase.from('user_avatars').delete().eq('user_id', user.id) } catch {}
+    if (isSupabaseConfigured && supabase) {
+      try { await supabase.auth.updateUser({ data: { avatar_url: null } }) } catch {}
     }
     setShowAvatarModal(false)
   }
