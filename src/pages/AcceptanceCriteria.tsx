@@ -72,6 +72,12 @@ export default function AcceptanceCriteria() {
 
   const fetchSubmissions = async () => {
     setFetchError(null)
+    const localSubmissions = (() => {
+      try { const s = localStorage.getItem('exodia-acceptance-form'); return s ? JSON.parse(s) : [] } catch { return [] }
+    })()
+    const localList = Array.isArray(localSubmissions) ? localSubmissions : [localSubmissions]
+    setSubmissions(localList)
+
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
@@ -82,7 +88,17 @@ export default function AcceptanceCriteria() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) throw error
-      setSubmissions(data || [])
+      const supabaseData = data || []
+      const supabaseIds = new Set(supabaseData.map((s: any) => s.tracking_id).filter(Boolean))
+      const localOnly = localList.filter((s: Submission) => !s.tracking_id || !supabaseIds.has(s.tracking_id))
+      setSubmissions([...supabaseData, ...localOnly])
+      for (const sub of localOnly) {
+        try {
+          const payload = { ...sub }
+          delete (payload as any).id
+          await supabase.from('acceptance_forms').insert([payload])
+        } catch {}
+      }
     } catch (err: any) {
       console.error('Error fetching submissions:', err)
       setFetchError(err?.message || 'Failed to load submissions')
