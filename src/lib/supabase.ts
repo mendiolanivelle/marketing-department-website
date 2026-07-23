@@ -7,6 +7,23 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
 const REMEMBER_ME_KEY = 'mb_remember_me'
 
+function retryFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const attempt = (retries: number) => {
+      fetch(input, init)
+        .then(resolve)
+        .catch(err => {
+          if (retries > 0) {
+            setTimeout(() => attempt(retries - 1), 1000)
+          } else {
+            reject(err)
+          }
+        })
+    }
+    attempt(2)
+  })
+}
+
 function getRememberMe(): boolean {
   if (typeof window === 'undefined') return true
   return window.localStorage.getItem(REMEMBER_ME_KEY) !== 'false'
@@ -51,6 +68,9 @@ export const supabase = isSupabaseConfigured
       },
       realtime: {
         params: { log_level: 'silent' },
+      },
+      global: {
+        fetch: retryFetch,
       },
     })
   : null
