@@ -63,11 +63,7 @@ export default function AcceptanceCriteria() {
 
   const formatId = (sub: Submission): string => {
     if (sub.tracking_id) return sub.tracking_id
-    const d = new Date(sub.created_at)
-    const yy = String(d.getFullYear()).slice(-2)
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const seq = String(100 + Number(sub.id) % 900).padStart(3, '0')
-    return 'AC-' + yy + mm + '-' + seq
+    return '—'
   }
 
   const fetchSubmissions = async () => {
