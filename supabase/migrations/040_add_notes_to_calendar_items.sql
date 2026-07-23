@@ -1,0 +1,1 @@
+ALTER TABLE calendar_items ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
