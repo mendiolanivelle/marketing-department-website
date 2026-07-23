@@ -38,6 +38,7 @@ interface Submission {
 export default function AcceptanceCriteria() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [filterType, setFilterType] = useState<string | null>(null)
 
@@ -70,6 +71,7 @@ export default function AcceptanceCriteria() {
   }
 
   const fetchSubmissions = async () => {
+    setFetchError(null)
     if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
@@ -81,8 +83,9 @@ export default function AcceptanceCriteria() {
         .order('created_at', { ascending: false })
       if (error) throw error
       setSubmissions(data || [])
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching submissions:', err)
+      setFetchError(err?.message || 'Failed to load submissions')
     } finally {
       setLoading(false)
     }
@@ -532,11 +535,11 @@ export default function AcceptanceCriteria() {
             </div>
       ) : filteredSubmissions.length === 0 ? (
         <div className="text-center py-20">
-          <svg className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg className="w-16 h-16 mx-auto mb-4" style={{ color: fetchError ? '#EF4444' : 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {fetchError ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />}
           </svg>
-          <p className="text-sm" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{filterType ? `No ${filterType} submissions found.` : 'No submissions yet. Share the public form link to start receiving entries.'}</p>
-          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Public link: /acceptance-form</p>
+          <p className="text-sm" style={{ color: fetchError ? '#EF4444' : 'var(--text-muted)', fontWeight: 300 }}>{fetchError || (filterType ? `No ${filterType} submissions found.` : 'No submissions yet. Share the public form link to start receiving entries.')}</p>
+          {!fetchError && <p className="text-xs mt-2" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>Public link: /acceptance-form</p>}
         </div>
       ) : (
         <div className="rounded-2xl overflow-hidden border-2" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
