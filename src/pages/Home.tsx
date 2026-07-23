@@ -112,6 +112,56 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
+    const sync = async () => {
+      try {
+        const { data, error } = await client
+          .from('calendar_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (error) throw error
+        const supabaseItems = (data || []).map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          type: r.type,
+          date: r.date,
+          start_time: r.start_time,
+          end_time: r.end_time,
+          description: r.description,
+          location: r.location,
+          color: r.color,
+          assignees: r.assignees,
+          notes: '',
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        }))
+        const localItems = (() => {
+          try { const s = localStorage.getItem('exodia-calendar-items'); return s ? JSON.parse(s) : [] } catch { return [] }
+        })()
+        const supabaseIds = new Set(supabaseItems.map((i: any) => i.id))
+        const localOnly = localItems.filter((i: any) => !supabaseIds.has(i.id))
+        const merged = [...supabaseItems, ...localOnly]
+        setCalendarItems(merged)
+        for (const item of localOnly) {
+          try {
+            await client.from('calendar_items').insert({
+              id: item.id, title: item.title, type: item.type, date: item.date,
+              start_time: item.start_time, end_time: item.end_time,
+              description: item.description, location: item.location,
+              color: item.color, assignees: item.assignees,
+              created_at: item.created_at, updated_at: item.updated_at,
+            })
+          } catch {}
+        }
+      } catch (err) {
+        console.error('Failed to sync calendar items:', err)
+      }
+    }
+    sync()
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem('exodia-campaigns', JSON.stringify(campaigns))
   }, [campaigns])
 
@@ -310,6 +360,17 @@ export default function Home() {
     }
     setCalendarItems(prev => [newItem, ...prev])
     window.dispatchEvent(new CustomEvent('calendar-updated'))
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('calendar_items').insert({
+          id: newItem.id, title: newItem.title, type: newItem.type, date: newItem.date,
+          start_time: newItem.start_time, end_time: newItem.end_time,
+          description: newItem.description, location: newItem.location,
+          color: newItem.color, assignees: newItem.assignees,
+          created_at: newItem.created_at, updated_at: newItem.updated_at,
+        })
+      } catch {}
+    }
     setNewAnnouncement({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
     setShowAddAnnouncement(false)
     logActivity('Announcement', `Added "${newAnnouncement.title.trim()}"`)
@@ -320,6 +381,9 @@ export default function Home() {
     const item = calendarItems.find(a => a.id === id)
     setCalendarItems(prev => prev.filter(a => a.id !== id))
     window.dispatchEvent(new CustomEvent('calendar-updated'))
+    if (isSupabaseConfigured && supabase) {
+      try { await supabase.from('calendar_items').delete().eq('id', id) } catch {}
+    }
     if (item) logActivity('Announcement', `Deleted "${item.title}"`)
     setActivityLog(getActivityLog())
   }
@@ -343,6 +407,18 @@ export default function Home() {
       updated_at: new Date().toISOString(),
     } : a))
     window.dispatchEvent(new CustomEvent('calendar-updated'))
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('calendar_items').update({
+          title: editingAnnouncement.title,
+          type: typeFromTag(editingAnnouncement.tag),
+          date: editingAnnouncement.date,
+          description: editingAnnouncement.content || null,
+          color: editingAnnouncement.tag === 'Meeting' ? '#FF5900' : editingAnnouncement.tag === 'Event' ? '#0B8043' : '#1a73e8',
+          updated_at: new Date().toISOString(),
+        }).eq('id', editingAnnouncement.id)
+      } catch {}
+    }
     setEditingAnnouncement(null)
   }
 
