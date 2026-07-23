@@ -156,7 +156,7 @@ export default function Home() {
               id: item.id, title: item.title, type: item.type, date: item.date,
               start_time: item.start_time, end_time: item.end_time,
               description: item.description, location: item.location,
-              color: item.color, assignees: item.assignees,
+              color: item.color, assignees: item.assignees, notes: item.notes || '',
               created_at: item.created_at, updated_at: item.updated_at,
             })
           } catch {}
@@ -380,7 +380,7 @@ export default function Home() {
           id: newItem.id, title: newItem.title, type: newItem.type, date: newItem.date,
           start_time: newItem.start_time, end_time: newItem.end_time,
           description: newItem.description, location: newItem.location,
-          color: newItem.color, assignees: newItem.assignees,
+          color: newItem.color, assignees: newItem.assignees, notes: newItem.notes || '',
           created_at: newItem.created_at, updated_at: newItem.updated_at,
         })
       } catch {}
