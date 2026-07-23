@@ -340,7 +340,7 @@ export default function Home() {
     }
   }
 
-  const addAnnouncement = () => {
+  const addAnnouncement = async () => {
     if (!newAnnouncement.title.trim()) return
     const now = new Date().toISOString()
     const newItem = {
@@ -377,7 +377,7 @@ export default function Home() {
     setActivityLog(getActivityLog())
   }
 
-  const deleteAnnouncement = (id: string) => {
+  const deleteAnnouncement = async (id: string) => {
     const item = calendarItems.find(a => a.id === id)
     setCalendarItems(prev => prev.filter(a => a.id !== id))
     window.dispatchEvent(new CustomEvent('calendar-updated'))
@@ -395,7 +395,7 @@ export default function Home() {
     })
   }
 
-  const saveAnnouncementEdit = () => {
+  const saveAnnouncementEdit = async () => {
     if (!editingAnnouncement) return
     setCalendarItems(prev => prev.map(a => a.id === editingAnnouncement.id ? {
       ...a,
