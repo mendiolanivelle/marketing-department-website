@@ -290,44 +290,40 @@ async function syncData(req, res) {
     const authHeader = req.headers.authorization || `Bearer ${apikey}`
     const results = {}
 
-    if (body.file_tracker_assets && Array.isArray(body.file_tracker_assets)) {
-      let ok = 0; let fail = 0
-      for (const asset of body.file_tracker_assets) {
-        try {
-          const resp = await fetch(`${supabaseUrl}/rest/v1/file_tracker_assets`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' },
-            body: JSON.stringify({
-              id: asset.id, name: asset.name, category: asset.category, type: asset.type,
-              data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
-              size: asset.size, is_mock: false,
-            }),
-          })
-          if (resp.ok) ok++; else fail++
-        } catch { fail++ }
-      }
-      results.file_tracker = { ok, fail }
+    const headers = { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' }
+
+    const tables = {
+      file_tracker_assets: (row: any) => ({
+        id: row.id, name: row.name, category: row.category, type: row.type,
+        data_url: row.dataUrl || row.data_url || null, url: row.url || null,
+        added_at: row.addedAt || row.added_at, size: row.size || 0, is_mock: false,
+      }),
+      calendar_items: (row: any) => ({
+        id: row.id, title: row.title, type: row.type, date: row.date,
+        start_time: row.start_time || null, end_time: row.end_time || null,
+        description: row.description || null, location: row.location || null,
+        color: row.color || '#FF5900', assignees: row.assignees || [],
+        notes: row.notes || '', created_at: row.created_at, updated_at: row.updated_at,
+      }),
+      campaigns: (row: any) => ({
+        id: row.id, name: row.name, dept: row.dept || '', status: row.status || 'Pending',
+        due: row.due || '', created_at: new Date().toISOString(),
+      }),
     }
 
-    if (body.calendar_items && Array.isArray(body.calendar_items)) {
+    for (const [table, mapper] of Object.entries(tables)) {
+      const rows = body[table]
+      if (!rows || !Array.isArray(rows) || rows.length === 0) continue
       let ok = 0; let fail = 0
-      for (const item of body.calendar_items) {
+      for (const row of rows) {
         try {
-          const resp = await fetch(`${supabaseUrl}/rest/v1/calendar_items`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' },
-            body: JSON.stringify({
-              id: item.id, title: item.title, type: item.type, date: item.date,
-              start_time: item.start_time, end_time: item.end_time,
-              description: item.description, location: item.location,
-              color: item.color, assignees: item.assignees, notes: item.notes || '',
-              created_at: item.created_at, updated_at: item.updated_at,
-            }),
+          const resp = await fetch(`${supabaseUrl}/rest/v1/${table}`, {
+            method: 'POST', headers, body: JSON.stringify(mapper(row)),
           })
           if (resp.ok) ok++; else fail++
         } catch { fail++ }
       }
-      results.calendar = { ok, fail }
+      results[table] = { ok, fail }
     }
 
     sendJson(res, 200, { success: true, results })
