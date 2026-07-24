@@ -2,13 +2,11 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity, getActivityLog } from '../lib/activityLogger'
-import { syncAllLocalData } from '../lib/syncAllData'
 import type { ActivityEntry } from '../lib/activityLogger'
 
 const quickLinks = []
 
 export default function Home() {
-  useEffect(() => { syncAllLocalData() }, [])
   const [leadStats, setLeadStats] = useState({
     totalLeads: 0,
     emailsSent: 0,

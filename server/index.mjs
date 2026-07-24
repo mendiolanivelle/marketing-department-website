@@ -269,10 +269,6 @@ createServer(async (req, res) => {
     return serveStoredImage(req, res)
   }
 
-  if (req.method === 'POST' && req.url === '/api/sync-data') {
-    return syncData(req, res)
-  }
-
   if (req.method === 'GET' || req.method === 'HEAD') {
     return serveStatic(req, res)
   }
@@ -281,53 +277,3 @@ createServer(async (req, res) => {
 }).listen(port, () => {
   console.log(`Marketing website server listening on port ${port}`)
 })
-
-async function syncData(req, res) {
-  try {
-    const body = JSON.parse(await readBody(req))
-    const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
-    const apikey = cleanEnv(process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o')
-    const authHeader = req.headers.authorization || `Bearer ${apikey}`
-    const results = {}
-
-    const headers = { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' }
-
-    const tables = {
-      file_tracker_assets: (row: any) => ({
-        id: row.id, name: row.name, category: row.category, type: row.type,
-        data_url: row.dataUrl || row.data_url || null, url: row.url || null,
-        added_at: row.addedAt || row.added_at, size: row.size || 0, is_mock: false,
-      }),
-      calendar_items: (row: any) => ({
-        id: row.id, title: row.title, type: row.type, date: row.date,
-        start_time: row.start_time || null, end_time: row.end_time || null,
-        description: row.description || null, location: row.location || null,
-        color: row.color || '#FF5900', assignees: row.assignees || [],
-        notes: row.notes || '', created_at: row.created_at, updated_at: row.updated_at,
-      }),
-      campaigns: (row: any) => ({
-        id: row.id, name: row.name, dept: row.dept || '', status: row.status || 'Pending',
-        due: row.due || '', created_at: new Date().toISOString(),
-      }),
-    }
-
-    for (const [table, mapper] of Object.entries(tables)) {
-      const rows = body[table]
-      if (!rows || !Array.isArray(rows) || rows.length === 0) continue
-      let ok = 0; let fail = 0
-      for (const row of rows) {
-        try {
-          const resp = await fetch(`${supabaseUrl}/rest/v1/${table}`, {
-            method: 'POST', headers, body: JSON.stringify(mapper(row)),
-          })
-          if (resp.ok) ok++; else fail++
-        } catch { fail++ }
-      }
-      results[table] = { ok, fail }
-    }
-
-    sendJson(res, 200, { success: true, results })
-  } catch (err) {
-    sendJson(res, 500, { error: err.message })
-  }
-}
