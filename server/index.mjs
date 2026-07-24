@@ -269,6 +269,10 @@ createServer(async (req, res) => {
     return serveStoredImage(req, res)
   }
 
+  if (req.url?.startsWith('/api/supabase/')) {
+    return proxySupabase(req, res)
+  }
+
   if (req.method === 'GET' || req.method === 'HEAD') {
     return serveStatic(req, res)
   }
@@ -277,3 +281,31 @@ createServer(async (req, res) => {
 }).listen(port, () => {
   console.log(`Marketing website server listening on port ${port}`)
 })
+
+async function proxySupabase(req, res) {
+  const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
+  const targetPath = req.url.replace('/api/supabase', '')
+  const targetUrl = `${supabaseUrl}${targetPath}`
+
+  const headers = { ...req.headers }
+  delete headers.host
+  delete headers.connection
+  if (!headers['content-type']) delete headers['content-type']
+
+  try {
+    const body = req.method === 'GET' || req.method === 'HEAD' ? undefined : await readBody(req)
+    const resp = await fetch(targetUrl, {
+      method: req.method,
+      headers,
+      body: body || undefined,
+    })
+    const respHeaders = {}
+    resp.headers.forEach((v, k) => { respHeaders[k] = v })
+    res.writeHead(resp.status, respHeaders)
+    const text = await resp.text()
+    res.end(text)
+  } catch (err) {
+    res.writeHead(502, { 'Content-Type': 'text/plain' })
+    res.end('Supabase proxy error')
+  }
+}

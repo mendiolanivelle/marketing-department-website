@@ -55,6 +55,15 @@ export const supabase = isSupabaseConfigured
     })
   : null
 
+// In production, proxy REST requests through the marketing server to avoid HTTP/2 issues
+if (supabase && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  const proxyBase = '/api/supabase'
+  const rest = (supabase as any).rest
+  if (rest) {
+    rest.url = `${window.location.origin}${proxyBase}`
+  }
+}
+
 export function setRememberMe(value: boolean) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(REMEMBER_ME_KEY, String(value))
