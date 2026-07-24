@@ -43,7 +43,8 @@ export default function Sidebar() {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [acUnreadCount, setAcUnreadCount] = useState(0)
-  const [websiteRequestCount, setWebsiteRequestCount] = useState(0)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     const saved = localStorage.getItem('user-avatar')
     return saved || null
@@ -163,6 +164,40 @@ export default function Sidebar() {
       try { await supabase.auth.updateUser({ data: { avatar_url: null } }) } catch {}
     }
     setShowAvatarModal(false)
+  }
+
+  const syncAllData = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const keys = ['exodia-file-tracker-assets', 'exodia-calendar-items', 'exodia-campaigns', 'exodia-tasks']
+      const items: any[] = []
+      for (const key of keys) {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        let data = JSON.parse(raw)
+        if (!Array.isArray(data)) data = [data]
+        for (const row of data) {
+          if (key === 'exodia-file-tracker-assets') {
+            items.push({ table: 'file_tracker_assets', row: { id: row.id, name: row.name, category: row.category, type: row.type, data_url: row.dataUrl || null, url: row.url || null, added_at: row.addedAt, size: row.size || 0, is_mock: false } })
+          } else if (key === 'exodia-calendar-items') {
+            items.push({ table: 'calendar_items', row: { id: row.id, title: row.title, type: row.type, date: row.date, start_time: row.start_time || null, end_time: row.end_time || null, description: row.description || null, location: row.location || null, color: row.color || '#FF5900', assignees: row.assignees || [], notes: row.notes || '', created_at: row.created_at, updated_at: row.updated_at } })
+          } else if (key === 'exodia-campaigns') {
+            items.push({ table: 'campaigns', row: { id: row.id, name: row.name, dept: row.dept || '', status: row.status || 'Pending', due: row.due || '' } })
+          }
+        }
+      }
+      if (items.length === 0) { setSyncResult('No data to sync'); return }
+      const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
+      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
+      const result = await resp.json()
+      setSyncResult(`Synced ${result.ok || 0} items`)
+    } catch (e: any) {
+      setSyncResult('Sync failed: ' + (e?.message || 'unknown'))
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncResult(null), 5000)
+    }
   }
 
   const getDisplayName = () => {
@@ -422,6 +457,15 @@ export default function Sidebar() {
               </div>
             ))}
           </nav>
+
+          {/* Sync button */}
+          {!isCollapsed && (
+            <div className="px-3 pb-2">
+              <button onClick={syncAllData} disabled={syncing} className="w-full px-4 py-2 rounded-xl text-xs font-medium transition" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                {syncing ? 'Syncing...' : syncResult || 'Sync All Data'}
+              </button>
+            </div>
+          )}
 
           {/* Bottom accent bar */}
           <div className="px-3 pb-4">

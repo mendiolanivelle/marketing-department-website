@@ -269,6 +269,10 @@ createServer(async (req, res) => {
     return serveStoredImage(req, res)
   }
 
+  if (req.method === 'POST' && req.url === '/api/sync') {
+    return syncAll(req, res)
+  }
+
   if (req.method === 'GET' || req.method === 'HEAD') {
     return serveStatic(req, res)
   }
@@ -277,3 +281,28 @@ createServer(async (req, res) => {
 }).listen(port, () => {
   console.log(`Marketing website server listening on port ${port}`)
 })
+
+async function syncAll(req, res) {
+  try {
+    const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
+    const apikey = cleanEnv(process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o')
+    const { items } = JSON.parse(await readBody(req))
+    if (!items || !Array.isArray(items)) return sendJson(res, 400, { error: 'items array required' })
+
+    const h = { 'Content-Type': 'application/json', apikey, Authorization: req.headers.authorization || `Bearer ${apikey}`, Prefer: 'return=minimal' }
+    let ok = 0; let fail = 0
+
+    for (const { table, row } of items) {
+      try {
+        const resp = await fetch(`${supabaseUrl}/rest/v1/${table}?id=eq.${encodeURIComponent(row.id)}`, { method: 'GET', headers: h })
+        const existing = await resp.json()
+        if (existing && existing.length > 0) { ok++; continue }
+        const insertResp = await fetch(`${supabaseUrl}/rest/v1/${table}`, { method: 'POST', headers: h, body: JSON.stringify(row) })
+        if (insertResp.ok) ok++; else fail++
+      } catch { fail++ }
+    }
+    sendJson(res, 200, { ok, fail })
+  } catch (err) {
+    sendJson(res, 500, { error: err.message })
+  }
+}
