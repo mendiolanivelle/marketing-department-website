@@ -286,7 +286,8 @@ async function syncData(req, res) {
   try {
     const body = JSON.parse(await readBody(req))
     const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
-    const authHeader = req.headers.authorization || req.headers['apikey'] || ''
+    const apikey = cleanEnv(process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o')
+    const authHeader = req.headers.authorization || `Bearer ${apikey}`
     const results = {}
 
     if (body.file_tracker_assets && Array.isArray(body.file_tracker_assets)) {
@@ -295,7 +296,7 @@ async function syncData(req, res) {
         try {
           const resp = await fetch(`${supabaseUrl}/rest/v1/file_tracker_assets`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey: authHeader, Authorization: authHeader, Prefer: 'return=minimal' },
+            headers: { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' },
             body: JSON.stringify({
               id: asset.id, name: asset.name, category: asset.category, type: asset.type,
               data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
@@ -314,7 +315,7 @@ async function syncData(req, res) {
         try {
           const resp = await fetch(`${supabaseUrl}/rest/v1/calendar_items`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', apikey: authHeader, Authorization: authHeader, Prefer: 'return=minimal' },
+            headers: { 'Content-Type': 'application/json', apikey, Authorization: authHeader, Prefer: 'return=minimal' },
             body: JSON.stringify({
               id: item.id, title: item.title, type: item.type, date: item.date,
               start_time: item.start_time, end_time: item.end_time,

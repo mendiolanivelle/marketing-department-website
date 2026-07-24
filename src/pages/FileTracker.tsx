@@ -177,9 +177,10 @@ export default function FileTracker() {
           }
           if (!pushedToSupabase) {
             try {
+              const token = (await client.auth.getSession())?.data?.session?.access_token
               await fetch('/api/sync-data', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
                 body: JSON.stringify({ file_tracker_assets: localOnly }),
               })
             } catch {}
