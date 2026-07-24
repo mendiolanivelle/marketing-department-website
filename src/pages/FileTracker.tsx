@@ -165,12 +165,13 @@ export default function FileTracker() {
           setUserAssets([...supabaseAssets, ...localOnly])
           for (const asset of localOnly) {
             try {
-              await client.from('file_tracker_assets').insert({
+              const { error: insertErr } = await client.from('file_tracker_assets').insert({
                 id: asset.id, name: asset.name, category: asset.category, type: asset.type,
                 data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
                 size: asset.size, is_mock: false,
               })
-            } catch {}
+              if (insertErr) console.error('FileTracker sync insert error:', insertErr)
+            } catch (e: any) { console.error('FileTracker sync error:', e?.message || e) }
           }
         } else {
           setUserAssets(supabaseAssets)
