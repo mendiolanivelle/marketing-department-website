@@ -52,15 +52,6 @@ export const supabase = isSupabaseConfigured
       realtime: {
         params: { log_level: 'silent' },
       },
-      global: {
-        fetch: (input: RequestInfo | URL, init?: RequestInit) => {
-          let url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url
-          if (typeof url === 'string' && url.includes(supabaseUrl!)) {
-            url = url.replace(supabaseUrl!, '/api/supabase')
-          }
-          return fetch(url, init)
-        },
-      },
     })
   : null
 
