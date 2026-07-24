@@ -163,6 +163,7 @@ export default function FileTracker() {
         const localOnly = localAssets.filter((a: Asset) => !a.isMock && !supabaseIds.has(a.id))
         if (localOnly.length > 0) {
           setUserAssets([...supabaseAssets, ...localOnly])
+          let pushedToSupabase = false
           for (const asset of localOnly) {
             try {
               const { error: insertErr } = await client.from('file_tracker_assets').insert({
@@ -170,8 +171,18 @@ export default function FileTracker() {
                 data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
                 size: asset.size, is_mock: false,
               })
-              if (insertErr) console.error('FileTracker sync insert error:', insertErr)
+              if (!insertErr) pushedToSupabase = true
+              else console.error('FileTracker sync insert error:', insertErr)
             } catch (e: any) { console.error('FileTracker sync error:', e?.message || e) }
+          }
+          if (!pushedToSupabase) {
+            try {
+              await fetch('/api/sync-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_tracker_assets: localOnly }),
+              })
+            } catch {}
           }
         } else {
           setUserAssets(supabaseAssets)

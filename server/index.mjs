@@ -269,6 +269,10 @@ createServer(async (req, res) => {
     return serveStoredImage(req, res)
   }
 
+  if (req.method === 'POST' && req.url === '/api/sync-data') {
+    return syncData(req, res)
+  }
+
   if (req.method === 'GET' || req.method === 'HEAD') {
     return serveStatic(req, res)
   }
@@ -277,3 +281,56 @@ createServer(async (req, res) => {
 }).listen(port, () => {
   console.log(`Marketing website server listening on port ${port}`)
 })
+
+async function syncData(req, res) {
+  try {
+    const body = JSON.parse(await readBody(req))
+    const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
+    const authHeader = req.headers.authorization || req.headers['apikey'] || ''
+    const results = {}
+
+    if (body.file_tracker_assets && Array.isArray(body.file_tracker_assets)) {
+      let ok = 0; let fail = 0
+      for (const asset of body.file_tracker_assets) {
+        try {
+          const resp = await fetch(`${supabaseUrl}/rest/v1/file_tracker_assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: authHeader, Authorization: authHeader, Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              id: asset.id, name: asset.name, category: asset.category, type: asset.type,
+              data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
+              size: asset.size, is_mock: false,
+            }),
+          })
+          if (resp.ok) ok++; else fail++
+        } catch { fail++ }
+      }
+      results.file_tracker = { ok, fail }
+    }
+
+    if (body.calendar_items && Array.isArray(body.calendar_items)) {
+      let ok = 0; let fail = 0
+      for (const item of body.calendar_items) {
+        try {
+          const resp = await fetch(`${supabaseUrl}/rest/v1/calendar_items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: authHeader, Authorization: authHeader, Prefer: 'return=minimal' },
+            body: JSON.stringify({
+              id: item.id, title: item.title, type: item.type, date: item.date,
+              start_time: item.start_time, end_time: item.end_time,
+              description: item.description, location: item.location,
+              color: item.color, assignees: item.assignees, notes: item.notes || '',
+              created_at: item.created_at, updated_at: item.updated_at,
+            }),
+          })
+          if (resp.ok) ok++; else fail++
+        } catch { fail++ }
+      }
+      results.calendar = { ok, fail }
+    }
+
+    sendJson(res, 200, { success: true, results })
+  } catch (err) {
+    sendJson(res, 500, { error: err.message })
+  }
+}
