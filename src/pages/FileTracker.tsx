@@ -156,7 +156,25 @@ export default function FileTracker() {
           size: r.size,
           isMock: r.is_mock,
         }))
-        setUserAssets(supabaseAssets)
+        const localAssets = (() => {
+          try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
+        })()
+        const supabaseIds = new Set(supabaseAssets.map((a: Asset) => a.id))
+        const localOnly = localAssets.filter((a: Asset) => !a.isMock && !supabaseIds.has(a.id))
+        if (localOnly.length > 0) {
+          setUserAssets([...supabaseAssets, ...localOnly])
+          for (const asset of localOnly) {
+            try {
+              await client.from('file_tracker_assets').insert({
+                id: asset.id, name: asset.name, category: asset.category, type: asset.type,
+                data_url: asset.dataUrl || null, url: asset.url || null, added_at: asset.addedAt,
+                size: asset.size, is_mock: false,
+              })
+            } catch {}
+          }
+        } else {
+          setUserAssets(supabaseAssets)
+        }
       } catch (err) {
         console.error('Failed to sync file tracker assets:', err)
       }
