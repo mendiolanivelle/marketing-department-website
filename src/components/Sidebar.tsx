@@ -43,6 +43,7 @@ export default function Sidebar() {
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [acUnreadCount, setAcUnreadCount] = useState(0)
+  const [websiteRequestCount, setWebsiteRequestCount] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
