@@ -176,18 +176,18 @@ export default function Sidebar() {
       if (isSupabaseConfigured && supabase) {
         const pullResults = await Promise.allSettled([
           supabase.from('file_tracker_assets').select('*').order('added_at', { ascending: false }).then(({ data, error }) => {
-            if (error || !data) return
+            if (error || !data || data.length === 0) return
             const mapped = data.map((r: any) => ({ id: r.id, name: r.name, category: r.category, type: r.type, dataUrl: r.data_url, url: r.url, addedAt: r.added_at, size: r.size, isMock: r.is_mock }))
             localStorage.setItem('exodia-file-tracker-assets', JSON.stringify(mapped))
             pulled += mapped.length
           }),
           supabase.from('calendar_items').select('*').order('date', { ascending: true }).then(({ data, error }) => {
-            if (error || !data) return
+            if (error || !data || data.length === 0) return
             localStorage.setItem('exodia-calendar-items', JSON.stringify(data))
             pulled += data.length
           }),
           supabase.from('campaigns').select('*').then(({ data, error }) => {
-            if (error || !data) return
+            if (error || !data || data.length === 0) return
             const existing: any[] = (() => { try { const s = localStorage.getItem('exodia-campaigns'); return s ? JSON.parse(s) : [] } catch { return [] } })()
             const existingIds = new Set(existing.map((c: any) => c.id))
             let added = 0
@@ -222,10 +222,26 @@ export default function Sidebar() {
         }
       }
       if (items.length > 0) {
-        const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
-        const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
-        const result = await resp.json()
-        pushed = result.ok || 0
+        try {
+          const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
+          const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
+          const result = await resp.json()
+          pushed = result.ok || 0
+        } catch {
+          if (isSupabaseConfigured && supabase) {
+            for (const { table, row } of items) {
+              try {
+                const { data: existing } = await supabase.from(table).select('id').eq('id', row.id).maybeSingle()
+                if (!existing) {
+                  const { error } = await supabase.from(table).insert(row)
+                  if (!error) pushed++
+                } else {
+                  pushed++
+                }
+              } catch { /* skip */ }
+            }
+          }
+        }
       }
       const parts: string[] = []
       if (pulled > 0) parts.push(`Pulled ${pulled}`)
