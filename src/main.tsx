@@ -42,4 +42,6 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+sessionStorage.removeItem('stale-chunk-reloaded')
+
 document.documentElement.dataset.assetCache = 'v2'

@@ -170,7 +170,40 @@ export default function Sidebar() {
   const syncAllData = async () => {
     setSyncing(true)
     setSyncResult(null)
+    let pulled = 0
+    let pushed = 0
     try {
+      if (isSupabaseConfigured && supabase) {
+        const pullResults = await Promise.allSettled([
+          supabase.from('file_tracker_assets').select('*').order('added_at', { ascending: false }).then(({ data, error }) => {
+            if (error || !data) return
+            const mapped = data.map((r: any) => ({ id: r.id, name: r.name, category: r.category, type: r.type, dataUrl: r.data_url, url: r.url, addedAt: r.added_at, size: r.size, isMock: r.is_mock }))
+            localStorage.setItem('exodia-file-tracker-assets', JSON.stringify(mapped))
+            pulled += mapped.length
+          }),
+          supabase.from('calendar_items').select('*').order('date', { ascending: true }).then(({ data, error }) => {
+            if (error || !data) return
+            localStorage.setItem('exodia-calendar-items', JSON.stringify(data))
+            pulled += data.length
+          }),
+          supabase.from('campaigns').select('*').then(({ data, error }) => {
+            if (error || !data) return
+            const existing: any[] = (() => { try { const s = localStorage.getItem('exodia-campaigns'); return s ? JSON.parse(s) : [] } catch { return [] } })()
+            const existingIds = new Set(existing.map((c: any) => c.id))
+            let added = 0
+            data.forEach((r: any) => {
+              if (!existingIds.has(r.id)) {
+                existing.push({ id: r.id, name: r.name, dept: r.dept || '', status: r.status || 'Pending', due: r.due || '', requesterName: r.requester_name || '', requesterEmail: r.requester_email || '', priority: r.priority || '', requestType: r.request_type || [], description: r.description || '', tracking_id: r.tracking_id || null })
+                added++
+              }
+            })
+            if (added > 0) localStorage.setItem('exodia-campaigns', JSON.stringify(existing))
+            pulled += added
+          }),
+        ])
+        pullResults.forEach(r => { if (r.status === 'rejected') console.error('Sync pull error:', r.reason) })
+      }
+
       const keys = ['exodia-file-tracker-assets', 'exodia-calendar-items', 'exodia-campaigns', 'exodia-tasks']
       const items: any[] = []
       for (const key of keys) {
@@ -188,11 +221,19 @@ export default function Sidebar() {
           }
         }
       }
-      if (items.length === 0) { setSyncResult('No data to sync'); return }
-      const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
-      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
-      const result = await resp.json()
-      setSyncResult(`Synced ${result.ok || 0} items`)
+      if (items.length > 0) {
+        const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
+        const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
+        const result = await resp.json()
+        pushed = result.ok || 0
+      }
+      const parts: string[] = []
+      if (pulled > 0) parts.push(`Pulled ${pulled}`)
+      if (pushed > 0) parts.push(`Pushed ${pushed}`)
+      if (parts.length === 0) { setSyncResult('No data to sync'); return }
+      setSyncResult(parts.join(' · '))
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+      window.dispatchEvent(new CustomEvent('storage'))
     } catch (e: any) {
       setSyncResult('Sync failed: ' + (e?.message || 'unknown'))
     } finally {
