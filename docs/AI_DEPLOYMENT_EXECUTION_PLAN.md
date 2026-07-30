@@ -382,7 +382,9 @@ Verify the linked target before running the dry run.
 - Migration history has no unexplained ambiguity.
 - Staging dry-run lists only reviewed pending migrations.
 - Schema diff contains no unexplained destructive change.
-- Existing staging rows remain unchanged.
+- The explicitly reviewed timeline-boundary and edit-token transformations
+  match expected aggregate counts; every other existing staging value remains
+  unchanged.
 - Clean install, lint, typecheck, build, container startup, and `/healthz`
   pass.
 
@@ -665,8 +667,12 @@ Requires:
    smoke, record both digests, and do not rebuild those production artifacts.
 9. Deploy Stage A, check `/healthz`, and verify both public forms use the Edge
    boundary while the legacy database policies are still present.
-10. Apply forward migrations `043`–`051` in version order. Do not exercise
-   completion notifications until `051` is installed.
+10. Do not replay repository migrations `017`–`051` directly. Inventory their
+    live effects read-only, classify each as absent, complete, partial, or
+    conflicting, and apply only the uniquely versioned forward reconciliation
+    sequence proven against the production-shaped staging copy. Do not
+    exercise completion notifications until the reconciled `051` effect is
+    installed.
 11. Prove anonymous denial, ordinary-account denial, approved staff access,
     sales-only SOW access, private buckets, idempotent public retries, and
     gateway `429` behavior. Also prove inline-write rejection and fail-closed,

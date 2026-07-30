@@ -71,8 +71,8 @@ ready until every gate in this document passes.
 
 ## Forward Migrations
 
-Apply only after the remote migration ledger proves these versions are
-pending and in the expected order:
+These files describe the intended effects of the release; this table is not
+permission to replay them against an existing database:
 
 | Version | Purpose |
 | --- | --- |
@@ -85,6 +85,22 @@ pending and in the expected order:
 | `049` | Private buckets, write kill switch, checksums, and object-cleanup queue |
 | `050` | Reject new inline binary writes from staff clients |
 | `051` | Idempotent completion-notification delivery ledger |
+
+The production ledger currently ends at `016`, while the repository's
+`017`–`042` history is not safely replayable as written: it contains duplicate
+version `020` and ordering assumptions that depend on schema outside the
+recorded ledger. Before any staging or production migration:
+
+1. inventory the live effects of `017`–`051` read-only and classify each as
+   absent, complete, partial, or conflicting;
+2. create uniquely versioned, forward-only reconciliation migrations for only
+   the missing or partial effects;
+3. test that reconciliation sequence and rollback on a production-shaped
+   staging database with verified recovery; and
+4. apply only the exact staging-tested reconciliation sequence.
+
+Never blindly replay `017`–`051`, edit an applied migration, or repair the
+remote ledger merely to make version numbers match.
 
 Migration `048` is fresh-reset safe and fails closed when no users have the
 staff claim. Staff assignment is an explicit deployment preflight, not a
@@ -158,9 +174,14 @@ manifest's SHA-256 digest and target count:
 
 ## Data Impact
 
-The initial release is additive:
+The release is non-destructive, but it is not row-immutable:
 
-- existing rows and inline base64 values remain unchanged;
+- migration effect `043` fills a missing timeline sales-boundary key after
+  validating it against the row's column metadata;
+- migration effect `047` hashes existing plaintext edit capabilities, assigns
+  an expiry when absent, and clears the plaintext token after the hash exists;
+- every other existing row value and every legacy inline base64 value must
+  remain unchanged;
 - existing Storage objects remain unchanged;
 - two private bucket definitions may be created;
 - one disabled private-write control row, nullable path/checksum columns,
@@ -275,8 +296,11 @@ Auth metadata changes, backfill, or deletion.
    - File Tracker is link-only and Website Request attachments are hidden.
    - Both flows remain schema-compatible before `049`.
 7. Verify both public Edge submission flows while legacy policies still exist.
-8. Apply migrations `043` through `051` in order. Do not exercise completion
-   notifications until `051` is installed.
+8. Complete the read-only `017`–`051` effect inventory, build a uniquely
+   versioned forward-only reconciliation sequence, and rehearse it against the
+   production-shaped staging copy. Apply only that reviewed sequence. Do not
+   blindly replay the legacy files or exercise completion notifications until
+   the reconciled `051` effect is installed.
 9. Prove:
    - anonymous reads/writes to protected tables fail;
    - an ordinary authenticated account fails UI, API, function, table, and
