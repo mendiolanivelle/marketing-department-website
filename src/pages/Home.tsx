@@ -1,10 +1,22 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity, getActivityLog } from '../lib/activityLogger'
 import type { ActivityEntry } from '../lib/activityLogger'
 
-const quickLinks = []
+const readBrowserArray = (key: string): any[] => {
+  const saved = localStorage.getItem(key)
+  if (!saved) return []
+  try {
+    const parsed = JSON.parse(saved)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+const readBrowserCalendarItems = () => readBrowserArray('exodia-calendar-items')
+const readBrowserCampaigns = () => readBrowserArray('exodia-campaigns')
 
 export default function Home() {
   const [leadStats, setLeadStats] = useState({
@@ -14,43 +26,26 @@ export default function Home() {
     noReply: 0,
     meetingsLeft: 0,
   })
-  const [calendarItems, setCalendarItems] = useState<any[]>(() => {
-    const saved = localStorage.getItem('exodia-calendar-items')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [leadCountReady, setLeadCountReady] = useState(!isSupabaseConfigured)
+  const [calendarItems, setCalendarItems] = useState<any[]>(() => isSupabaseConfigured ? [] : readBrowserCalendarItems())
+  const [calendarReady, setCalendarReady] = useState(false)
+  const remoteCalendarItemIdsRef = useRef(new Set<string>())
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any>(null)
   const [showPipeline, setShowPipeline] = useState(false)
-  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('exodia-read-announcements')
-    return saved ? JSON.parse(saved) : []
-  })
+  const [readAnnouncementIds, setReadAnnouncementIds] = useState<string[]>(() =>
+    readBrowserArray('exodia-read-announcements').filter((id): id is string => typeof id === 'string'),
+  )
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null)
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
   const [showReadAnnouncements, setShowReadAnnouncements] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
-  const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('exodia-tasks')
-    return saved ? JSON.parse(saved) : [
-      { id: 1, text: 'Review Q3 campaign proposals', done: false },
-      { id: 2, text: 'Update brand guidelines document', done: false },
-      { id: 3, text: 'Schedule team meeting for July', done: false },
-      { id: 4, text: 'Prepare presentation for stakeholders', done: false },
-    ]
-  })
+  const [tasks, setTasks] = useState(() => isSupabaseConfigured ? [] : readBrowserArray('exodia-tasks'))
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
-  const [campaigns, setCampaigns] = useState(() => {
-    const saved = localStorage.getItem('exodia-campaigns')
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'HR Recruitment Drive', dept: 'HR', status: 'Ongoing', due: 'Jul 15' },
-      { id: 2, name: 'Q3 Product Launch', dept: 'Product', status: 'Pending', due: 'Aug 01' },
-      { id: 3, name: 'Brand Awareness Campaign', dept: 'Marketing', status: 'Pending', due: 'Jul 30' },
-      { id: 4, name: 'Holiday Promo Q4', dept: 'Sales', status: 'Done', due: 'Jun 28' },
-      { id: 5, name: 'Social Media Blitz', dept: 'Marketing', status: 'Ongoing', due: 'Jul 20' },
-    ]
-  })
+  const [campaigns, setCampaigns] = useState<any[]>(() => isSupabaseConfigured ? [] : readBrowserCampaigns())
+  const [campaignCountsReady, setCampaignCountsReady] = useState(!isSupabaseConfigured)
 
   // Refresh activity log on mount and when navigating back to dashboard
   const location = useLocation()
@@ -59,146 +54,113 @@ export default function Home() {
     const refresh = () => setActivityLog(getActivityLog())
     window.addEventListener('focus', refresh)
     return () => window.removeEventListener('focus', refresh)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key])
 
-  // Listen for calendar-updated events from Calendar page
+  // Browser-only tasks remain device-local until their migration is defined.
   useEffect(() => {
-    const handler = () => {
-      const saved = localStorage.getItem('exodia-calendar-items')
-      if (saved) setCalendarItems(JSON.parse(saved))
-    }
-    window.addEventListener('calendar-updated', handler)
-    return () => window.removeEventListener('calendar-updated', handler)
-  }, [])
-
-  // Persist tasks and calendar items to localStorage
-  useEffect(() => {
+    if (isSupabaseConfigured) return
     localStorage.setItem('exodia-tasks', JSON.stringify(tasks))
   }, [tasks])
-
-  useEffect(() => {
-    localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
-  }, [calendarItems])
 
   useEffect(() => {
     localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
   }, [readAnnouncementIds])
 
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return
-    const client = supabase
-    const syncReadAnnouncements = async () => {
-      try {
-        const { data, error } = await client
-          .from('read_announcements')
-          .select('announcement_id')
-        if (error) throw error
-        const supabaseIds = (data || []).map((r: any) => r.announcement_id)
-        const localIds = (() => {
-          try { const s = localStorage.getItem('exodia-read-announcements'); return s ? JSON.parse(s) : [] } catch { return [] }
-        })()
-        const merged = [...new Set([...localIds, ...supabaseIds])]
-        setReadAnnouncementIds(merged)
-        const newIds = localIds.filter((id: string) => !supabaseIds.includes(id))
-        for (const id of newIds) {
-          try { await client.from('read_announcements').insert({ announcement_id: id }) } catch {}
-        }
-      } catch (err) {
-        console.error('Failed to sync read announcements:', err)
-      }
+  const syncCalendarItems = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      remoteCalendarItemIdsRef.current = new Set()
+      setCalendarItems(readBrowserCalendarItems())
+      setCalendarReady(false)
+      return
     }
-    syncReadAnnouncements()
-    const channel = client
-      .channel('read-announcements-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'read_announcements' }, () => {
-        syncReadAnnouncements()
-      })
-      .subscribe()
-    return () => { try { client.removeChannel(channel) } catch {} }
+
+    try {
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      const remoteItems = data || []
+      remoteCalendarItemIdsRef.current = new Set(remoteItems.map(item => item.id))
+      setCalendarItems(remoteItems)
+      setSelectedAnnouncement(current => current ? remoteItems.find(item => item.id === current.id) || null : null)
+      setCalendarReady(true)
+    } catch (err) {
+      console.error('Failed to sync calendar items:', err)
+      remoteCalendarItemIdsRef.current = new Set()
+      setCalendarItems([])
+      setSelectedAnnouncement(null)
+      setCalendarReady(false)
+    }
   }, [])
 
   useEffect(() => {
+    void syncCalendarItems()
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
-    const sync = async () => {
-      try {
-        const { data, error } = await client
-          .from('calendar_items')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (error) throw error
-        const supabaseItems = (data || []).map((r: any) => ({
-          id: r.id,
-          title: r.title,
-          type: r.type,
-          date: r.date,
-          start_time: r.start_time,
-          end_time: r.end_time,
-          description: r.description,
-          location: r.location,
-          color: r.color,
-          assignees: r.assignees,
-          notes: '',
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-        }))
-        const localItems = (() => {
-          try { const s = localStorage.getItem('exodia-calendar-items'); return s ? JSON.parse(s) : [] } catch { return [] }
-        })()
-        const supabaseIds = new Set(supabaseItems.map((i: any) => i.id))
-        const localOnly = localItems.filter((i: any) => !supabaseIds.has(i.id))
-        const merged = [...supabaseItems, ...localOnly]
-        setCalendarItems(merged)
-        for (const item of localOnly) {
-          try {
-            await client.from('calendar_items').insert({
-              id: item.id, title: item.title, type: item.type, date: item.date,
-              start_time: item.start_time, end_time: item.end_time,
-              description: item.description, location: item.location,
-              color: item.color, assignees: item.assignees, notes: item.notes || '',
-              created_at: item.created_at, updated_at: item.updated_at,
-            })
-          } catch {}
-        }
-      } catch (err) {
-        console.error('Failed to sync calendar items:', err)
-      }
-    }
-    sync()
     const calChannel = client
       .channel('calendar-items-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items' }, () => {
-        sync()
+        void syncCalendarItems()
       })
       .subscribe()
     return () => { try { client.removeChannel(calChannel) } catch {} }
-  }, [])
+  }, [syncCalendarItems])
 
   useEffect(() => {
-    localStorage.setItem('exodia-campaigns', JSON.stringify(campaigns))
-  }, [campaigns])
+    const handler = () => { void syncCalendarItems() }
+    window.addEventListener('calendar-updated', handler)
+    return () => window.removeEventListener('calendar-updated', handler)
+  }, [syncCalendarItems])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
+    const syncCampaigns = async () => {
+      const [campaignResult, requestResult] = await Promise.all([
+        client.from('campaigns').select('id, status'),
+        client.from('marketing_requests').select('id, status'),
+      ])
+      if (campaignResult.error || requestResult.error) {
+        console.error('Failed to sync dashboard campaign counts:', campaignResult.error || requestResult.error)
+        setCampaigns([])
+        setCampaignCountsReady(false)
+        return
+      }
+
+      const remoteCampaigns = [
+        ...(campaignResult.data || []).map(row => ({ id: row.id, status: row.status || 'Pending' })),
+        ...(requestResult.data || []).map(row => ({ id: -Number(row.id), status: row.status || 'Pending' })),
+      ]
+      setCampaigns(remoteCampaigns)
+      setCampaignCountsReady(true)
+    }
+
+    void syncCampaigns()
+    const channel = client
+      .channel('dashboard-campaign-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => { void syncCampaigns() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { void syncCampaigns() })
+      .subscribe()
+    return () => { try { client.removeChannel(channel) } catch {} }
+  }, [])
 
   const fetchLeadStats = useCallback(async () => {
     // Helper: count total leads from Lead Generation data
     const countTotalLeads = () => {
       if (!isSupabaseConfigured || !supabase) {
-        const savedFiles = localStorage.getItem('exodia-lead-files')
-        if (!savedFiles) return 0
-        const files = JSON.parse(savedFiles)
+        const files = readBrowserArray('exodia-lead-files')
         let total = 0
         for (const f of files) {
-          if (f.name === 'Duplicate Leads') continue
-          const savedRows = localStorage.getItem(`exodia-lead-rows-${f.id}`)
-          if (savedRows) {
-            try {
-              const rows = JSON.parse(savedRows)
-              for (const r of rows) {
-                const data = r.data as Record<string, string>
-                const companyCol = (f.columns as string[]).find((col: string) => col.toLowerCase().includes('company'))
-                if (companyCol && data[companyCol]?.trim()) total++
-              }
-            } catch {}
+          if (f?.name === 'Duplicate Leads' || !Array.isArray(f?.columns)) continue
+          const rows = readBrowserArray(`exodia-lead-rows-${f.id}`)
+          for (const row of rows) {
+            const data = row?.data
+            if (!data || typeof data !== 'object') continue
+            const companyCol = f.columns.find((column: unknown) => typeof column === 'string' && column.toLowerCase().includes('company'))
+            if (companyCol && typeof data[companyCol] === 'string' && data[companyCol].trim()) {
+              total++
+            }
           }
         }
         return total
@@ -208,18 +170,14 @@ export default function Home() {
 
     // Read messaging stats from localStorage
     const getMessagingStats = () => {
-      const saved = localStorage.getItem('exodia-outreach-leads')
-      if (!saved) return { emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
-      try {
-        const leads = JSON.parse(saved)
-        return {
-          emailsSent: leads.filter((l: any) => l.status === 'sent').length,
-          replied: leads.filter((l: any) => l.status === 'replied').length,
-          noReply: leads.filter((l: any) => l.status === 'no-reply').length,
-          meetingsLeft: leads.filter((l: any) => l.status === 'meeting-booked').length,
-        }
-      } catch {
-        return { emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
+      const empty = { emailsSent: 0, replied: 0, noReply: 0, meetingsLeft: 0 }
+      if (isSupabaseConfigured) return empty
+      const leads = readBrowserArray('exodia-outreach-leads')
+      return {
+        emailsSent: leads.filter((lead: any) => lead.status === 'sent').length,
+        replied: leads.filter((lead: any) => lead.status === 'replied').length,
+        noReply: leads.filter((lead: any) => lead.status === 'no-reply').length,
+        meetingsLeft: leads.filter((lead: any) => lead.status === 'meeting-booked').length,
       }
     }
 
@@ -227,36 +185,37 @@ export default function Home() {
     let totalLeads = countTotalLeads()
 
     if (isSupabaseConfigured && supabase) {
+      setLeadCountReady(false)
       try {
         const { data: files, error: filesError } = await supabase
           .from('lead_files')
           .select('id, name, columns')
+        if (filesError) throw filesError
 
-        if (!filesError && files) {
-          const nonDuplicateFiles = files.filter(f => f.name !== 'Duplicate Leads')
-          const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+        const nonDuplicateFiles = (files || []).filter(f => f.name !== 'Duplicate Leads')
+        const nonDuplicateFileIds = nonDuplicateFiles.map(f => f.id)
+        totalLeads = 0
 
-          if (nonDuplicateFileIds.length > 0) {
-            const { data: allRows, error: rowsError } = await supabase
-              .from('lead_rows')
-              .select('file_id, data')
-              .in('file_id', nonDuplicateFileIds)
+        if (nonDuplicateFileIds.length > 0) {
+          const { data: allRows, error: rowsError } = await supabase
+            .from('lead_rows')
+            .select('file_id, data')
+            .in('file_id', nonDuplicateFileIds)
+          if (rowsError) throw rowsError
 
-            if (!rowsError && allRows) {
-              totalLeads = 0
-              for (const row of allRows) {
-                const data = row.data as Record<string, string>
-                const file = nonDuplicateFiles.find(f => f.id === row.file_id)
-                if (!file) continue
-                const columns = file.columns as string[]
-                const companyCol = columns.find(col => col.toLowerCase().includes('company'))
-                if (companyCol && data[companyCol]?.trim()) totalLeads++
-              }
-            }
+          for (const row of allRows || []) {
+            const data = row.data as Record<string, string>
+            const file = nonDuplicateFiles.find(f => f.id === row.file_id)
+            if (!file) continue
+            const columns = file.columns as string[]
+            const companyCol = columns.find(col => col.toLowerCase().includes('company'))
+            if (companyCol && data[companyCol]?.trim()) totalLeads++
           }
         }
+        setLeadCountReady(true)
       } catch (err) {
         console.error('Error fetching lead stats:', err)
+        setLeadCountReady(false)
       }
     }
 
@@ -354,8 +313,25 @@ export default function Home() {
     }
   }
 
+  const canMutateAnnouncement = (id?: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      window.alert('Announcements are read-only until canonical storage is available.')
+      return false
+    }
+    if (!calendarReady) {
+      window.alert('Canonical announcement data has not loaded successfully. No changes were made.')
+      return false
+    }
+    if (id && !remoteCalendarItemIdsRef.current.has(id)) {
+      window.alert('This browser-only announcement is preserved as read-only because it has no canonical record.')
+      return false
+    }
+    return true
+  }
+
   const addAnnouncement = async () => {
     if (!newAnnouncement.title.trim()) return
+    if (!canMutateAnnouncement() || !supabase) return
     const now = new Date().toISOString()
     const newItem = {
       id: crypto.randomUUID(),
@@ -372,68 +348,95 @@ export default function Home() {
       created_at: now,
       updated_at: now,
     }
-    setCalendarItems(prev => [newItem, ...prev])
-    window.dispatchEvent(new CustomEvent('calendar-updated'))
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('calendar_items').insert({
-          id: newItem.id, title: newItem.title, type: newItem.type, date: newItem.date,
-          start_time: newItem.start_time, end_time: newItem.end_time,
-          description: newItem.description, location: newItem.location,
-          color: newItem.color, assignees: newItem.assignees, notes: newItem.notes || '',
-          created_at: newItem.created_at, updated_at: newItem.updated_at,
-        })
-      } catch {}
+    try {
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .insert([newItem])
+        .select('*')
+        .single()
+      if (error) throw error
+      if (!data) throw new Error('The canonical announcement was not returned after creation.')
+
+      remoteCalendarItemIdsRef.current.add(data.id)
+      setCalendarItems(prev => [data, ...prev.filter(item => item.id !== data.id)])
+      setNewAnnouncement({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
+      setShowAddAnnouncement(false)
+      logActivity('Announcement', `Added "${data.title}"`)
+      setActivityLog(getActivityLog())
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+    } catch (error) {
+      console.error('Failed to create announcement:', error)
+      window.alert('The announcement was not created. No visible or browser-only data was changed.')
     }
-    setNewAnnouncement({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
-    setShowAddAnnouncement(false)
-    logActivity('Announcement', `Added "${newAnnouncement.title.trim()}"`)
-    setActivityLog(getActivityLog())
   }
 
   const deleteAnnouncement = async (id: string) => {
+    if (!canMutateAnnouncement(id) || !supabase) return
+    if (!window.confirm('Delete this announcement?')) return
     const item = calendarItems.find(a => a.id === id)
-    setCalendarItems(prev => prev.filter(a => a.id !== id))
-    window.dispatchEvent(new CustomEvent('calendar-updated'))
-    if (isSupabaseConfigured && supabase) {
-      try { await supabase.from('calendar_items').delete().eq('id', id) } catch {}
+    try {
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('The canonical announcement no longer exists.')
+
+      remoteCalendarItemIdsRef.current.delete(id)
+      setCalendarItems(prev => prev.filter(announcement => announcement.id !== id))
+      if (selectedAnnouncement?.id === id) setSelectedAnnouncement(null)
+      if (item) logActivity('Announcement', `Deleted "${item.title}"`)
+      setActivityLog(getActivityLog())
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+    } catch (error) {
+      console.error('Failed to delete announcement:', error)
+      window.alert('The announcement was not deleted. No visible or browser-only data was changed.')
     }
-    if (item) logActivity('Announcement', `Deleted "${item.title}"`)
-    setActivityLog(getActivityLog())
   }
 
   const startEditingAnnouncement = (announcement: any) => {
+    if (!canMutateAnnouncement(announcement.id)) return
     setEditingAnnouncement({
       ...announcement,
       tag: tagFromType(announcement.type),
+      content: announcement.description || '',
     })
+    setSelectedAnnouncement(null)
   }
 
   const saveAnnouncementEdit = async () => {
     if (!editingAnnouncement) return
-    setCalendarItems(prev => prev.map(a => a.id === editingAnnouncement.id ? {
-      ...a,
+    if (!canMutateAnnouncement(editingAnnouncement.id) || !supabase) return
+    const update = {
       title: editingAnnouncement.title,
       type: typeFromTag(editingAnnouncement.tag),
       date: editingAnnouncement.date,
       description: editingAnnouncement.content || null,
       color: editingAnnouncement.tag === 'Meeting' ? '#FF5900' : editingAnnouncement.tag === 'Event' ? '#0B8043' : '#1a73e8',
       updated_at: new Date().toISOString(),
-    } : a))
-    window.dispatchEvent(new CustomEvent('calendar-updated'))
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('calendar_items').update({
-          title: editingAnnouncement.title,
-          type: typeFromTag(editingAnnouncement.tag),
-          date: editingAnnouncement.date,
-          description: editingAnnouncement.content || null,
-          color: editingAnnouncement.tag === 'Meeting' ? '#FF5900' : editingAnnouncement.tag === 'Event' ? '#0B8043' : '#1a73e8',
-          updated_at: new Date().toISOString(),
-        }).eq('id', editingAnnouncement.id)
-      } catch {}
     }
-    setEditingAnnouncement(null)
+    try {
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .update(update)
+        .eq('id', editingAnnouncement.id)
+        .eq('updated_at', editingAnnouncement.updated_at)
+        .select('*')
+        .maybeSingle()
+      if (error) throw error
+      if (!data) throw new Error('The canonical announcement no longer exists.')
+
+      setCalendarItems(prev => prev.map(announcement => announcement.id === data.id ? data : announcement))
+      setEditingAnnouncement(null)
+      logActivity('Announcement', `Updated "${data.title}"`)
+      setActivityLog(getActivityLog())
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+    } catch (error) {
+      console.error('Failed to update announcement:', error)
+      window.alert('The announcement was not updated. No visible or browser-only data was changed.')
+    }
   }
 
   // Build fix: ensure JSX structure is balanced
@@ -485,15 +488,21 @@ export default function Home() {
                 </div>
                 <button
                   onClick={() => setShowAddAnnouncement(true)}
-                  className="w-9 h-9 rounded-xl transition flex items-center justify-center hover:scale-105"
+                  disabled={!calendarReady}
+                  className="w-9 h-9 rounded-xl transition flex items-center justify-center hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                   style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
-                  title="Add announcement"
+                  title={calendarReady ? 'Add announcement' : 'Canonical announcements are unavailable'}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
               </div>
+              {isSupabaseConfigured && !calendarReady && (
+                <p role="status" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Canonical announcements are unavailable. Changes are disabled to prevent duplicates.
+                </p>
+              )}
               {calendarItems.filter(item => showReadAnnouncements || !readAnnouncementIds.includes(item.id)).length === 0 ? (
                 <div className="text-center py-10">
                   <svg className="w-10 h-10 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
@@ -563,13 +572,15 @@ export default function Home() {
                   </svg>
                 </Link>
               </div>
-              <div className="grid grid-cols-5 gap-3 sm:gap-4">
+              <div className={isSupabaseConfigured ? 'grid grid-cols-1 gap-3 sm:gap-4' : 'grid grid-cols-5 gap-3 sm:gap-4'}>
                 {[
-                  { label: 'Total Leads', value: leadStats.totalLeads, color: '#1B1A1C' },
-                  { label: 'Emails Sent', value: leadStats.emailsSent, color: '#3E4048' },
-                  { label: 'Replied', value: leadStats.replied, color: '#FF5900' },
-                  { label: 'No Reply', value: leadStats.noReply, color: '#DC2626' },
-                  { label: 'Meetings', value: leadStats.meetingsLeft, color: '#2563EB' },
+                  { label: 'Total Leads', value: leadCountReady ? leadStats.totalLeads : '—', color: '#1B1A1C' },
+                  ...(!isSupabaseConfigured ? [
+                    { label: 'Emails Sent', value: leadStats.emailsSent, color: '#3E4048' },
+                    { label: 'Replied', value: leadStats.replied, color: '#FF5900' },
+                    { label: 'No Reply', value: leadStats.noReply, color: '#DC2626' },
+                    { label: 'Meetings', value: leadStats.meetingsLeft, color: '#2563EB' },
+                  ] : []),
                 ].map((stat, i) => (
                   <div key={i} onClick={() => setShowPipeline(true)} className="p-3 sm:p-4 rounded-xl text-center border cursor-pointer transition hover:-translate-y-0.5 theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
                     <div className="text-2xl sm:text-3xl mb-0.5" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
@@ -609,21 +620,27 @@ export default function Home() {
                 {[
                   { label: 'Pending', value: campaigns.filter(c => c.status === 'Pending').length, color: '#1B1A1C' },
                   { label: 'Ongoing', value: campaigns.filter(c => c.status === 'Ongoing').length, color: '#3E4048' },
-                  { label: 'Done (This Month)', value: campaigns.filter(c => c.status === 'Done').length, color: '#FF5900' },
+                  { label: 'Done', value: campaigns.filter(c => c.status === 'Done').length, color: '#FF5900' },
                 ].map((stat, i) => (
                   <div key={i} className="p-3 sm:p-4 rounded-xl text-center border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
-                    <div className="text-2xl sm:text-3xl mb-0.5" style={{ color: stat.color, fontWeight: 700 }}>{stat.value}</div>
+                    <div className="text-2xl sm:text-3xl mb-0.5" style={{ color: stat.color, fontWeight: 700 }}>{campaignCountsReady ? stat.value : '—'}</div>
                     <div className="text-xs" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</div>
                   </div>
                 ))}
               </div>
+              {!campaignCountsReady && (
+                <p role="status" className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                  Canonical campaign counts are unavailable.
+                </p>
+              )}
               
             </div>
           </div>
 
-          {/* Bottom row: My Tasks + Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Bottom row */}
+          <div className={isSupabaseConfigured ? 'grid grid-cols-1 gap-4 sm:gap-6' : 'grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'}>
             {/* My Tasks */}
+            {!isSupabaseConfigured && (
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33)' }}></div>
               <div className="p-5 sm:p-7">
@@ -703,8 +720,9 @@ export default function Home() {
                 </ul>
               </div>
             </div>
+            )}
 
-            {/* Recent Activity */}
+            {/* This Session */}
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF8C33, var(--accent))' }}></div>
               <div className="p-5 sm:p-7">
@@ -714,7 +732,7 @@ export default function Home() {
                       <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
+                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>This Session</h2>
                 </div>
                 {activityLog.length === 0 ? (
                   <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
@@ -770,28 +788,37 @@ export default function Home() {
               </button>
             </div>
             <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{selectedAnnouncement.description}</p>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{formatCalendarDate(selectedAnnouncement.date)}</span>
-              <button
-                onClick={() => {
-                  const id = selectedAnnouncement.id
-                  if (readAnnouncementIds.includes(id)) {
-                    setReadAnnouncementIds(readAnnouncementIds.filter(i => i !== id))
-                    if (isSupabaseConfigured && supabase) {
-                      try { supabase.from('read_announcements').delete().eq('announcement_id', id) } catch {}
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  onClick={() => startEditingAnnouncement(selectedAnnouncement)}
+                  className="px-3 py-2 text-sm rounded-lg border transition"
+                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => { void deleteAnnouncement(selectedAnnouncement.id) }}
+                  className="px-3 py-2 text-sm rounded-lg border border-red-200 text-red-700 transition"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => {
+                    const id = selectedAnnouncement.id
+                    if (readAnnouncementIds.includes(id)) {
+                      setReadAnnouncementIds(readAnnouncementIds.filter(i => i !== id))
+                    } else {
+                      setReadAnnouncementIds([...readAnnouncementIds, id])
                     }
-                  } else {
-                    setReadAnnouncementIds([...readAnnouncementIds, id])
-                    if (isSupabaseConfigured && supabase) {
-                      try { supabase.from('read_announcements').insert({ announcement_id: id }) } catch {}
-                    }
-                  }
-                  setSelectedAnnouncement(null)
-                }}
-                className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
-              >
-                {readAnnouncementIds.includes(selectedAnnouncement.id) ? 'Mark as Unread' : 'Mark as Read'}
-              </button>
+                    setSelectedAnnouncement(null)
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg transition exodia-btn-accent"
+                >
+                  {readAnnouncementIds.includes(selectedAnnouncement.id) ? 'Mark as Unread' : 'Mark as Read'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -950,13 +977,15 @@ export default function Home() {
                 </svg>
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            <div className={isSupabaseConfigured ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4'}>
               {[
-                { label: 'Total Leads', value: leadStats.totalLeads, sub: 'From all sources', color: 'var(--text-primary)' },
-                { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
-                { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
-                { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
-                { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+                { label: 'Total Leads', value: leadCountReady ? leadStats.totalLeads : '—', sub: leadCountReady ? 'From all sources' : 'Canonical count unavailable', color: 'var(--text-primary)' },
+                ...(!isSupabaseConfigured ? [
+                  { label: 'Emails Sent', value: leadStats.emailsSent, sub: `${leadStats.totalLeads > 0 ? Math.round((leadStats.emailsSent / leadStats.totalLeads) * 100) : 0}% of total`, color: 'var(--text-primary)' },
+                  { label: 'Replied', value: leadStats.replied, sub: `${leadStats.emailsSent > 0 ? Math.round((leadStats.replied / leadStats.emailsSent) * 100) : 0}% response rate`, color: 'var(--accent)' },
+                  { label: 'No Reply', value: leadStats.noReply, sub: 'Follow-up needed', color: 'var(--text-primary)' },
+                  { label: 'Meetings', value: leadStats.meetingsLeft, sub: 'Scheduled', color: 'var(--accent)' },
+                ] : []),
               ].map((stat, i) => (
                 <div key={i} className="p-5 rounded-xl border theme-transition" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-secondary)' }}>
                   <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{stat.label}</div>

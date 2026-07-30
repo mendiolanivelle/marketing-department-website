@@ -1,15 +1,70 @@
 name: Deploy Supabase Edge Functions
+
 on:
   workflow_dispatch:
+    inputs:
+      deployment_environment:
+        description: Protected GitHub environment containing this target's secrets
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      project_ref_confirmation:
+        description: Type the exact target Supabase project reference
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-functions-${{ inputs.deployment_environment }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.deployment_environment }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase functions deploy get-public-form --no-verify-jwt
+      - name: Confirm protected target
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_ID: extkotvjigtswrrnxikw
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          DEPLOYMENT_ENVIRONMENT: ${{ inputs.deployment_environment }}
+          PROJECT_REF_CONFIRMATION: ${{ inputs.project_ref_confirmation }}
+        run: |
+          test "$DEPLOYMENT_ENVIRONMENT" = "staging" || test "$DEPLOYMENT_ENVIRONMENT" = "production"
+          if [ "$DEPLOYMENT_ENVIRONMENT" = "production" ]; then test "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH"; fi
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_REF"
+          test "$PROJECT_REF_CONFIRMATION" = "$SUPABASE_PROJECT_REF"
+      - uses: actions/checkout@v4
+      - name: Verify checked-in project target
+        if: inputs.deployment_environment == 'production'
+        run: grep -Fqx "project_id = \"$SUPABASE_PROJECT_REF\"" supabase/config.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Check Edge Function syntax
+        run: >-
+          ./node_modules/.bin/esbuild supabase/functions/*/index.ts
+          --bundle
+          --outbase=supabase/functions
+          --outdir=/tmp/edge-functions
+          --format=esm
+          --platform=neutral
+          '--external:*'
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.110.0
+      - name: Deploy reviewed functions
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"

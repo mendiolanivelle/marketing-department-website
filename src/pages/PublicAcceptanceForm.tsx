@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import Turnstile from '../components/Turnstile'
 
 interface DeliverableRow {
   name: string
@@ -10,16 +11,71 @@ interface DeliverableRow {
   serviceType: string
 }
 
+const emptyDeliverable = (): DeliverableRow => ({
+  name: '',
+  description: '',
+  criteria: '',
+  reference: '',
+  quantity: '',
+  serviceType: '',
+})
+
+const emptyForm = () => ({
+  clientName: '',
+  projectName: '',
+  contact: '',
+  email: '',
+  projectType: '',
+  projectTypeOther: '',
+  targetPlatform: [] as string[],
+  targetPlatformOther: '',
+  timezone: '',
+  startDate: '',
+  deadline: '',
+  budget: '',
+  docLink: '',
+  deliverableRows: [emptyDeliverable()],
+  reviewer: [] as string[],
+  reviewerOther: '',
+  reviewRounds: '',
+  reviewTime: '',
+  approvalBasis: [] as string[],
+  commsTool: [] as string[],
+  commsToolOther: '',
+  weeklyMeeting: [] as string[],
+  meetingTime: '',
+  meetingTimeOther: '',
+  dailySync: [] as string[],
+  syncTime: '',
+  syncTimeOther: '',
+  training: [] as string[],
+  gameEngine: [] as string[],
+  gameEngineOther: '',
+  techRequirements: '',
+  toolsSoftware: '',
+  performanceConstraints: '',
+  signatoryName: '',
+  signatureDataUrl: '',
+})
+
 function SignaturePad({ dataUrl, onDataUrlChange }: { dataUrl: string; onDataUrlChange: (v: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
+  const moved = useRef(false)
+
+  useEffect(() => {
+    if (dataUrl) return
+    const canvas = canvasRef.current
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+  }, [dataUrl])
 
   const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    drawing.current = true
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    drawing.current = true
+    moved.current = false
     const rect = canvas.getBoundingClientRect()
     const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left
     const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top
@@ -34,6 +90,7 @@ function SignaturePad({ dataUrl, onDataUrlChange }: { dataUrl: string; onDataUrl
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    moved.current = true
     const rect = canvas.getBoundingClientRect()
     const x = ('touches' in e ? e.touches[0].clientX : e.clientX) - rect.left
     const y = ('touches' in e ? e.touches[0].clientY : e.clientY) - rect.top
@@ -47,7 +104,9 @@ function SignaturePad({ dataUrl, onDataUrlChange }: { dataUrl: string; onDataUrl
   }, [])
 
   const stopDrawing = useCallback(() => {
+    if (!drawing.current) return
     drawing.current = false
+    if (!moved.current) return
     const canvas = canvasRef.current
     if (!canvas) return
     onDataUrlChange(canvas.toDataURL())
@@ -59,6 +118,8 @@ function SignaturePad({ dataUrl, onDataUrlChange }: { dataUrl: string; onDataUrl
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    drawing.current = false
+    moved.current = false
     onDataUrlChange('')
   }, [onDataUrlChange])
 
@@ -99,104 +160,25 @@ export default function PublicAcceptanceForm() {
   const [submitted, setSubmitted] = useState(false)
   const [generatedId, setGeneratedId] = useState('')
   const [copied, setCopied] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
+  const submissionKeyRef = useRef(crypto.randomUUID())
+  const [invalidGroups, setInvalidGroups] = useState({ targetPlatform: false, reviewer: false })
+  const targetPlatformGroupRef = useRef<HTMLFieldSetElement>(null)
+  const reviewerGroupRef = useRef<HTMLFieldSetElement>(null)
+  const successHeadingRef = useRef<HTMLHeadingElement>(null)
 
-  const formatDateForInput = (dateStr: string): string => {
-    const d = new Date(dateStr)
-    if (isNaN(d.getTime())) return ''
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+  useEffect(() => {
+    if (submitted) successHeadingRef.current?.focus()
+  }, [submitted])
+
+  const [form, setForm] = useState(emptyForm)
+  const resetTurnstile = () => {
+    setTurnstileToken('')
+    setTurnstileResetKey((current) => current + 1)
   }
-
-  const DOC_TYPE = 'AC' // Change to 'REQ' or 'RPT' as needed
-
-  const generateId = async (): Promise<string> => {
-    const now = new Date()
-    const yy = String(now.getFullYear()).slice(-2)
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const yymm = yy + mm
-    const prefix = DOC_TYPE + '-' + yymm + '-'
-
-    let nextSeq = 1
-    let dbQueried = false
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data } = await supabase
-          .from('acceptance_forms')
-          .select('tracking_id')
-          .like('tracking_id', prefix + '%')
-          .order('tracking_id', { ascending: true })
-        dbQueried = true
-        if (data && data.length > 0) {
-          const existing = data
-            .map((row: any) => { const parts = (row.tracking_id || '').split('-'); return parts.length === 3 ? parseInt(parts[2], 10) : 0 })
-            .filter((n: number) => n > 0)
-            .sort((a: number, b: number) => a - b)
-          nextSeq = 1
-          for (const seq of existing) {
-            if (seq === nextSeq) nextSeq++
-            else break
-          }
-        }
-        if (nextSeq === 1) {
-          localStorage.removeItem('exodia-acceptance-last-id')
-        }
-      } catch {}
-    }
-
-    if (nextSeq === 1 && !dbQueried) {
-      const lastRaw = localStorage.getItem('exodia-acceptance-last-id')
-      if (lastRaw) {
-        const parts = lastRaw.split('-')
-        if (parts.length === 3 && parts[1] === yymm) {
-          nextSeq = parseInt(parts[2], 10) + 1
-        }
-      }
-    }
-
-    const seq = String(nextSeq).padStart(3, '0')
-    const newId = prefix + seq
-    localStorage.setItem('exodia-acceptance-last-id', newId)
-    return newId
-  }
-
-  const [form, setForm] = useState({
-    clientName: '',
-    projectName: '',
-    contact: '',
-    email: '',
-    projectType: '',
-    projectTypeOther: '',
-    targetPlatform: [] as string[],
-    targetPlatformOther: '',
-    timezone: '',
-    startDate: '',
-    deadline: '',
-    budget: '',
-    docLink: '',
-    deliverableRows: [{ name: '', description: '', criteria: '', reference: '', quantity: '', serviceType: '' }] as DeliverableRow[],
-    reviewer: [] as string[],
-    reviewerOther: '',
-    reviewRounds: '',
-    reviewTime: '',
-    approvalBasis: [] as string[],
-    commsTool: [] as string[],
-    commsToolOther: '',
-    weeklyMeeting: [] as string[],
-    meetingTime: '',
-    meetingTimeOther: '',
-    dailySync: [] as string[],
-    syncTime: '',
-    syncTimeOther: '',
-    training: [] as string[],
-    gameEngine: [] as string[],
-    gameEngineOther: '',
-    techRequirements: '',
-    toolsSoftware: '',
-    performanceConstraints: '',
-    signature: '',
-    signatureDataUrl: '',
-    signatureDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  })
 
   const handleCheckboxGroup = (field: string, value: string, checked: boolean) => {
     setForm((prev: any) => {
@@ -206,6 +188,9 @@ export default function PublicAcceptanceForm() {
         [field]: checked ? [...current, value] : current.filter((v: string) => v !== value),
       }
     })
+    if (checked && (field === 'targetPlatform' || field === 'reviewer')) {
+      setInvalidGroups((prev) => ({ ...prev, [field]: false }))
+    }
   }
 
   const handleRadioGroup = (field: string, value: string) => {
@@ -215,10 +200,9 @@ export default function PublicAcceptanceForm() {
   const addDeliverableRow = () => {
     setForm((prev: any) => ({
       ...prev,
-      deliverableRows: [
-        ...prev.deliverableRows,
-        { name: '', description: '', criteria: '', reference: '', quantity: '', serviceType: '' },
-      ],
+      deliverableRows: prev.deliverableRows.length < 20
+        ? [...prev.deliverableRows, emptyDeliverable()]
+        : prev.deliverableRows,
     }))
   }
 
@@ -239,75 +223,136 @@ export default function PublicAcceptanceForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trackingId = await generateId()
-    const submission = { ...form, submittedAt: new Date().toISOString(), trackingId }
-    localStorage.setItem('exodia-acceptance-form', JSON.stringify(submission))
+    if (submitting) return
 
-    if (isSupabaseConfigured && supabase) {
-      const buildPayload = (withTracking: boolean) => ({
-        client_name: form.clientName,
-        project_name: form.projectName,
-        contact: form.contact,
-        email: form.email,
-        project_type: form.projectType === 'Others (Specify)' ? `Others: ${form.projectTypeOther}` : form.projectType,
-        target_platform: form.targetPlatform.includes('Others (Specify)')
-          ? [...form.targetPlatform.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.targetPlatformOther}`]
-          : form.targetPlatform,
-        timezone: form.timezone,
-        start_date: form.startDate,
-        deadline: form.deadline,
-        budget: form.budget,
-        doc_link: form.docLink,
-        deliverables: form.deliverableRows,
-        reviewer: form.reviewer.includes('Others (Specify)')
-          ? [...form.reviewer.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.reviewerOther}`]
-          : form.reviewer,
-        review_rounds: form.reviewRounds,
-        review_time: form.reviewTime,
-        approval_basis: form.approvalBasis,
-        comms_tool: form.commsTool.includes('Others (Specify)')
-          ? [...form.commsTool.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.commsToolOther}`]
-          : form.commsTool,
-        weekly_meeting: form.weeklyMeeting,
-        meeting_time: form.meetingTime === 'Others (Specify)' ? `Others: ${form.meetingTimeOther}` : form.meetingTime,
-        daily_sync: form.dailySync,
-        sync_time: form.syncTime === 'Others (Specify)' ? `Others: ${form.syncTimeOther}` : form.syncTime,
-        training: form.training,
-        game_engine: form.gameEngine.includes('Others (Specify)')
-          ? [...form.gameEngine.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.gameEngineOther}`]
-          : form.gameEngine,
-        tech_requirements: form.techRequirements,
-        tools_software: form.toolsSoftware,
-        performance_constraints: form.performanceConstraints,
-        signature: form.signatureDataUrl || form.signature,
-        signature_date: form.signatureDate,
-        ...(withTracking ? { tracking_id: trackingId } : {}),
-        created_at: new Date().toISOString(),
-      })
-      try {
-        const { error } = await supabase.from('acceptance_forms').insert([buildPayload(true)])
-        if (error) {
-          console.error('Supabase insert error (with tracking_id):', error)
-          const { error: retryError } = await supabase.from('acceptance_forms').insert([buildPayload(false)])
-          if (retryError) console.error('Supabase insert error (fallback):', retryError)
-        }
-      } catch (err) {
-        console.error('Failed to submit to Supabase:', err)
-      }
+    setSubmitError('')
+    const nextInvalidGroups = {
+      targetPlatform: form.targetPlatform.length === 0,
+      reviewer: form.reviewer.length === 0,
+    }
+    setInvalidGroups(nextInvalidGroups)
+    const allDeliverablesComplete = form.deliverableRows.length > 0 && form.deliverableRows.every(
+      (row) => row.name.trim() && row.criteria.trim()
+    )
+    if (
+      !form.clientName.trim() ||
+      !form.projectName.trim() ||
+      !form.contact.trim() ||
+      !form.email.trim() ||
+      !form.projectType ||
+      form.targetPlatform.length === 0 ||
+      !form.timezone.trim() ||
+      !form.startDate ||
+      !form.deadline ||
+      form.deadline < form.startDate ||
+      !allDeliverablesComplete ||
+      form.reviewer.length === 0 ||
+      !form.signatoryName.trim() ||
+      (form.projectType === 'Others (Specify)' && !form.projectTypeOther.trim()) ||
+      (form.targetPlatform.includes('Others (Specify)') && !form.targetPlatformOther.trim()) ||
+      (form.reviewer.includes('Others (Specify)') && !form.reviewerOther.trim()) ||
+      (form.commsTool.includes('Others (Specify)') && !form.commsToolOther.trim()) ||
+      (form.projectType === 'Project Base' && form.meetingTime === 'Others (Specify)' && !form.meetingTimeOther.trim()) ||
+      (form.projectType === 'Staff Augmentation' && form.syncTime === 'Others (Specify)' && !form.syncTimeOther.trim()) ||
+      (form.gameEngine.includes('Others (Specify)') && !form.gameEngineOther.trim())
+    ) {
+      setSubmitError(
+        form.startDate && form.deadline && form.deadline < form.startDate
+          ? 'The expected deadline cannot be earlier than the start date.'
+          : 'Complete all required project, deliverable, reviewer, and sign-off fields before submitting.',
+      )
+      const firstInvalidGroup = nextInvalidGroups.targetPlatform
+        ? targetPlatformGroupRef
+        : nextInvalidGroups.reviewer
+          ? reviewerGroupRef
+          : null
+      if (firstInvalidGroup) window.requestAnimationFrame(() => firstInvalidGroup.current?.focus())
+      return
+    }
+    if (!turnstileToken) {
+      setSubmitError('Complete the submission verification before sending this form.')
+      return
+    }
+    setSubmitting(true)
+
+    if (!isSupabaseConfigured || !supabase) {
+      setSubmitError('We could not securely submit the form. Your entries remain on this page.')
+      resetTurnstile()
+      setSubmitting(false)
+      return
     }
 
-    setSubmitted(true)
-    setGeneratedId(trackingId)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const payload = {
+      client_name: form.clientName,
+      project_name: form.projectName,
+      contact: form.contact,
+      email: form.email,
+      project_type: form.projectType === 'Others (Specify)' ? `Others: ${form.projectTypeOther}` : form.projectType,
+      target_platform: form.targetPlatform.includes('Others (Specify)')
+        ? [...form.targetPlatform.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.targetPlatformOther}`]
+        : form.targetPlatform,
+      timezone: form.timezone,
+      start_date: form.startDate,
+      deadline: form.deadline,
+      budget: form.budget,
+      doc_link: form.docLink,
+      deliverables: form.deliverableRows,
+      reviewer: form.reviewer.includes('Others (Specify)')
+        ? [...form.reviewer.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.reviewerOther}`]
+        : form.reviewer,
+      review_rounds: form.reviewRounds,
+      review_time: form.reviewTime,
+      approval_basis: form.approvalBasis,
+      comms_tool: form.commsTool.includes('Others (Specify)')
+        ? [...form.commsTool.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.commsToolOther}`]
+        : form.commsTool,
+      weekly_meeting: form.projectType === 'Project Base' ? form.weeklyMeeting : [],
+      meeting_time: form.projectType === 'Project Base'
+        ? form.meetingTime === 'Others (Specify)' ? `Others: ${form.meetingTimeOther}` : form.meetingTime
+        : '',
+      daily_sync: form.projectType === 'Staff Augmentation' ? form.dailySync : [],
+      sync_time: form.projectType === 'Staff Augmentation'
+        ? form.syncTime === 'Others (Specify)' ? `Others: ${form.syncTimeOther}` : form.syncTime
+        : '',
+      training: form.projectType === 'Staff Augmentation' ? form.training : [],
+      game_engine: form.gameEngine.includes('Others (Specify)')
+        ? [...form.gameEngine.filter((v: string) => v !== 'Others (Specify)'), `Others: ${form.gameEngineOther}`]
+        : form.gameEngine,
+      tech_requirements: form.techRequirements,
+      tools_software: form.toolsSoftware,
+      performance_constraints: form.performanceConstraints,
+      signatory_name: form.signatoryName,
+      signature_png: form.signatureDataUrl,
+      submissionKey: submissionKeyRef.current,
+      turnstileToken,
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke<{ trackingId: string }>(
+        'public-acceptance-form',
+        { body: payload },
+      )
+      if (error || !data?.trackingId) throw error || new Error('Submission was not confirmed')
+
+      setSubmitted(true)
+      setGeneratedId(data.trackingId)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch {
+      setSubmitError('We could not securely submit the form. Your entries remain on this page. Please try again.')
+      resetTurnstile()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const radioOptions = (field: string, options: string[]) =>
+  const radioOptions = (field: string, options: string[], required = false) =>
     options.map((opt) => (
       <label key={opt} className="flex items-center gap-2 cursor-pointer">
         <input
           type="radio"
           name={field}
           value={opt}
+          required={required}
           checked={(form as any)[field] === opt}
           onChange={() => handleRadioGroup(field, opt)}
           className="w-4 h-4"
@@ -341,7 +386,7 @@ export default function PublicAcceptanceForm() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl mb-3" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Submitted Successfully</h1>
+          <h1 ref={successHeadingRef} tabIndex={-1} className="text-2xl mb-3" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Submitted Successfully</h1>
           <p className="text-sm mb-2" style={{ color: '#6B7280', fontWeight: 300 }}>
             Your Acceptance Criteria has been logged!
           </p>
@@ -383,6 +428,11 @@ export default function PublicAcceptanceForm() {
               setSubmitted(false)
               setGeneratedId('')
               setCopied(false)
+              setSubmitError('')
+              setInvalidGroups({ targetPlatform: false, reviewer: false })
+              setForm(emptyForm())
+              submissionKeyRef.current = crypto.randomUUID()
+              resetTurnstile()
               window.scrollTo({ top: 0, behavior: 'smooth' })
             }}
             className="mt-6 px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
@@ -431,48 +481,54 @@ export default function PublicAcceptanceForm() {
           <div className="px-6 py-5 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client / Studio Name</label>
-                <input type="text" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
+                <label htmlFor="acceptance-client" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client / Studio Name *</label>
+                <input id="acceptance-client" type="text" required maxLength={200} value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter your studio name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Name</label>
-                <input type="text" value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter project name" />
+                <label htmlFor="acceptance-project" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Name *</label>
+                <input id="acceptance-project" type="text" required maxLength={300} value={form.projectName} onChange={(e) => setForm({ ...form, projectName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Enter project name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Point of Contact</label>
-                <input type="text" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your name" />
+                <label htmlFor="acceptance-contact" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Point of Contact *</label>
+                <input id="acceptance-contact" type="text" required maxLength={200} value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Your name" />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email Address</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="your@email.com" />
+                <label htmlFor="acceptance-email" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Email Address *</label>
+                <input id="acceptance-email" type="email" required maxLength={254} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="you@example.com" />
               </div>
             </div>
-            <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Type</label>
+            <fieldset className="min-w-0">
+              <legend className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Project Type</legend>
               <div className="flex flex-wrap gap-2">
-                {radioOptions('projectType', ['Project Base', 'Staff Augmentation'])}
+                {radioOptions('projectType', ['Project Base', 'Staff Augmentation'], true)}
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="projectType" value="Others (Specify)" checked={form.projectType === 'Others (Specify)'} onChange={() => handleRadioGroup('projectType', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
+                  <input type="radio" required name="projectType" value="Others (Specify)" checked={form.projectType === 'Others (Specify)'} onChange={() => handleRadioGroup('projectType', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.projectType === 'Others (Specify)' && <input type="text" value={form.projectTypeOther} onChange={(e) => setForm({ ...form, projectTypeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.projectType === 'Others (Specify)' && <input aria-label="Other project type" required type="text" maxLength={100} value={form.projectTypeOther} onChange={(e) => setForm({ ...form, projectTypeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Target Platform</label>
+            </fieldset>
+            <fieldset
+              ref={targetPlatformGroupRef}
+              className="min-w-0"
+              tabIndex={invalidGroups.targetPlatform ? -1 : undefined}
+              aria-invalid={invalidGroups.targetPlatform || undefined}
+              aria-describedby={invalidGroups.targetPlatform ? 'acceptance-submit-error' : undefined}
+            >
+              <legend className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Target Platform</legend>
               <div className="flex flex-wrap gap-2">
                 {checkboxOptions('targetPlatform', ['PC', 'Mobile', 'Web', 'Console', 'Not sure yet'])}
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" value="Others (Specify)" checked={form.targetPlatform.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('targetPlatform', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.targetPlatform.includes('Others (Specify)') && <input type="text" value={form.targetPlatformOther} onChange={(e) => setForm({ ...form, targetPlatformOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.targetPlatform.includes('Others (Specify)') && <input aria-label="Other target platform" required type="text" maxLength={100} value={form.targetPlatformOther} onChange={(e) => setForm({ ...form, targetPlatformOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
-            </div>
+            </fieldset>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone</label>
-                <input type="text" list="timezones" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} placeholder="Type or select your timezone..." className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                <label htmlFor="acceptance-timezone" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Timezone *</label>
+                <input id="acceptance-timezone" required type="text" maxLength={200} list="timezones" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} placeholder="Type or select your timezone..." className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
                 <datalist id="timezones">
                   <option value="UTC-12 — Baker Island / Howland Island">UTC-12</option>
                   <option value="UTC-11 — American Samoa / Niue">UTC-11</option>
@@ -515,21 +571,21 @@ export default function PublicAcceptanceForm() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date</label>
-                <input type="date" value={form.startDate ? formatDateForInput(form.startDate) : ''} onChange={(e) => setForm({ ...form, startDate: e.target.value ? new Date(e.target.value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                <label htmlFor="acceptance-start-date" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Start Date *</label>
+                <input id="acceptance-start-date" required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline</label>
-                <input type="date" value={form.deadline ? formatDateForInput(form.deadline) : ''} onChange={(e) => setForm({ ...form, deadline: e.target.value ? new Date(e.target.value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
+                <label htmlFor="acceptance-deadline" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Expected Deadline *</label>
+                <input id="acceptance-deadline" required type="date" min={form.startDate || undefined} value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} />
               </div>
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
-                <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
+                <label htmlFor="acceptance-budget" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Budget Range</label>
+                <input id="acceptance-budget" type="text" maxLength={200} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. $5,000 - $10,000" />
               </div>
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Link to Project Document</label>
-              <input type="text" value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Google Drive, Notion, etc." />
+              <label htmlFor="acceptance-document-link" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Link to Project Document</label>
+              <input id="acceptance-document-link" type="url" maxLength={2048} value={form.docLink} onChange={(e) => setForm({ ...form, docLink: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="https://…" />
             </div>
           </div>
         </div>
@@ -559,39 +615,39 @@ export default function PublicAcceptanceForm() {
                 <div className="p-4 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Deliverable Name</label>
-                      <input type="text" value={row.name} onChange={(e) => updateDeliverableRow(i, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Game Trailer, Social Media Kit" />
+                      <label htmlFor={`deliverable-name-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Deliverable Name *</label>
+                      <input id={`deliverable-name-${i}`} required type="text" maxLength={300} value={row.name} onChange={(e) => updateDeliverableRow(i, 'name', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. Game Trailer, Social Media Kit" />
                     </div>
                     <div>
-                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Quantity</label>
-                      <input type="text" value={row.quantity} onChange={(e) => updateDeliverableRow(i, 'quantity', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 1, 5, 10" />
+                      <label htmlFor={`deliverable-quantity-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Quantity</label>
+                      <input id={`deliverable-quantity-${i}`} type="text" maxLength={100} value={row.quantity} onChange={(e) => updateDeliverableRow(i, 'quantity', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 1, 5, 10" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Description</label>
-                    <textarea value={row.description} onChange={(e) => updateDeliverableRow(i, 'description', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Describe what this deliverable should include..." />
+                    <label htmlFor={`deliverable-description-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Description</label>
+                    <textarea id={`deliverable-description-${i}`} maxLength={2000} value={row.description} onChange={(e) => updateDeliverableRow(i, 'description', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Describe what this deliverable should include..." />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Acceptance Criteria</label>
-                    <textarea value={row.criteria} onChange={(e) => updateDeliverableRow(i, 'criteria', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="How will we know this is done? e.g. 1080p resolution, 30fps, approved by client" />
+                    <label htmlFor={`deliverable-criteria-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Acceptance Criteria *</label>
+                    <textarea id={`deliverable-criteria-${i}`} required maxLength={3000} value={row.criteria} onChange={(e) => updateDeliverableRow(i, 'criteria', e.target.value)} rows={2} className="w-full px-3 py-2 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="How will we know this is done? e.g. 1080p resolution, 30fps, approved by client" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Reference Link</label>
-                      <input type="text" value={row.reference} onChange={(e) => updateDeliverableRow(i, 'reference', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Link to reference / inspiration" />
+                      <label htmlFor={`deliverable-reference-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Reference Link</label>
+                      <input id={`deliverable-reference-${i}`} type="url" maxLength={2048} value={row.reference} onChange={(e) => updateDeliverableRow(i, 'reference', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="https://…" />
                     </div>
                     <div>
-                      <label className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Service Type</label>
-                      <input type="text" value={row.serviceType} onChange={(e) => updateDeliverableRow(i, 'serviceType', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 3D Modeling, Animation, Editing" />
+                      <label htmlFor={`deliverable-service-${i}`} className="block text-xs mb-1" style={{ color: '#6B7280', fontWeight: 500 }}>Service Type</label>
+                      <input id={`deliverable-service-${i}`} type="text" maxLength={200} value={row.serviceType} onChange={(e) => updateDeliverableRow(i, 'serviceType', e.target.value)} className="w-full px-3 py-2 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="e.g. 3D Modeling, Animation, Editing" />
                     </div>
                   </div>
                 </div>
               </div>
             ))}
 
-            <button type="button" onClick={addDeliverableRow} className="w-full px-4 py-3 text-sm rounded-xl transition flex items-center justify-center gap-1.5 hover:-translate-y-0.5" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', border: '2px dashed #FFD6B3', fontWeight: 500 }}>
+            <button type="button" onClick={addDeliverableRow} disabled={form.deliverableRows.length >= 20} className="w-full px-4 py-3 text-sm rounded-xl transition flex items-center justify-center gap-1.5 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60" style={{ color: '#FF5900', backgroundColor: '#FFF0E6', border: '2px dashed #FFD6B3', fontWeight: 500 }}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Add Another Deliverable
+              {form.deliverableRows.length >= 20 ? 'Maximum 20 Deliverables' : 'Add Another Deliverable'}
             </button>
           </div>
         </div>
@@ -603,8 +659,14 @@ export default function PublicAcceptanceForm() {
             <h2 className="text-sm" style={{ color: '#FFFFFF', fontWeight: 600, letterSpacing: '0.02em' }}>SECTION C: REVIEW &amp; APPROVAL PROCESS</h2>
           </div>
           <div className="px-6 py-5 space-y-5">
-            <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</label>
+            <fieldset
+              ref={reviewerGroupRef}
+              className="min-w-0"
+              tabIndex={invalidGroups.reviewer ? -1 : undefined}
+              aria-invalid={invalidGroups.reviewer || undefined}
+              aria-describedby={invalidGroups.reviewer ? 'acceptance-submit-error' : undefined}
+            >
+              <legend className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Who will review and approve this?</legend>
               <p className="text-xs mb-2" style={{ color: '#9CA3AF', fontWeight: 300 }}>Select all that apply</p>
               <div className="flex flex-wrap gap-2">
                 {checkboxOptions('reviewer', ['Client', "Client's Team", 'Stakeholders', "Client's QA"])}
@@ -612,9 +674,9 @@ export default function PublicAcceptanceForm() {
                   <input type="checkbox" value="Others (Specify)" checked={form.reviewer.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('reviewer', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.reviewer.includes('Others (Specify)') && <input type="text" value={form.reviewerOther} onChange={(e) => setForm({ ...form, reviewerOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.reviewer.includes('Others (Specify)') && <input aria-label="Other reviewer" required type="text" maxLength={100} value={form.reviewerOther} onChange={(e) => setForm({ ...form, reviewerOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
-            </div>
+            </fieldset>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Review Rounds Included</label>
@@ -650,7 +712,7 @@ export default function PublicAcceptanceForm() {
                   <input type="checkbox" value="Others (Specify)" checked={form.commsTool.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('commsTool', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.commsTool.includes('Others (Specify)') && <input type="text" value={form.commsToolOther} onChange={(e) => setForm({ ...form, commsToolOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.commsTool.includes('Others (Specify)') && <input aria-label="Other communication tool" required type="text" maxLength={100} value={form.commsToolOther} onChange={(e) => setForm({ ...form, commsToolOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
             </div>
             {form.projectType === 'Project Base' && (
@@ -669,7 +731,7 @@ export default function PublicAcceptanceForm() {
                   <input type="radio" name="meetingTime" value="Others (Specify)" checked={form.meetingTime === 'Others (Specify)'} onChange={() => handleRadioGroup('meetingTime', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.meetingTime === 'Others (Specify)' && <input type="text" value={form.meetingTimeOther} onChange={(e) => setForm({ ...form, meetingTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.meetingTime === 'Others (Specify)' && <input aria-label="Other preferred meeting time" required type="text" maxLength={100} value={form.meetingTimeOther} onChange={(e) => setForm({ ...form, meetingTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
                 </div>
               </div>
@@ -691,7 +753,7 @@ export default function PublicAcceptanceForm() {
                   <input type="radio" name="syncTime" value="Others (Specify)" checked={form.syncTime === 'Others (Specify)'} onChange={() => handleRadioGroup('syncTime', 'Others (Specify)')} className="w-4 h-4" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.syncTime === 'Others (Specify)' && <input type="text" value={form.syncTimeOther} onChange={(e) => setForm({ ...form, syncTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.syncTime === 'Others (Specify)' && <input aria-label="Other preferred sync time" required type="text" maxLength={100} value={form.syncTimeOther} onChange={(e) => setForm({ ...form, syncTimeOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
                 </div>
                 <div>
@@ -719,20 +781,20 @@ export default function PublicAcceptanceForm() {
                   <input type="checkbox" value="Others (Specify)" checked={form.gameEngine.includes('Others (Specify)')} onChange={(e) => handleCheckboxGroup('gameEngine', 'Others (Specify)', e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900' }} />
                   <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Others:</span>
                 </label>
-                {form.gameEngine.includes('Others (Specify)') && <input type="text" value={form.gameEngineOther} onChange={(e) => setForm({ ...form, gameEngineOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
+                {form.gameEngine.includes('Others (Specify)') && <input aria-label="Other game engine" required type="text" maxLength={100} value={form.gameEngineOther} onChange={(e) => setForm({ ...form, gameEngineOther: e.target.value })} className="w-32 px-3 py-2 border rounded-lg outline-none text-sm" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Specify..." />}
               </div>
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Technical Requirements</label>
-              <textarea value={form.techRequirements} onChange={(e) => setForm({ ...form, techRequirements: e.target.value })} rows={3} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="File format, naming convention, output format, etc." />
+              <label htmlFor="acceptance-technical-requirements" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Technical Requirements</label>
+              <textarea id="acceptance-technical-requirements" maxLength={5000} value={form.techRequirements} onChange={(e) => setForm({ ...form, techRequirements: e.target.value })} rows={3} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="File format, naming convention, output format, etc." />
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Tools &amp; Software Required</label>
-              <textarea value={form.toolsSoftware} onChange={(e) => setForm({ ...form, toolsSoftware: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="List any required tools or software" />
+              <label htmlFor="acceptance-tools-software" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Tools &amp; Software Required</label>
+              <textarea id="acceptance-tools-software" maxLength={3000} value={form.toolsSoftware} onChange={(e) => setForm({ ...form, toolsSoftware: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="List any required tools or software" />
             </div>
             <div>
-              <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Performance &amp; Platform Constraints</label>
-              <textarea value={form.performanceConstraints} onChange={(e) => setForm({ ...form, performanceConstraints: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Any performance targets or platform limitations" />
+              <label htmlFor="acceptance-performance-constraints" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Performance &amp; Platform Constraints</label>
+              <textarea id="acceptance-performance-constraints" maxLength={3000} value={form.performanceConstraints} onChange={(e) => setForm({ ...form, performanceConstraints: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm resize-none transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Any performance targets or platform limitations" />
             </div>
           </div>
         </div>
@@ -751,12 +813,12 @@ export default function PublicAcceptanceForm() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name</label>
-                <input type="text" value={form.signature} onChange={(e) => setForm({ ...form, signature: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
+                <label htmlFor="acceptance-signature-name" className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Client Name *</label>
+                <input id="acceptance-signature-name" type="text" maxLength={200} value={form.signatoryName} onChange={(e) => setForm({ ...form, signatoryName: e.target.value })} className="w-full px-3.5 py-2.5 border rounded-lg outline-none text-sm transition focus:ring-2" style={{ borderColor: '#D1D5DB', color: '#1B1A1C' }} placeholder="Type your full name" required />
               </div>
               <div>
                 <label className="block text-sm mb-1.5" style={{ color: '#374151', fontWeight: 500 }}>Date</label>
-                <div className="w-full px-3.5 py-2.5 border rounded-lg text-sm" style={{ borderColor: '#D1D5DB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>{form.signatureDate}</div>
+                <div className="w-full px-3.5 py-2.5 border rounded-lg text-sm" style={{ borderColor: '#D1D5DB', color: '#6B7280', backgroundColor: '#F9FAFB' }}>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
               </div>
             </div>
             <SignaturePad
@@ -768,12 +830,25 @@ export default function PublicAcceptanceForm() {
 
         {/* Submit */}
         <div className="text-center pt-2">
+          <div className="mb-4 flex justify-center">
+            <Turnstile
+              action="acceptance_form"
+              onToken={setTurnstileToken}
+              resetKey={turnstileResetKey}
+            />
+          </div>
+          {submitError && (
+            <p id="acceptance-submit-error" role="alert" className="mb-4 text-sm" style={{ color: '#B91C1C' }}>
+              {submitError}
+            </p>
+          )}
           <button
             type="submit"
-            className="px-10 py-3 rounded-xl text-white text-sm font-medium transition-all hover:-translate-y-0.5 inline-flex items-center gap-2"
+            disabled={submitting || !turnstileToken}
+            className="px-10 py-3 rounded-xl text-white text-sm font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center gap-2"
             style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 16px rgba(255,89,0,0.3)' }}
           >
-            Submit Form
+            {submitting ? 'Submitting…' : 'Submit Form'}
           </button>
         </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
-declare var google: any
+declare const google: any
 
 interface Project {
   id: number
@@ -56,7 +56,7 @@ function getFeasibilityDay(createdAt: string | null, referenceDate?: string | nu
   return { text: 'Feasibility Review - Day 1', color: 'bg-yellow-100 text-yellow-700' }
 }
 
-function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Project; onClose: () => void; onScheduled: (event: any) => void }) {
+function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Project; onClose: () => void; onScheduled: (event: any) => Promise<void> }) {
   const [date, setDate] = useState(() => {
     const d = new Date()
     d.setHours(d.getHours() + 1, 0, 0, 0)
@@ -117,7 +117,18 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
           }
 
           const created = await res.json()
-          onScheduled(created)
+          try {
+            await onScheduled(created)
+          } catch {
+            const cleanup = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(created.id)}?sendUpdates=all`,
+              { method: 'DELETE', headers: { Authorization: `Bearer ${response.access_token}` } },
+            )
+            setError(cleanup.ok
+              ? 'The meeting could not be linked to the project, so the Calendar event was cancelled. Please retry.'
+              : 'The meeting could not be linked to the project. Verify Google Calendar before retrying to avoid duplicate invitations.')
+            setSending(false)
+          }
         } catch {
           setError('Could not create meeting')
           setSending(false)
@@ -165,7 +176,6 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
               placeholder="ops@exodiagamedev.com, manager@exodiagamedev.com"
               className="w-full px-4 py-2.5 border border-[#CACDD7] rounded-lg text-sm focus:outline-none focus:border-[#FF5900]"
             />
-            <p className="text-xs text-[#3E4048] mt-1">Client will be automatically added</p>
           </div>
         </div>
 
@@ -196,6 +206,7 @@ export default function MarketingProjectList() {
   const [projects, setProjects] = useState<Project[]>([])
   const [potentialProjects, setPotentialProjects] = useState<PotentialProject[]>([])
   const [loadingPotential, setLoadingPotential] = useState(true)
+  const [potentialError, setPotentialError] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<'tickets' | 'potential'>('tickets')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -226,7 +237,11 @@ export default function MarketingProjectList() {
   }
 
   const fetchPotentialProjects = async () => {
+    setLoadingPotential(true)
+    setPotentialError(null)
     if (!supabase) {
+      setPotentialProjects([])
+      setPotentialError('Canonical potential projects are unavailable.')
       setLoadingPotential(false)
       return
     }
@@ -240,6 +255,8 @@ export default function MarketingProjectList() {
       setLoadingPotential(false)
     } catch (err: any) {
       console.error('Error fetching potential projects:', err)
+      setPotentialProjects([])
+      setPotentialError('Canonical potential projects are unavailable.')
       setLoadingPotential(false)
     }
   }
@@ -267,7 +284,7 @@ export default function MarketingProjectList() {
   const handleScheduled = async (event: any) => {
     if (!isSupabaseConfigured || !supabase) return
     const now = new Date().toISOString()
-    const { error: err } = await supabase
+    const { data: updated, error: err } = await supabase
       .from('project_review_tickets')
       .update({
         status: 'discovery_scheduled',
@@ -276,9 +293,14 @@ export default function MarketingProjectList() {
         discovery_scheduled_at: now,
       })
       .eq('id', selectedProject?.id)
-    if (err) {
-      console.error('Failed to update project:', err)
-      return
+      .eq('status', selectedProject?.status)
+      .is('event_id', null)
+      .select('id')
+      .maybeSingle()
+    if (err || !updated) {
+      const error = err || new Error('Project changed or was already scheduled')
+      console.error('Failed to update project:', error)
+      throw error
     }
     await fetchProjects()
     setSelectedProject(null)
@@ -388,7 +410,7 @@ export default function MarketingProjectList() {
             </p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-            {activeView === 'tickets' ? projects.length : potentialProjects.length} projects
+            {activeView === 'tickets' ? projects.length : loadingPotential || potentialError ? '—' : potentialProjects.length} projects
           </span>
         </div>
 
@@ -524,6 +546,10 @@ export default function MarketingProjectList() {
             {loadingPotential ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+              </div>
+            ) : potentialError ? (
+              <div className="text-center py-16">
+                <p role="status" className="text-sm" style={{ color: 'var(--text-muted)' }}>{potentialError}</p>
               </div>
             ) : potentialProjects.length === 0 ? (
               <div className="text-center py-16">

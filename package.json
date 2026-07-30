@@ -7,21 +7,22 @@
     "dev": "vite",
     "build": "npm run typecheck && vite build",
     "lint": "eslint .",
+    "test": "node --test server/index.test.mjs scripts/validate-public-env.test.mjs scripts/staff-boundary.test.mjs scripts/notification-safety.test.mjs scripts/private-storage-safety.test.mjs tools/backfill-legacy-private-storage.test.mjs",
+    "test:migrations": "psql -v ON_ERROR_STOP=1 -f scripts/migrations-048-051.test.sql",
     "typecheck": "tsc --noEmit",
+    "storage:backfill": "node tools/backfill-legacy-private-storage.mjs",
     "preview": "vite preview",
     "start": "node server/index.mjs",
-    "ai:push": "powershell -ExecutionPolicy Bypass -File scripts/ai-push.ps1",
+    "ai:push": "node scripts/ai-push.mjs",
     "watch:leads": "node scripts/file-watcher.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "@iconify/react": "^5.0.1",
     "@supabase/supabase-js": "^2.108.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.79.0",
-    "react-router-dom": "^7.18.0",
-    "xlsx": "^0.18.5",
+    "react-router-dom": "7.18.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -36,6 +37,7 @@
     "globals": "^17.6.0",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0",
     "vite": "^6.3.0"
   }
 }

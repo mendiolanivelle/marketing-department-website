@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -27,13 +27,6 @@ interface OutreachLead {
   sourceFileId?: string
   emailHistory: EmailHistoryItem[]
 }
-
-const defaultLeads: OutreachLead[] = [
-  { id: 1, name: 'John Smith', email: 'john@acme.com', company: 'Acme Corp', role: 'CEO', status: 'pending', lastContacted: '', notes: '', emailHistory: [] },
-  { id: 2, name: 'Sarah Lee', email: 'sarah@techstart.io', company: 'TechStart Inc', role: 'CTO', status: 'sent', lastContacted: 'Jun 22', notes: 'Awaiting response on proposal', emailHistory: [] },
-  { id: 3, name: 'Mike Chen', email: 'mike@globalmedia.com', company: 'Global Media', role: 'Marketing Director', status: 'replied', lastContacted: 'Jun 20', notes: 'Interested, scheduling call', emailHistory: [] },
-  { id: 4, name: 'Emma Davis', email: 'emma@brandify.co', company: 'Brandify', role: 'VP of Sales', status: 'follow-up', lastContacted: 'Jun 15', notes: 'Need to follow up by end of week', emailHistory: [] },
-]
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   'pending': { label: 'Pending', color: '#3E4048' },
@@ -65,14 +58,6 @@ interface MessageTemplate {
   created_at: string
   updated_at: string
 }
-
-const defaultCategoriesList = [
-  'Strategy Email',
-  'Client Onboarding Process Email',
-  'Decline Email',
-  'Accept Email',
-  'Meeting Invitation Email',
-]
 
 const defaultEmailMessage = `We would love to connect with {{company_name}} about your project goals.
 
@@ -140,63 +125,24 @@ const renderEmailPreview = (body = '') => {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f4f4f5;">${html}</body></html>`
 }
 
-const fallbackTemplates: MessageTemplate[] = [
-  {
-    id: '1',
-    title: 'Strategy Consultation',
-    category: 'Strategy Email',
-    subject: 'Strategic Consultation - {{company_name}}',
-    body: `Hi {{contact_name}},\n\nThank you for reaching out to Exodia Game Development. We'd love to discuss how our team can support your project goals.\n\nAre you available for a strategy call on {{proposed_date}}? Let us know what time works best for you.\n\nLooking forward to connecting.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
-    created_at: '2026-06-01',
-    updated_at: '2026-06-01',
-  },
-  {
-    id: '2',
-    title: 'Client Onboarding',
-    category: 'Client Onboarding Process Email',
-    subject: 'Welcome to Exodia - {{company_name}} Onboarding',
-    body: `Hi {{contact_name}},\n\nWelcome to Exodia Game Development! We're excited to start working with you.\n\nHere are the next steps to get started:\n- Project kickoff meeting\n- Workspace setup\n- Timeline finalization\n\n{{ops_rep_name}} will be your main point of contact throughout the onboarding process.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
-    created_at: '2026-06-01',
-    updated_at: '2026-06-01',
-  },
-  {
-    id: '3',
-    title: 'Project Decline',
-    category: 'Decline Email',
-    subject: 'Update Regarding Your Project - {{company_name}}',
-    body: `Hi {{contact_name}},\n\nThank you for your interest in Exodia Game Development. After careful review, we regret to inform you that this project doesn't align with our current capacity and expertise.\n\nWe appreciate you considering us and wish you the best with your project.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
-    created_at: '2026-06-01',
-    updated_at: '2026-06-01',
-  },
-  {
-    id: '4',
-    title: 'Project Acceptance',
-    category: 'Accept Email',
-    subject: 'Project Accepted - {{company_name}}',
-    body: `Hi {{contact_name}},\n\nGreat news! We're pleased to accept your project and look forward to working with you.\n\nOur team will begin preparing the project scope and timeline. You'll hear from {{sales_rep_name}} shortly with the next steps.\n\nIf you have any questions in the meantime, feel free to reach out.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
-    created_at: '2026-06-01',
-    updated_at: '2026-06-01',
-  },
-  {
-    id: '5',
-    title: 'Meeting Invitation',
-    category: 'Meeting Invitation Email',
-    subject: 'Meeting Invitation - {{company_name}}',
-    body: `Hi {{contact_name}},\n\nWe'd like to invite you to a meeting to discuss {{project_name}}.\n\nProposed Date: {{proposed_date}}\nDuration: 1 hour\n\nPlease let us know if this works for you or suggest an alternative time.\n\nLooking forward to speaking with you.\n\nBest regards,\n{{sender_name}}\nExodia Game Development`,
-    created_at: '2026-06-01',
-    updated_at: '2026-06-01',
-  },
-]
-
 export default function Messaging() {
   // === Reach Out State ===
   const [leads, setLeads] = useState<OutreachLead[]>(() => {
+    if (isSupabaseConfigured) return []
     const saved = localStorage.getItem('exodia-outreach-leads')
-    const parsed = saved ? JSON.parse(saved) : defaultLeads
-    return parsed.map((l: OutreachLead) => ({ ...l, emailHistory: l.emailHistory || [] }))
+    if (!saved) return []
+    try {
+      const parsed = JSON.parse(saved)
+      return Array.isArray(parsed)
+        ? parsed.map((lead: OutreachLead) => ({ ...lead, emailHistory: lead.emailHistory || [] }))
+        : []
+    } catch {
+      return []
+    }
   })
 
   useEffect(() => {
+    if (isSupabaseConfigured) return
     localStorage.setItem('exodia-outreach-leads', JSON.stringify(leads))
   }, [leads])
 
@@ -204,11 +150,29 @@ export default function Messaging() {
   const reSyncAll = useRef(false)
 
   useEffect(() => {
+    if (isSupabaseConfigured) return
     const syncLeadFiles = async () => {
       const savedFiles = localStorage.getItem('exodia-lead-files')
-      if (!savedFiles) return
-      let leadFiles: any[]
-      try { leadFiles = JSON.parse(savedFiles) } catch { return }
+      let leadFiles: any[] = []
+      if (savedFiles) {
+        try {
+          const parsed = JSON.parse(savedFiles)
+          if (Array.isArray(parsed)) leadFiles = parsed
+        } catch {}
+      }
+
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('lead_files')
+          .select('id, name, columns')
+        if (error) {
+          console.error('Failed to load canonical lead files for messaging sync:', error)
+        } else if (data) {
+          const canonicalIds = new Set(data.map(file => file.id))
+          leadFiles = [...data, ...leadFiles.filter(file => !canonicalIds.has(file.id))]
+        }
+      }
+      if (leadFiles.length === 0) return
 
       const currentLeadsRaw = localStorage.getItem('exodia-outreach-leads')
       let currentLeads: OutreachLead[] = currentLeadsRaw ? JSON.parse(currentLeadsRaw) : []
@@ -224,14 +188,16 @@ export default function Messaging() {
       const existingFileIds = new Set(leadFiles.map((f: any) => f.id))
 
       // Remove leads that came from a file that no longer exists
-      const deletedFileIds = syncedFileIds.filter(id => !existingFileIds.has(id))
+      const deletedFileIds = isSupabaseConfigured && supabase
+        ? []
+        : syncedFileIds.filter(id => !existingFileIds.has(id))
       if (deletedFileIds.length > 0) {
         currentLeads = currentLeads.filter(l => !deletedFileIds.includes(l.sourceFileId || ''))
         // Remove deleted file IDs from synced tracker
         syncedFileIds = syncedFileIds.filter(id => existingFileIds.has(id))
       }
 
-      let newLeads: OutreachLead[] = []
+      const newLeads: OutreachLead[] = []
       let updatedCount = 0
       const newlySynced: string[] = []
       let maxId = currentLeads.length > 0 ? Math.max(...currentLeads.map(l => l.id)) : 0
@@ -240,11 +206,12 @@ export default function Messaging() {
           const local = localStorage.getItem(`exodia-lead-rows-${fileId}`)
           if (local) return JSON.parse(local)
           if (isSupabaseConfigured && supabase) {
-            const { data } = await supabase.from('lead_rows').select('*').eq('file_id', fileId)
-            if (data && data.length > 0) {
-              localStorage.setItem(`exodia-lead-rows-${fileId}`, JSON.stringify(data))
-              return data
+            const { data, error } = await supabase.from('lead_rows').select('*').eq('file_id', fileId)
+            if (error) {
+              console.error(`Failed to load canonical lead rows for messaging sync (${fileId}):`, error)
+              return null
             }
+            if (data && data.length > 0) return data
           }
           return null
         }
@@ -325,7 +292,7 @@ export default function Messaging() {
       clearInterval(interval)
       window.removeEventListener('lead-file-deleted', handleFileDelete)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const [showAdd, setShowAdd] = useState(false)
   const [showEmail, setShowEmail] = useState(false)
@@ -340,7 +307,7 @@ export default function Messaging() {
   const [editingLead, setEditingLead] = useState<OutreachLead | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showThread, setShowThread] = useState(false)
-  const [threadLead, setThreadLead] = useState<OutreachLead | null>(null)
+  const [threadLead] = useState<OutreachLead | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const memberFileRef = useRef<HTMLInputElement>(null)
   const [photoTarget, setPhotoTarget] = useState<number | 'edit' | null>(null)
@@ -350,6 +317,7 @@ export default function Messaging() {
   const [meetingBookLead, setMeetingBookLead] = useState<OutreachLead | null>(null)
   const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0])
   const [meetingTime, setMeetingTime] = useState('')
+  const [bookingMeeting, setBookingMeeting] = useState(false)
 
   // Notifications
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: string }[]>([])
@@ -376,116 +344,80 @@ export default function Messaging() {
     setTimeout(() => window.location.reload(), 800)
   }
 
-  const deleteLead = (id: number) => {
-    if (!window.confirm('Delete this lead?')) return
-    const lead = leads.find(l => l.id === id)
-    setLeads(leads.filter(l => l.id !== id))
-    if (lead) logActivity('Lead', `Deleted "${lead.name}"`)
-  }
-
-  const updateStatus = (id: number, status: OutreachLead['status']) => {
-    const lead = leads.find(l => l.id === id)
-    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    setLeads(sortLeads(leads.map(l => l.id === id ? { ...l, status, lastContacted: today } : l)))
-    if (lead) {
-      logActivity('Lead', `Updated "${lead.name}" status to ${status}`)
-      if (status === 'meeting-booked') {
-        setMeetingBookLead(lead)
-        setMeetingDate(new Date().toISOString().split('T')[0])
-        setMeetingTime('')
-        setShowMeetingModal(true)
-      }
+  const confirmMeetingBooking = async () => {
+    if (!meetingBookLead || !meetingDate || bookingMeeting) return
+    if (!isSupabaseConfigured || !supabase) {
+      addNotification('Meeting booking is unavailable until Supabase is configured.', 'error')
+      return
     }
-  }
-
-  const confirmMeetingBooking = () => {
-    if (!meetingBookLead || !meetingDate) return
     const lead = meetingBookLead
     const now = new Date().toISOString()
-
-    // Find the target table and column
-    let targetTableId = 'onboarding-default'
-    let targetColumnKey = 'col-1'
+    setBookingMeeting(true)
     try {
-      const savedTables = localStorage.getItem('exodia-timeline-tables')
-      if (savedTables) {
-        const tables = JSON.parse(savedTables)
-        // Pick the first available table (or one matching "onboarding")
-        const targetTable = tables.find((t: any) => /onboarding|client/i.test(t.title)) || tables[0]
-        if (targetTable) {
-          targetTableId = targetTable.id
-          const introCol = (targetTable.columns || []).find((c: any) =>
-            /introductory|intro call|discovery/i.test(c.label)
-          )
-          if (introCol) targetColumnKey = introCol.key
-        }
-      }
-    } catch {}
+      const { data: tables, error: tablesError } = await supabase
+        .from('timeline_tables')
+        .select('id, title, columns')
+        .order('created_at', { ascending: true })
+      if (tablesError) throw tablesError
+      const targetTable = tables?.find((table: any) => /onboarding|client/i.test(table.title)) || tables?.[0]
+      if (!targetTable) throw new Error('Create a timeline table before booking a meeting.')
+      const columns = typeof targetTable.columns === 'string' ? JSON.parse(targetTable.columns) : targetTable.columns
+      const targetColumn = Array.isArray(columns)
+        ? columns.find((column: any) => /introductory|intro call|discovery/i.test(column.label)) || columns[0]
+        : null
+      if (!targetColumn?.key) throw new Error('The selected timeline table has no columns.')
 
-    // Calendar item
-    const calendarItem = {
-      id: crypto.randomUUID(),
-      title: `Meeting - ${lead.name}`,
-      type: 'meeting',
-      date: meetingDate,
-      start_time: meetingTime || null,
-      end_time: null,
-      description: `Meeting booked with ${lead.name} from ${lead.company}`,
-      location: null,
-      color: '#FF5900',
-      assignees: [],
-      notes: '',
-      created_at: now,
-      updated_at: now,
-    }
-    const savedCalendar = localStorage.getItem('exodia-calendar-items')
-    const calendarItems = savedCalendar ? JSON.parse(savedCalendar) : []
-    calendarItems.push(calendarItem)
-    localStorage.setItem('exodia-calendar-items', JSON.stringify(calendarItems))
-    window.dispatchEvent(new CustomEvent('calendar-updated'))
-
-    // Timeline/Onboarding lead
-    const savedTimelineLeads = localStorage.getItem('exodia-timeline-leads')
-    const timelineLeads: any[] = savedTimelineLeads ? JSON.parse(savedTimelineLeads) : []
-    timelineLeads.push({
-      id: crypto.randomUUID(),
-      table_id: targetTableId,
-      company: lead.company,
-      contact: lead.name,
-      email: lead.email,
-      value: '',
-      date: new Date(meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      column_key: targetColumnKey,
-      notes: 'Auto-created from Meeting Booked',
-      attachments: [],
-      email_history: [],
-      created_at: now,
-      updated_at: now,
-    })
-    localStorage.setItem('exodia-timeline-leads', JSON.stringify(timelineLeads))
-
-    // Also try Supabase
-    if (isSupabaseConfigured && supabase) {
-      void supabase.from('calendar_items').insert([calendarItem]).then(() => {}, () => {})
-      supabase.from('timeline_leads').insert([{
-        table_id: targetTableId,
-        company: lead.company,
-        contact: lead.name,
-        email: lead.email,
-        value: '',
-      date: new Date(meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        column_key: targetColumnKey,
-        notes: 'Auto-created from Meeting Booked',
-        attachments: [],
-        email_history: [],
+      const calendarItem = {
+        id: crypto.randomUUID(),
+        title: `Meeting - ${lead.name}`,
+        type: 'meeting',
+        date: meetingDate,
+        start_time: meetingTime || null,
+        end_time: null,
+        description: `Meeting booked with ${lead.name} from ${lead.company}`,
+        location: null,
+        color: '#FF5900',
+        assignees: [],
+        notes: '',
         created_at: now,
         updated_at: now,
-      }]).then(() => {}, () => {})
-    }
+      }
+      const [calendarResult, timelineResult] = await Promise.all([
+        supabase.from('calendar_items').insert([calendarItem]),
+        supabase.from('timeline_leads').insert([{
+          table_id: targetTable.id,
+          company: lead.company,
+          contact: lead.name,
+          email: lead.email,
+          value: '',
+          date: new Date(meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          column_key: targetColumn.key,
+          notes: 'Auto-created from Meeting Booked',
+          attachments: [],
+          email_history: [],
+          created_at: now,
+          updated_at: now,
+        }]),
+      ])
+      if (calendarResult.error) throw calendarResult.error
+      if (timelineResult.error) throw timelineResult.error
 
-    setShowMeetingModal(false)
-    setMeetingBookLead(null)
-    addNotification(`Meeting booked with ${lead.name} on ${meetingDate}${meetingTime ? ' at ' + meetingTime : ''}`)
+      const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      setLeads(prev => sortLeads(prev.map(item => item.id === lead.id
+        ? { ...item, status: 'meeting-booked', lastContacted: today }
+        : item)))
+      logActivity('Lead', `Updated "${lead.name}" status to meeting-booked`)
+      window.dispatchEvent(new CustomEvent('calendar-updated'))
+      window.dispatchEvent(new CustomEvent('timeline-data-changed'))
+      setShowMeetingModal(false)
+      setMeetingBookLead(null)
+      addNotification(`Meeting booked with ${lead.name} on ${meetingDate}${meetingTime ? ' at ' + meetingTime : ''}`)
+    } catch (error) {
+      console.error('Failed to book meeting:', error)
+      addNotification(error instanceof Error ? error.message : 'Failed to book meeting. Please try again.', 'error')
+    } finally {
+      setBookingMeeting(false)
+    }
   }
 
   const saveLeadEdit = () => {
@@ -497,7 +429,7 @@ export default function Messaging() {
 
   const sendEmail = async () => {
     if (!selectedLead || !emailSubject.trim()) return
-    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["')\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
     const now = new Date().toISOString()
     const messageId = `<${crypto.randomUUID()}@exodiagamedev.com>`
     const newEmail: EmailHistoryItem = {
@@ -507,22 +439,27 @@ export default function Messaging() {
       sentAt: now,
       direction: 'sent',
     }
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.functions.invoke('send-outreach-email', {
-          body: {
-            to: selectedLead.email,
-            name: selectedLead.name,
-            subject: emailSubject,
-            body: fixUrl(emailBody),
-            inReplyTo: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
-            references: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
-            messageId,
-          },
-        })
-      } catch (err) {
-        console.error('Email send failed:', err)
-      }
+    if (!isSupabaseConfigured || !supabase) {
+      addNotification('Email service is not configured.', 'error')
+      return
+    }
+    try {
+      const { error } = await supabase.functions.invoke('send-outreach-email', {
+        body: {
+          to: selectedLead.email,
+          name: selectedLead.name,
+          subject: emailSubject,
+          body: fixUrl(emailBody),
+          inReplyTo: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
+          references: replyingTo ? `<${replyingTo.id}@exodiagamedev.com>` : undefined,
+          messageId,
+        },
+      })
+      if (error) throw error
+    } catch (err) {
+      console.error('Email send failed:', err)
+      addNotification('Email could not be sent. Please try again.', 'error')
+      return
     }
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     setLeads(sortLeads(leads.map(l => l.id === selectedLead.id ? {
@@ -540,29 +477,10 @@ export default function Messaging() {
     logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
   }
 
-  const addNote = (id: number, note: string) => {
-    if (!note.trim()) return
-    setLeads(leads.map(l => l.id === id ? { ...l, notes: l.notes ? `${l.notes}\n${note.trim()}` : note.trim() } : l))
-  }
-
-  const statusCycle: OutreachLead['status'][] = ['pending', 'sent', 'follow-up', 'no-reply', 'replied', 'meeting-booked']
-
-  const moveToNextStatus = (lead: OutreachLead) => {
-    const idx = statusCycle.indexOf(lead.status)
-    if (idx < statusCycle.length - 1) updateStatus(lead.id, statusCycle[idx + 1])
-  }
-
-  const moveToPrevStatus = (lead: OutreachLead) => {
-    const idx = statusCycle.indexOf(lead.status)
-    if (idx > 0) updateStatus(lead.id, statusCycle[idx - 1])
-  }
-
-  const filtered = (filterStatus === 'all' ? leads : leads.filter(l => l.status === filterStatus)).filter(l =>
-    !searchQuery || l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.company.toLowerCase().includes(searchQuery.toLowerCase()) || l.email.toLowerCase().includes(searchQuery.toLowerCase()) || l.notes.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
   // === Message Templates State ===
-  const [templates, setTemplates] = useState<MessageTemplate[]>(fallbackTemplates)
+  const [templates, setTemplates] = useState<MessageTemplate[]>([])
+  const [templatesWritable, setTemplatesWritable] = useState(false)
+  const canonicalTemplateIds = useRef(new Set<string>())
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -572,15 +490,10 @@ export default function Messaging() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const [categories, setCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem('exodia-template-categories')
-    if (saved) { try { return JSON.parse(saved) } catch {} }
-    return [...defaultCategoriesList]
-  })
-
-  useEffect(() => {
-    localStorage.setItem('exodia-template-categories', JSON.stringify(categories))
-  }, [categories])
+  const categories = useMemo(
+    () => [...new Set(templates.map(template => template.category).filter(Boolean))].sort(),
+    [templates],
+  )
 
   // === Message Templates Hook ===
   const {
@@ -600,12 +513,24 @@ export default function Messaging() {
   const templateBodyPreview = renderEmailPreview(watch('body') || '')
 
   // === Message Templates Functions ===
-  const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+  const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["')\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
 
   const fetchTemplates = useCallback(async () => {
+    setTemplatesWritable(false)
+    canonicalTemplateIds.current.clear()
+
     if (!isSupabaseConfigured || !supabase) {
+      setTemplates([])
       const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) { try { const parsed = JSON.parse(saved).map((t: MessageTemplate) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed); localStorage.setItem('exodia-message-templates', JSON.stringify(parsed)) } catch {} }
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved).map((template: MessageTemplate) => ({
+            ...template,
+            body: migrateUrl(template.body),
+          }))
+          setTemplates(parsed)
+        } catch {}
+      }
       setLoading(false)
       return
     }
@@ -615,11 +540,23 @@ export default function Messaging() {
         .select('*')
         .order('created_at', { ascending: false })
       if (error) throw error
-      if (data) { const migrated = data.map((t: any) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(migrated); localStorage.setItem('exodia-message-templates', JSON.stringify(migrated)) }
+      const canonicalTemplates = (data ?? []) as MessageTemplate[]
+      canonicalTemplateIds.current = new Set(canonicalTemplates.map(template => template.id))
+      setErrorMessage(null)
+      setTemplates(canonicalTemplates.map(template => ({
+        ...template,
+        body: migrateUrl(template.body),
+      })))
+      setTemplatesWritable(true)
     } catch (err) {
       console.error('Error fetching templates:', err)
-      const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) { try { const parsed = JSON.parse(saved).map((t: MessageTemplate) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed) } catch {} }
+      setTemplatesWritable(false)
+      canonicalTemplateIds.current.clear()
+      setErrorMessage('Canonical templates could not be loaded. No fallback records are being shown.')
+      setShowForm(false)
+      setEditingId(null)
+      setDeleteConfirmId(null)
+      setTemplates([])
     } finally {
       setLoading(false)
     }
@@ -646,49 +583,39 @@ export default function Messaging() {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    if (!isSupabaseConfigured || !supabase) {
-      const saved = localStorage.getItem('exodia-message-templates')
-      const existing = saved ? JSON.parse(saved) : []
-      if (editingId) {
-        const updated = existing.map((t: MessageTemplate) => t.id === editingId ? { ...t, ...data, updated_at: new Date().toISOString() } : t)
-        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
-        setTemplates(updated)
-        setSuccessMessage('Template updated successfully!')
-      } else {
-        const newTemplate: MessageTemplate = { id: crypto.randomUUID(), ...data, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-        const updated = [newTemplate, ...existing]
-        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
-        setTemplates(updated)
-        setSuccessMessage('Template created successfully!')
-        setCategories(prev => prev.includes(data.category) ? prev : [...prev, data.category])
-      }
-      reset()
-      setShowForm(false)
-      setEditingId(null)
-      setTimeout(() => setSuccessMessage(null), 3000)
+    if (!isSupabaseConfigured || !supabase || !templatesWritable) {
+      setErrorMessage('Templates are view-only until the database is available.')
       return
     }
 
     try {
       if (editingId) {
-        const { error } = await supabase
+        if (!canonicalTemplateIds.current.has(editingId)) {
+          throw new Error('This recovery template has no canonical database identity and is view-only.')
+        }
+        const { data: updatedTemplate, error } = await supabase
           .from('message_templates')
           .update({ ...data, updated_at: new Date().toISOString() })
           .eq('id', editingId)
+          .select('*')
+          .single()
         if (error) throw error
-        setTemplates(prev => prev.map(t => t.id === editingId ? { ...t, ...data, updated_at: new Date().toISOString() } : t))
+        if (!updatedTemplate || updatedTemplate.id !== editingId) throw new Error('The database did not confirm the template update.')
+        setTemplates(prev => prev.map(t => t.id === editingId ? updatedTemplate as MessageTemplate : t))
         setSuccessMessage('Template updated successfully!')
         logActivity('Template', `Updated "${data.title}"`)
       } else {
-        const { data: newData, error } = await supabase
+        const { data: newTemplate, error } = await supabase
           .from('message_templates')
           .insert([{ ...data }])
-          .select()
+          .select('*')
+          .single()
         if (error) throw error
-        if (newData) setTemplates(prev => [newData[0], ...prev])
+        if (!newTemplate?.id) throw new Error('The database did not confirm the template creation.')
+        canonicalTemplateIds.current.add(newTemplate.id)
+        setTemplates(prev => [newTemplate as MessageTemplate, ...prev])
         setSuccessMessage('Template created successfully!')
         logActivity('Template', `Created "${data.title}"`)
-        setCategories(prev => prev.includes(data.category) ? prev : [...prev, data.category])
       }
       reset()
       setShowForm(false)
@@ -701,6 +628,10 @@ export default function Messaging() {
   }
 
   const handleEdit = (template: MessageTemplate) => {
+    if (!templatesWritable || !canonicalTemplateIds.current.has(template.id)) {
+      setErrorMessage('This recovery template has no canonical database identity and is view-only.')
+      return
+    }
     const emailMessage = extractEmailMessage(template.body) || defaultEmailMessage
     reset({
       title: template.title,
@@ -717,30 +648,31 @@ export default function Messaging() {
     setErrorMessage(null)
     const template = templates.find(t => t.id === id)
 
-    if (!isSupabaseConfigured || !supabase) {
-      const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) {
-        const updated = JSON.parse(saved).filter((t: MessageTemplate) => t.id !== id)
-        localStorage.setItem('exodia-message-templates', JSON.stringify(updated))
-        setTemplates(updated)
-        setSuccessMessage('Template deleted successfully!')
-        if (template) logActivity('Template', `Deleted "${template.title}"`)
-        setTimeout(() => setSuccessMessage(null), 3000)
-      }
-      setDeleteConfirmId(null)
+    if (!isSupabaseConfigured || !supabase || !templatesWritable) {
+      setErrorMessage('Templates are view-only until the database is available.')
+      addNotification('Template was not deleted because the database is unavailable.', 'error')
+      return
+    }
+    if (!canonicalTemplateIds.current.has(id)) {
+      setErrorMessage('This recovery template has no canonical database identity and is view-only.')
+      addNotification('Recovery templates cannot be deleted.', 'error')
       return
     }
 
     try {
-      const { error } = await supabase
+      const { data: deletedTemplate, error } = await supabase
         .from('message_templates')
         .delete()
         .eq('id', id)
+        .select('id')
+        .single()
 
       if (error) throw error
+      if (deletedTemplate?.id !== id) throw new Error('The database did not confirm the template deletion.')
 
+      canonicalTemplateIds.current.delete(id)
+      setTemplates(current => current.filter(item => item.id !== id))
       setSuccessMessage('Template deleted successfully!')
-      await fetchTemplates()
       if (template) logActivity('Template', `Deleted "${template.title}"`)
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
@@ -748,6 +680,41 @@ export default function Messaging() {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to delete template. Please try again.')
     }
     setDeleteConfirmId(null)
+  }
+
+  const handleDeleteCategory = async (category: string) => {
+    if (!window.confirm(`Delete category "${category}" and all templates under it?`)) return
+    if (!isSupabaseConfigured || !supabase || !templatesWritable) {
+      addNotification('Category was not deleted because the database is unavailable.', 'error')
+      return
+    }
+    const templateIds = templates.filter(template => template.category === category).map(template => template.id)
+    if (templateIds.length === 0 || templateIds.some(id => !canonicalTemplateIds.current.has(id))) {
+      addNotification('This category contains no confirmed canonical templates and is view-only.', 'error')
+      return
+    }
+
+    try {
+      const { data: deletedTemplates, error } = await supabase
+        .from('message_templates')
+        .delete()
+        .in('id', templateIds)
+        .select('id')
+      if (error) throw error
+      const deletedIds = new Set((deletedTemplates ?? []).map(template => template.id))
+      if (deletedIds.size !== templateIds.length || templateIds.some(id => !deletedIds.has(id))) {
+        await fetchTemplates()
+        throw new Error('The database did not confirm deletion of every template in this category.')
+      }
+
+      templateIds.forEach(id => canonicalTemplateIds.current.delete(id))
+      setTemplates(current => current.filter(template => !deletedIds.has(template.id)))
+      if (selectedCategory === category) setSelectedCategory('All')
+      addNotification(`Category "${category}" was deleted.`)
+    } catch (error) {
+      console.error('Failed to delete template category:', error)
+      addNotification('Category could not be deleted. No local templates were changed.', 'error')
+    }
   }
 
   const handleCopy = async (text: string, id: string) => {
@@ -767,72 +734,7 @@ export default function Messaging() {
     }
   }
 
-  const filteredTemplates = selectedCategory === 'All'
-    ? templates
-    : templates.filter(t => t.category === selectedCategory)
-
   const allCategories = ['All', ...categories]
-
-  const renderLeadCard = (lead: OutreachLead) => {
-    const status = statusConfig[lead.status]
-    return (
-      <div
-        key={lead.id}
-        className="group rounded-lg border exodia-card transition-all hover:shadow-sm cursor-pointer"
-        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
-        onClick={() => { setSelectedDetailLead(lead); setDetailNotes(lead.notes) }}
-      >
-        <div className="px-3 py-2.5 flex items-center gap-3">
-          <div className="relative w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--btn-primary-bg)', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); setPhotoTarget(lead.id); memberFileRef.current?.click() }}>
-            {lead.photoUrl ? (
-              <img src={lead.photoUrl} alt={lead.name} className="w-full h-full object-cover" />
-            ) : (
-              <span style={{ color: 'var(--btn-primary-text)', fontWeight: 700 }}>{lead.name.charAt(0)}</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-0.5">
-            <span className="text-xs font-medium truncate" style={{ color: 'var(--text-primary)' }}>{lead.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full text-center whitespace-nowrap" style={{ backgroundColor: `${status.color}18`, color: status.color, fontWeight: 600 }}>
-              {status.label}
-            </span>
-            {lead.lastContacted && (
-              <span className="text-[10px] text-right whitespace-nowrap" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{lead.lastContacted}</span>
-            )}
-            <p className="text-[11px] truncate col-span-3" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-              {lead.company}{lead.role ? ` · ${lead.role}` : ''} · {lead.email}
-            </p>
-          </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            <select
-              value={lead.status}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => updateStatus(lead.id, e.target.value as OutreachLead['status'])}
-              className="px-1.5 py-1 text-[10px] rounded border outline-none cursor-pointer"
-              style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }}
-            >
-              <option value="pending">{statusConfig.pending.label}</option>
-              <option value="sent">{statusConfig.sent.label}</option>
-              <option value="follow-up">{statusConfig['follow-up'].label}</option>
-              <option value="no-reply">{statusConfig['no-reply'].label}</option>
-              <option value="replied">{statusConfig.replied.label}</option>
-              <option value="meeting-booked">{statusConfig['meeting-booked'].label}</option>
-            </select>
-            <button onClick={(e) => { e.stopPropagation(); setEditingLead(lead) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="Edit">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); deleteLead(lead.id) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="Delete">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </button>
-            {lead.emailHistory?.length > 0 && (
-              <button onClick={(e) => { e.stopPropagation(); setThreadLead(lead); setShowThread(true) }} className="p-1.5 rounded transition hover:scale-105" style={{ color: 'var(--accent)' }} title="View thread">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div>
@@ -1253,7 +1155,9 @@ export default function Messaging() {
               </div>
               <button
                 onClick={() => { setShowForm(true); setEditingId(null); reset({ title: '', category: '', subject: '', emailMessage: defaultEmailMessage, body: applyEmailMessage(emailHtmlStarter, defaultEmailMessage) }) }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5"
+                disabled={!templatesWritable}
+                title={templatesWritable ? 'Create template' : 'Templates are view-only until canonical data is available'}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 style={{ backgroundColor: 'var(--accent)', boxShadow: '0 4px 12px rgba(255,89,0,0.25)', color: '#FFFFFF' }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -1264,6 +1168,11 @@ export default function Messaging() {
         </div>
 
         {/* Search Bar */}
+        {errorMessage && !showForm && (
+          <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {errorMessage}
+          </div>
+        )}
         <div className="relative mb-6">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1294,8 +1203,12 @@ export default function Messaging() {
               </button>
               {cat !== 'All' && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete category "${cat}" and all templates under it?`)) { setCategories(prev => prev.filter(c => c !== cat)); setTemplates(prev => { const remaining = prev.filter(t => t.category !== cat); localStorage.setItem('exodia-message-templates', JSON.stringify(remaining)); return remaining }); if (isSupabaseConfigured && supabase) { supabase.from('message_templates').delete().eq('category', cat).then(() => {}, () => {}) }; if (selectedCategory === cat) setSelectedCategory('All') } }}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    void handleDeleteCategory(cat)
+                  }}
+                  disabled={!templatesWritable || !templates.some(template => template.category === cat && canonicalTemplateIds.current.has(template.id))}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:scale-110 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{ backgroundColor: '#DC2626', color: '#FFF' }}
                   title={`Delete "${cat}" category`}
                 >
@@ -1309,7 +1222,7 @@ export default function Messaging() {
         {!isSupabaseConfigured && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
             <p className="text-sm text-amber-800 font-medium">Supabase not configured</p>
-            <p className="text-xs text-amber-600 mt-1">Templates are using local fallback data.</p>
+            <p className="text-xs text-amber-600 mt-1">Local fallback templates are available for recovery and are view-only.</p>
           </div>
         )}
 
@@ -1443,16 +1356,30 @@ export default function Messaging() {
                               ? <svg className="w-4 h-4" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                               : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
                           </button>
-                          <button onClick={() => handleEdit(template)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Edit">
+                          <button
+                            onClick={() => handleEdit(template)}
+                            disabled={!templatesWritable || !canonicalTemplateIds.current.has(template.id)}
+                            className="p-2 rounded-lg transition disabled:cursor-not-allowed disabled:opacity-40"
+                            style={{ color: 'var(--accent)' }}
+                            title={templatesWritable && canonicalTemplateIds.current.has(template.id) ? 'Edit' : 'Recovery template (view-only)'}
+                          >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                           {deleteConfirmId === template.id ? (
                             <div className="flex items-center gap-1">
-                              <button onClick={() => handleDelete(template.id)} className="p-2 rounded-lg bg-red-50 transition" title="Confirm"><svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></button>
+                              <button onClick={() => handleDelete(template.id)} disabled={!templatesWritable || !canonicalTemplateIds.current.has(template.id)} className="p-2 rounded-lg bg-red-50 transition disabled:cursor-not-allowed disabled:opacity-40" title="Confirm"><svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></button>
                               <button onClick={() => setDeleteConfirmId(null)} className="p-2 rounded-lg transition" style={{ color: 'var(--accent)' }} title="Cancel"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                             </div>
                           ) : (
-                            <button onClick={() => setDeleteConfirmId(template.id)} className="p-2 rounded-lg hover:bg-red-50 transition" style={{ color: 'var(--accent)' }} title="Delete"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            <button
+                              onClick={() => setDeleteConfirmId(template.id)}
+                              disabled={!templatesWritable || !canonicalTemplateIds.current.has(template.id)}
+                              className="p-2 rounded-lg hover:bg-red-50 transition disabled:cursor-not-allowed disabled:opacity-40"
+                              style={{ color: 'var(--accent)' }}
+                              title={templatesWritable && canonicalTemplateIds.current.has(template.id) ? 'Delete' : 'Recovery template (view-only)'}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -1482,6 +1409,7 @@ export default function Messaging() {
               key={n.id}
               className="px-4 py-3 rounded-xl shadow-lg text-sm animate-slide-in"
               style={{ backgroundColor: n.type === 'success' ? '#0B8043' : '#DC2626', color: '#FFF' }}
+              role={n.type === 'success' ? 'status' : 'alert'}
             >
               <div className="flex items-center gap-2">
                 {n.type === 'success' ? (
@@ -1524,16 +1452,9 @@ export default function Messaging() {
             />
             <div className="flex gap-3 justify-end">
               <button onClick={() => {
-                // Revert status to previous on cancel
-                if (meetingBookLead) {
-                  const prevIdx = statusCycle.indexOf('meeting-booked') - 1
-                  if (prevIdx >= 0) {
-                    setLeads(prev => prev.map(l => l.id === meetingBookLead.id ? { ...l, status: statusCycle[prevIdx], lastContacted: '' } : l))
-                  }
-                }
                 setShowMeetingModal(false); setMeetingBookLead(null)
-              }} className="px-4 py-2 text-sm rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-              <button onClick={confirmMeetingBooking} className="px-4 py-2 text-sm text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Confirm Booking</button>
+              }} disabled={bookingMeeting} className="px-4 py-2 text-sm rounded-lg disabled:opacity-50" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
+              <button onClick={confirmMeetingBooking} disabled={bookingMeeting} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>{bookingMeeting ? 'Booking…' : 'Confirm Booking'}</button>
             </div>
           </div>
         </div>

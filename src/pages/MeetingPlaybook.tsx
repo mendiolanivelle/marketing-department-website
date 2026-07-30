@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 interface FlowStep {
   id: string
@@ -103,23 +104,6 @@ const defaultTemplates: MeetingTemplate[] = [
   },
 ]
 
-const defaultActiveMeetings: ActiveMeeting[] = [
-  {
-    id: 'active-1',
-    name: 'Meeting with Client A',
-    links: [
-      { id: 'l1', label: '🔗 Meeting Link', url: '' },
-      { id: 'l2', label: '📊 Presentation Deck', url: '' },
-      { id: 'l3', label: '🎥 Previous Recordings', url: '' },
-    ],
-    checklist: [
-      { id: 'c1', text: 'Test audio/video and screen-share.', checked: false },
-      { id: 'c2', text: 'Review client\'s website and past notes.', checked: false },
-      { id: 'c3', text: 'Ensure the recording software is on.', checked: false },
-    ],
-  },
-]
-
 const defaultScripts: ScriptCard[] = [
   { id: 's1', name: 'Handling "It\'s Too Expensive" Objection', category: 'Sales', text: 'I completely understand budget is a concern. However, our proven formula has helped similar companies achieve [X result] within [Y timeframe]. Let me break down the actual ROI you can expect.' },
   { id: 's2', name: 'Handling "We Need to Think About It"', category: 'Sales', text: 'I appreciate that — it\'s a big decision. To help you discuss internally, what specific concerns do you need to address? I can join your internal call if that helps.' },
@@ -134,18 +118,21 @@ const SCRIPTS_KEY = 'exodia-playbook-scripts'
 export default function MeetingPlaybook() {
   const [activeTab, setActiveTab] = useState<TabKey>('master')
   const [templates, setTemplates] = useState<MeetingTemplate[]>(() => {
+    if (isSupabaseConfigured) return defaultTemplates
     const saved = localStorage.getItem(TEMPLATES_KEY)
     if (saved) { try { return JSON.parse(saved) } catch {} }
     return defaultTemplates
   })
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [activeMeetings, setActiveMeetings] = useState<ActiveMeeting[]>(() => {
+    if (isSupabaseConfigured) return []
     const saved = localStorage.getItem(ACTIVE_MEETINGS_KEY)
     if (saved) { try { return JSON.parse(saved) } catch {} }
-    return defaultActiveMeetings
+    return []
   })
   const [selectedMeeting, setSelectedMeeting] = useState<string>('')
   const [scripts, setScripts] = useState<ScriptCard[]>(() => {
+    if (isSupabaseConfigured) return defaultScripts
     const saved = localStorage.getItem(SCRIPTS_KEY)
     if (saved) { try { return JSON.parse(saved) } catch {} }
     return defaultScripts
@@ -153,15 +140,31 @@ export default function MeetingPlaybook() {
   const [editingField, setEditingField] = useState<{ target: string; id: string } | null>(null)
   const [editValue, setEditValue] = useState('')
 
-  useEffect(() => { localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates)) }, [templates])
-  useEffect(() => { localStorage.setItem(ACTIVE_MEETINGS_KEY, JSON.stringify(activeMeetings)) }, [activeMeetings])
-  useEffect(() => { localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts)) }, [scripts])
+  useEffect(() => {
+    if (!isSupabaseConfigured) localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates))
+  }, [templates])
+  useEffect(() => {
+    if (!isSupabaseConfigured) localStorage.setItem(ACTIVE_MEETINGS_KEY, JSON.stringify(activeMeetings))
+  }, [activeMeetings])
+  useEffect(() => {
+    if (!isSupabaseConfigured) localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts))
+  }, [scripts])
 
   useEffect(() => {
     if (!selectedMeeting && activeMeetings.length > 0) {
       setSelectedMeeting(activeMeetings[0].id)
     }
   }, [activeMeetings, selectedMeeting])
+
+  if (isSupabaseConfigured) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900" role="status">
+          Meeting Playbook is unavailable until canonical storage and browser-record recovery are approved. Existing browser-only records are preserved.
+        </div>
+      </div>
+    )
+  }
 
   const activeTemplate = templates.find(t => t.id === selectedTemplate)
   const activeMeeting = activeMeetings.find(m => m.id === selectedMeeting)

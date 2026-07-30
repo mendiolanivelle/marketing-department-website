@@ -1,13 +1,28 @@
 project_id = "extkotvjigtswrrnxikw"
 
-[functions]
 [functions.send-ticket-email]
-verify_jwt = false
+verify_jwt = true
+
 [functions.send-edit-link]
 verify_jwt = false
+
+[functions.public-marketing-request]
+verify_jwt = false
+
+[functions.public-acceptance-form]
+verify_jwt = false
+
 [functions.notify-complete]
-verify_jwt = false
+verify_jwt = true
+
 [functions.send-outreach-email]
-verify_jwt = false
+verify_jwt = true
+
+[functions.extract-calling-card]
+verify_jwt = true
+
+[functions.sync-sow-timeline-lead]
+verify_jwt = true
+
 [functions.get-public-form]
-verify_jwt = false
+verify_jwt = true

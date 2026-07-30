@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { sha256Hex } from '../lib/fileIntegrity'
+import {
+  acknowledgePrivateStorageReview,
+  cleanupUnreferencedPrivateObjects,
+  drainPrivateStorageCleanup,
+  isDefiniteDatabaseRejection,
+  queuePrivateStorageCleanup,
+  uploadPrivateObject,
+} from '../lib/privateStorage'
 
 type RequestType = 'Feedback' | 'Bug' | 'Improvement' | 'New Feature' | 'Question'
 type RequestPriority = 'Low' | 'Medium' | 'High' | 'Urgent'
@@ -26,14 +35,30 @@ interface WebsiteRequest {
 interface WebsiteRequestAttachment {
   name: string
   type: string
-  dataUrl: string
+  dataUrl?: string
+  path?: string
+  size?: number
+  sha256?: string
+  file?: File
 }
 
 const requestTypes: RequestType[] = ['Feedback', 'Bug', 'Improvement', 'New Feature', 'Question']
 const priorities: RequestPriority[] = ['Low', 'Medium', 'High', 'Urgent']
 const statuses: RequestStatus[] = ['Open', 'Reviewing', 'Planned', 'Done', 'Closed']
-const WEBSITE_REQUEST_DRAFT_KEY = 'exodia-website-request-draft'
 const MAX_ATTACHMENT_SIZE = 2 * 1024 * 1024
+const MAX_ATTACHMENTS = 4
+const ATTACHMENT_BUCKET = 'website-request-attachments'
+const SIGNED_URL_TTL_SECONDS = 60 * 60
+const PRIVATE_STORAGE_ENABLED = import.meta.env.VITE_PRIVATE_STORAGE_ENABLED === 'true'
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  'image/avif',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+])
+
+class UnknownRequestSaveOutcome extends Error {}
 
 const priorityStyle: Record<RequestPriority, { bg: string; text: string; border: string }> = {
   Low: { bg: '#F0FDF4', text: '#15803D', border: '#BBF7D0' },
@@ -77,16 +102,10 @@ export default function WebsiteRequests() {
   const [requests, setRequests] = useState<WebsiteRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [reconciliationRequired, setReconciliationRequired] = useState(false)
   const [message, setMessage] = useState('')
   const [statusFilter, setStatusFilter] = useState<RequestStatus | 'All'>('Open')
-  const [form, setForm] = useState(() => {
-    try {
-      const saved = localStorage.getItem(WEBSITE_REQUEST_DRAFT_KEY)
-      return saved ? { ...emptyForm(user?.email), ...JSON.parse(saved) } : emptyForm(user?.email)
-    } catch {
-      return emptyForm(user?.email)
-    }
-  })
+  const [form, setForm] = useState(() => emptyForm(user?.email))
 
   const visibleRequests = useMemo(() => {
     if (statusFilter === 'All') return requests
@@ -101,7 +120,9 @@ export default function WebsiteRequests() {
       return
     }
 
-    const { data, error } = await supabase
+    const client = supabase
+    await drainPrivateStorageCleanup(client, ATTACHMENT_BUCKET)
+    const { data, error } = await client
       .from('website_requests')
       .select('*')
       .order('created_at', { ascending: false })
@@ -109,7 +130,30 @@ export default function WebsiteRequests() {
     if (error) {
       setMessage(`Could not load requests: ${error.message}`)
     } else {
-      setRequests((data || []) as WebsiteRequest[])
+      const loaded = (data || []) as WebsiteRequest[]
+      const attachmentPaths = loaded.flatMap(request =>
+        Array.isArray(request.attachments)
+          ? request.attachments
+            .map(attachment => attachment.path)
+            .filter((path): path is string => typeof path === 'string' && path.length > 0)
+          : [],
+      )
+      const signedUrls = new Map<string, string>()
+      await Promise.all(attachmentPaths.map(async path => {
+        const { data: signedData } = await client.storage
+          .from(ATTACHMENT_BUCKET)
+          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
+        if (signedData?.signedUrl) signedUrls.set(path, signedData.signedUrl)
+      }))
+      setRequests(loaded.map(request => ({
+        ...request,
+        attachments: Array.isArray(request.attachments)
+          ? request.attachments.map(attachment => ({
+            ...attachment,
+            dataUrl: (attachment.path && signedUrls.get(attachment.path)) || attachment.dataUrl,
+          }))
+          : [],
+      })))
     }
     setLoading(false)
   }
@@ -128,25 +172,35 @@ export default function WebsiteRequests() {
     }
   }, [])
 
-  useEffect(() => {
-    localStorage.setItem(WEBSITE_REQUEST_DRAFT_KEY, JSON.stringify(form))
-  }, [form])
-
   const addAttachments = async (files: FileList | null) => {
+    if (!PRIVATE_STORAGE_ENABLED) return
     if (!files?.length) return
-    const images = Array.from(files).filter(file => file.type.startsWith('image/'))
+    const remaining = MAX_ATTACHMENTS - form.attachments.length
+    if (remaining <= 0) {
+      setMessage(`You can attach up to ${MAX_ATTACHMENTS} images.`)
+      return
+    }
+    const images = Array.from(files)
+      .filter(file => ALLOWED_ATTACHMENT_TYPES.has(file.type))
+      .slice(0, remaining)
+    if (images.length === 0) {
+      setMessage('Attach a PNG, JPEG, WebP, GIF, or AVIF image.')
+      return
+    }
     const oversized = images.find(file => file.size > MAX_ATTACHMENT_SIZE)
     if (oversized) {
       setMessage('Images must be 2MB or smaller.')
       return
     }
-    const attachments = await Promise.all(images.map(file => new Promise<WebsiteRequestAttachment>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve({ name: file.name, type: file.type, dataUrl: String(reader.result) })
-      reader.onerror = () => reject(reader.error)
-      reader.readAsDataURL(file)
-    })))
-    setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...attachments].slice(0, 4) }))
+    const attachments = images.map(file => ({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      file,
+      dataUrl: URL.createObjectURL(file),
+    }))
+    setForm(prev => ({ ...prev, attachments: [...prev.attachments, ...attachments] }))
+    setMessage('')
   }
 
   const submitRequest = async (event: React.FormEvent) => {
@@ -162,48 +216,199 @@ export default function WebsiteRequests() {
       setMessage('Please add a title and description.')
       return
     }
+    if (reconciliationRequired) {
+      setMessage('Refresh and verify the previous request before submitting again.')
+      return
+    }
 
     setSaving(true)
-    const { error } = await supabase.from('website_requests').insert([{
-      title: form.title.trim(),
-      request_type: form.request_type,
-      priority: form.priority,
-      page_area: form.page_area.trim() || null,
-      description: form.description.trim(),
-      requester_name: form.requester_name.trim() || getDisplayName(user?.email) || null,
-      requester_email: user?.email || null,
-      created_by: user?.id || null,
-      attachments: form.attachments,
-    }])
+    const requestId = crypto.randomUUID()
+    const uploadedPaths: string[] = []
+    let cleanupAllowed = true
+    try {
+      const storedAttachments: WebsiteRequestAttachment[] = []
+      const attachments = PRIVATE_STORAGE_ENABLED ? form.attachments : []
+      for (const attachment of attachments) {
+        if (!attachment.file) continue
+        const path = `${crypto.randomUUID()}/${crypto.randomUUID()}`
+        const sha256 = await sha256Hex(attachment.file)
+        const reviewReserved = await queuePrivateStorageCleanup(
+          supabase,
+          ATTACHMENT_BUCKET,
+          [path],
+          'failed_website_request_upload',
+          requestId,
+          false,
+        )
+        if (!reviewReserved) {
+          throw new Error('Could not reserve a durable attachment record')
+        }
+        const uploadOutcome = await uploadPrivateObject(
+          supabase,
+          ATTACHMENT_BUCKET,
+          path,
+          attachment.file,
+          attachment.type,
+          sha256,
+        )
+        if (uploadOutcome === 'absent') {
+          await acknowledgePrivateStorageReview(supabase, ATTACHMENT_BUCKET, [path])
+          throw new Error('Attachment upload failed')
+        }
+        if (uploadOutcome === 'unknown') {
+          throw new UnknownRequestSaveOutcome()
+        }
+        uploadedPaths.push(path)
+        storedAttachments.push({
+          name: attachment.name,
+          type: attachment.type,
+          size: attachment.size,
+          sha256,
+          path,
+        })
+      }
 
-    if (error) {
-      setMessage(`Could not submit request: ${error.message}`)
-    } else {
+      const requestRow = {
+        id: requestId,
+        title: form.title.trim(),
+        request_type: form.request_type,
+        priority: form.priority,
+        page_area: form.page_area.trim() || null,
+        description: form.description.trim(),
+        requester_name: form.requester_name.trim() || getDisplayName(user?.email) || null,
+        requester_email: user?.email || null,
+        created_by: user?.id || null,
+        attachments: storedAttachments,
+      }
+      let insertError: unknown = null
+      try {
+        const { error } = await supabase.from('website_requests').insert([requestRow])
+        insertError = error
+      } catch (error) {
+        insertError = error
+      }
+      if (insertError) {
+        let verification: 'saved' | 'absent' | 'unknown' = 'unknown'
+        try {
+          const { data, error: verifyError } = await supabase
+            .from('website_requests')
+            .select('id')
+            .eq('id', requestId)
+            .maybeSingle()
+          verification = verifyError ? 'unknown' : data ? 'saved' : 'absent'
+        } catch {
+          verification = 'unknown'
+        }
+        if (
+          verification === 'absent'
+          && isDefiniteDatabaseRejection(insertError)
+        ) {
+          throw new Error('Database insert failed')
+        }
+        if (verification === 'absent') verification = 'unknown'
+        if (verification === 'unknown') {
+          cleanupAllowed = false
+          throw new UnknownRequestSaveOutcome()
+        }
+      }
+
+      await acknowledgePrivateStorageReview(
+        supabase,
+        ATTACHMENT_BUCKET,
+        uploadedPaths,
+      )
       setMessage('Request submitted and synced to the database.')
-      localStorage.removeItem(WEBSITE_REQUEST_DRAFT_KEY)
+      form.attachments.forEach(attachment => {
+        if (attachment.dataUrl?.startsWith('blob:')) URL.revokeObjectURL(attachment.dataUrl)
+      })
       setForm(emptyForm(user?.email))
-      loadRequests()
+      void loadRequests()
+    } catch (error) {
+      if (cleanupAllowed && uploadedPaths.length > 0) {
+        await cleanupUnreferencedPrivateObjects(
+          supabase,
+          ATTACHMENT_BUCKET,
+          uploadedPaths,
+        )
+      }
+      if (error instanceof UnknownRequestSaveOutcome) {
+        setReconciliationRequired(true)
+        setMessage(
+          'The save outcome is unknown. Private objects were preserved for administrator '
+          + 'reconciliation; refresh and verify before retrying.',
+        )
+      } else {
+        const detail = error instanceof Error ? error.message : 'unknown error'
+        setMessage(`Could not submit request: ${detail}`)
+      }
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
 
   const updateStatus = async (id: string, status: RequestStatus) => {
-    if (!supabase) return
-    const { error } = await supabase.from('website_requests').update({ status }).eq('id', id)
-    if (error) setMessage(`Could not update status: ${error.message}`)
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage('Database is not configured, so the status was not updated.')
+      return
+    }
+    const { data, error } = await supabase
+      .from('website_requests')
+      .update({ status })
+      .eq('id', id)
+      .select('id')
+      .single()
+    if (error || !data) {
+      setMessage(`Could not update status: ${error?.message || 'request was not found'}`)
+      return
+    }
+    setRequests(current => current.map(request => request.id === id ? { ...request, status } : request))
   }
 
   const updatePriority = async (id: string, priority: RequestPriority) => {
-    if (!supabase) return
-    const { error } = await supabase.from('website_requests').update({ priority }).eq('id', id)
-    if (error) setMessage(`Could not update priority: ${error.message}`)
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage('Database is not configured, so the priority was not updated.')
+      return
+    }
+    const { data, error } = await supabase
+      .from('website_requests')
+      .update({ priority })
+      .eq('id', id)
+      .select('id')
+      .single()
+    if (error || !data) {
+      setMessage(`Could not update priority: ${error?.message || 'request was not found'}`)
+      return
+    }
+    setRequests(current => current.map(request => request.id === id ? { ...request, priority } : request))
   }
 
   const deleteRequest = async (id: string) => {
-    if (!supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      setMessage('Database is not configured, so the request was not deleted.')
+      return
+    }
     if (!confirm('Delete this request?')) return
-    const { error } = await supabase.from('website_requests').delete().eq('id', id)
-    if (error) setMessage(`Could not delete request: ${error.message}`)
+    const request = requests.find(item => item.id === id)
+    const { data, error } = await supabase
+      .from('website_requests')
+      .delete()
+      .eq('id', id)
+      .select('id')
+      .single()
+    if (error || !data) {
+      setMessage(`Could not delete request: ${error?.message || 'request was not found'}`)
+      return
+    }
+    const attachmentPaths = request?.attachments
+      ?.map(attachment => attachment.path)
+      .filter((path): path is string => typeof path === 'string' && path.length > 0) || []
+    if (attachmentPaths.length > 0) {
+      const cleanupComplete = await drainPrivateStorageCleanup(supabase, ATTACHMENT_BUCKET)
+      if (!cleanupComplete) {
+        setMessage('The request was deleted. Its private attachments remain tracked for automatic cleanup.')
+      }
+    }
+    setRequests(current => current.filter(request => request.id !== id))
   }
 
   return (
@@ -318,39 +523,46 @@ export default function WebsiteRequests() {
               />
             </label>
 
-            <label className="block">
-              <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Images</span>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(event) => { addAttachments(event.target.files); event.currentTarget.value = '' }}
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-                style={{ borderColor: 'var(--border-secondary)' }}
-              />
-            </label>
+            {PRIVATE_STORAGE_ENABLED && (
+              <>
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Images</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                    multiple
+                    onChange={(event) => { addAttachments(event.target.files); event.currentTarget.value = '' }}
+                    className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                    style={{ borderColor: 'var(--border-secondary)' }}
+                  />
+                </label>
 
-            {form.attachments.length > 0 && (
-              <div className="grid grid-cols-2 gap-2">
-                {form.attachments.map((attachment, index) => (
-                  <div key={`${attachment.name}-${index}`} className="relative overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
-                    <img src={attachment.dataUrl} alt={attachment.name} className="h-24 w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setForm(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }))}
-                      className="absolute right-1 top-1 rounded-full px-1.5 text-xs"
-                      style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}
-                    >
-                      x
-                    </button>
+                {form.attachments.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {form.attachments.map((attachment, index) => (
+                      <div key={`${attachment.name}-${index}`} className="relative overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
+                        <img src={attachment.dataUrl} alt={attachment.name} className="h-24 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (attachment.dataUrl?.startsWith('blob:')) URL.revokeObjectURL(attachment.dataUrl)
+                            setForm(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }))
+                          }}
+                          className="absolute right-1 top-1 rounded-full px-1.5 text-xs"
+                          style={{ backgroundColor: '#1B1A1C', color: '#FFFFFF' }}
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
 
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || reconciliationRequired}
               className="w-full rounded-lg px-4 py-2.5 text-sm transition disabled:opacity-60"
               style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF', fontWeight: 600 }}
             >
@@ -454,9 +666,15 @@ export default function WebsiteRequests() {
                   {request.attachments && request.attachments.length > 0 && (
                     <div className="mt-4 grid grid-cols-3 gap-2">
                       {request.attachments.map((attachment, index) => (
-                        <a key={`${attachment.name}-${index}`} href={attachment.dataUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
-                          <img src={attachment.dataUrl} alt={attachment.name} className="h-20 w-full object-cover" />
-                        </a>
+                        attachment.dataUrl ? (
+                          <a key={`${attachment.name}-${index}`} href={attachment.dataUrl} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border" style={{ borderColor: 'var(--border-secondary)' }}>
+                            <img src={attachment.dataUrl} alt={attachment.name} className="h-20 w-full object-cover" />
+                          </a>
+                        ) : (
+                          <div key={`${attachment.name}-${index}`} className="flex h-20 items-center justify-center rounded-lg border px-2 text-center text-[11px]" style={{ borderColor: 'var(--border-secondary)', color: 'var(--text-muted)' }}>
+                            Attachment unavailable
+                          </div>
+                        )
                       ))}
                     </div>
                   )}

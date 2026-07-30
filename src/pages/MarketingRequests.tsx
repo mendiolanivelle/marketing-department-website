@@ -28,6 +28,7 @@ export default function MarketingRequests() {
   const [viewingRequest, setViewingRequest] = useState<SubmittedRequest | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [filterPriority, setFilterPriority] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState('')
 
   const filtered = filterPriority ? submitted.filter(r => r.priority === filterPriority) : submitted
 
@@ -57,8 +58,14 @@ export default function MarketingRequests() {
 
   const loadSubmissions = async () => {
     setLoading(true)
+    setLoadError('')
     if (isSupabaseConfigured && supabase) {
-      const { data } = await supabase.from('marketing_requests').select('*').order('created_at', { ascending: false })
+      const { data, error } = await supabase.from('marketing_requests').select('*').order('created_at', { ascending: false })
+      if (error) {
+        setLoadError('Marketing requests could not be loaded from the database. No browser fallback was substituted.')
+        setLoading(false)
+        return
+      }
       if (data) {
         setSubmitted(data.map((r: any) => ({
           id: r.id,
@@ -81,6 +88,7 @@ export default function MarketingRequests() {
         })))
       }
     } else {
+      setLoadError('Database unavailable. Any browser-only requests shown below are legacy, device-specific, and view-only.')
       const existing = localStorage.getItem('exodia-marketing-requests')
       if (existing) setSubmitted(JSON.parse(existing).reverse())
     }
@@ -89,31 +97,23 @@ export default function MarketingRequests() {
 
   const deleteRequest = async (index: number, req: SubmittedRequest) => {
     if (!window.confirm('Delete this request?')) return
+    if (!isSupabaseConfigured || !supabase) {
+      window.alert('This browser-only request is view-only until the database is available.')
+      return
+    }
     setDeleting(index)
-    let deletedFromSupabase = false
     try {
-      if (isSupabaseConfigured && supabase) {
-        if (req.id) {
-          const { error } = await supabase.from('marketing_requests').delete().eq('id', req.id)
-          if (error) throw new Error(error.message)
-          deletedFromSupabase = true
-        } else if (req.editToken) {
-          const { error } = await supabase.from('marketing_requests').delete().eq('edit_token', req.editToken)
-          if (error) throw new Error(error.message)
-          deletedFromSupabase = true
-        }
-      }
-      if (!deletedFromSupabase) {
-        const existing = localStorage.getItem('exodia-marketing-requests')
-        if (existing) {
-          const requests = JSON.parse(existing)
-          const idx = requests.findIndex((r: any) => r.editToken === req.editToken)
-          if (idx !== -1) requests.splice(idx, 1)
-          localStorage.setItem('exodia-marketing-requests', JSON.stringify(requests))
-        }
+      const result = req.id
+        ? await supabase.from('marketing_requests').delete().eq('id', req.id).select('id').maybeSingle()
+        : req.editToken
+          ? await supabase.from('marketing_requests').delete().eq('edit_token', req.editToken).select('id').maybeSingle()
+          : { data: null, error: new Error('Request has no canonical database identity') }
+      if (result.error || !result.data) {
+        throw result.error || new Error('Request was not found')
       }
     } catch (err) {
       console.error('Delete failed:', err)
+      window.alert('The request was not deleted. Please refresh and try again.')
       setDeleting(null)
       return
     }
@@ -121,6 +121,24 @@ export default function MarketingRequests() {
     setDeleting(null)
     logActivity('MarketingRequests', `Deleted request "${req.title}"`)
     loadSubmissions()
+  }
+
+  const openRequest = (req: SubmittedRequest) => {
+    setViewingRequest(req)
+    if (!isSupabaseConfigured || !supabase || !req.id) return
+    void supabase
+      .from('marketing_requests')
+      .update({ is_read: true })
+      .eq('id', req.id)
+      .select('id')
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          console.error('Failed to mark marketing request as read:', error || new Error('Request was not found'))
+          return
+        }
+        window.dispatchEvent(new CustomEvent('lead-data-changed'))
+      })
   }
 
   const priorityColors: Record<string, string> = {
@@ -219,6 +237,12 @@ export default function MarketingRequests() {
               </button>
             </div>
 
+            {loadError && (
+              <div role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                {loadError}
+              </div>
+            )}
+
 {loading ? (
             <div className="space-y-3 p-4">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -259,7 +283,7 @@ export default function MarketingRequests() {
                     {filtered.map((req, index) => (
                       <tr
                         key={index}
-                        onClick={async () => { if (isSupabaseConfigured && supabase && req.id) { await supabase.from('marketing_requests').update({ is_read: true }).eq('id', req.id) }; setViewingRequest(req) }}
+                        onClick={() => openRequest(req)}
                         className="cursor-pointer transition hover:opacity-80"
                         style={{ borderTop: '2px solid var(--border-secondary)' }}
                       >

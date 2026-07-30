@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -10,7 +10,6 @@ const PublicShowcase = lazy(() => import('./pages/PublicShowcase'))
 const PublicAcceptanceForm = lazy(() => import('./pages/PublicAcceptanceForm'))
 const Login = lazy(() => import('./pages/Login'))
 const Home = lazy(() => import('./pages/Home'))
-const About = lazy(() => import('./pages/About'))
 const Timeline = lazy(() => import('./pages/Timeline'))
 const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
@@ -21,11 +20,8 @@ const AcceptanceCriteria = lazy(() => import('./pages/AcceptanceCriteria'))
 const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
 const ViewAcceptanceForm = lazy(() => import('./pages/ViewAcceptanceForm'))
 const SubmitRequestForm = lazy(() => import('./pages/SubmitRequestForm'))
-const Workspace = lazy(() => import('./pages/Workspace'))
 const WebsiteRequests = lazy(() => import('./pages/WebsiteRequests'))
-const MeetingPlaybook = lazy(() => import('./pages/MeetingPlaybook'))
 const MarketingProjectList = lazy(() => import('./pages/MarketingProjectList'))
-const MarketingProjectListOps = lazy(() => import('./components/MarketingProjectList.jsx'))
 
 function RouteFallback({ fullScreen = false }: { fullScreen?: boolean }) {
   return (
@@ -114,9 +110,11 @@ function App() {
             <Route
               path="/view-acceptance/:id"
               element={
-                <Suspense fallback={<RouteFallback fullScreen />}>
-                  <ErrorBoundary><ViewAcceptanceForm /></ErrorBoundary>
-                </Suspense>
+                <ProtectedRoute>
+                  <Suspense fallback={<RouteFallback fullScreen />}>
+                    <ErrorBoundary><ViewAcceptanceForm /></ErrorBoundary>
+                  </Suspense>
+                </ProtectedRoute>
               }
             />
             <Route
@@ -155,8 +153,6 @@ function App() {
                           <ErrorBoundary>
                             <Routes>
                               <Route path="/dashboard" element={<Home />} />
-                              <Route path="/team" element={<About />} />
-                              <Route path="/about" element={<About />} />
                               <Route path="/timeline" element={<Timeline />} />
                               <Route path="/templates" element={<Messaging />} />
                               <Route path="/calendar" element={<Calendar />} />
@@ -164,12 +160,11 @@ function App() {
                               <Route path="/leads" element={<LeadGeneration />} />
                             <Route path="/campaigns" element={<Campaigns />} />
                             <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
-                            <Route path="/meeting-playbook" element={<MeetingPlaybook />} />
                             <Route path="/marketing-project-list" element={<MarketingProjectList />} />
-                            <Route path="/marketing-projects" element={<div className="flex-1 min-h-0"><MarketingProjectListOps /></div>} />
+                            <Route path="/marketing-projects" element={<div className="flex-1 min-h-0"><MarketingProjectList /></div>} />
                             <Route path="/requests" element={<MarketingRequests />} />
                             <Route path="/website-requests" element={<WebsiteRequests />} />
-<Route path="/workspace" element={<div className="flex-1 min-h-0"><Workspace /></div>} />
+                              <Route path="*" element={<Navigate to="/dashboard" replace />} />
                           </Routes>
                           </ErrorBoundary>
                         </Suspense>

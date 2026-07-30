@@ -13,6 +13,7 @@ interface TimelineTable {
   id: string
   title: string
   columns: TimelineColumn[]
+  sales_restricted_from_key: string
   created_at: string
 }
 
@@ -56,64 +57,18 @@ const defaultColumns = (): TimelineColumn[] => [
   { key: 'col-5', label: 'Closed Won' },
 ]
 
-const fillTimelineTemplate = (text: string, lead: TimelineLead) =>
-  text
-    .replace(/\{\{contact_name\}\}/g, lead.contact || lead.email || 'there')
-    .replace(/\{\{company_name\}\}/g, lead.company || 'your company')
-    .replace(/\{\{sender_name\}\}/g, 'Marketing Team')
-    .replace(/\{\{sales_rep_name\}\}/g, 'our Sales Team')
-    .replace(/\{\{ops_rep_name\}\}/g, 'our Operations Team')
-    .replace(/\{\{proposed_date\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
-    .replace(/\{\{project_name\}\}/g, lead.company || 'your project')
-
-const escapeEmailHtml = (value: string) =>
-  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-const plainTextToEmailHtml = (message: string, lead: TimelineLead) => {
-  const paragraphs = message
-    .split(/\n{2,}/)
-    .map(part => part.trim())
-    .filter(Boolean)
-    .map(part => `<p style="margin:0 0 18px;font-size:15px;line-height:1.7;">${escapeEmailHtml(part).replace(/\n/g, '<br>')}</p>`)
-    .join('\n        ')
-
-  return `<div style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;color:#1B1A1C;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-    <div style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eceef2;">
-      <div style="background:#FF5900;padding:28px 32px;text-align:center;">
-        <h1 style="margin:0;color:#ffffff;font-size:24px;line-height:1.2;">Exodia Game Development</h1>
-        <p style="margin:8px 0 0;color:#ffe7da;font-size:14px;">Marketing Department</p>
-      </div>
-      <div style="padding:32px;">
-        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Hi ${escapeEmailHtml(lead.contact || lead.email || 'there')},</p>
-        ${paragraphs}
-        <a href="https://calendar.app.google/rV8V8QwCYUr4XrP98" style="display:inline-block;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;padding:13px 22px;font-weight:700;font-size:14px;">Book a Call</a>
-        <p style="margin:28px 0 0;font-size:15px;line-height:1.7;">Best regards,<br>Marketing Team</p>
-      </div>
-    </div>
-  </div>
-</div>`
-}
-
-const ensureDesignedEmailBody = (body: string, lead: TimelineLead) =>
-  /<\/?[a-z][\s\S]*>/i.test(body) ? body : plainTextToEmailHtml(body, lead)
-
-const htmlToPlainText = (html: string) =>
-  html.replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-
 const fmtDate = (d: string | Date = new Date()) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
 export default function Timeline() {
   const { user } = useAuth()
+  const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
   const [tables, setTables] = useState<TimelineTable[]>([])
   const [leads, setLeads] = useState<TimelineLead[]>([])
   const [loading, setLoading] = useState(true)
+  const [canonicalReady, setCanonicalReady] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const remoteTableIdsRef = useRef(new Set<string>())
+  const remoteLeadIdsRef = useRef(new Set<string>())
   const [draggedColumn, setDraggedColumn] = useState<{ tableId: string; colKey: string } | null>(null)
   const [selectedLead, setSelectedLead] = useState<TimelineLead | null>(null)
   const [editingTableTitle, setEditingTableTitle] = useState<string | null>(null)
@@ -132,8 +87,6 @@ export default function Timeline() {
   const [addLeadColumnKey, setAddLeadColumnKey] = useState<string>('col-1')
   const [leadForm, setLeadForm] = useState({ company: '', contact: '', email: '', value: '', date: '' })
   const [editingLead, setEditingLead] = useState<TimelineLead | null>(null)
-  const [newNote, setNewNote] = useState('')
-  const [newAttachment, setNewAttachment] = useState('')
   const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null)
   const [editingNoteValue, setEditingNoteValue] = useState('')
   const [showSendEmail, setShowSendEmail] = useState(false)
@@ -141,7 +94,6 @@ export default function Timeline() {
   const [emailBody, setEmailBody] = useState('')
   const [lastEmailSent, setLastEmailSent] = useState('')
   const [editingLastEmail, setEditingLastEmail] = useState(false)
-  const [newChecklistItem, setNewChecklistItem] = useState('')
   const [editingChecklistIdx, setEditingChecklistIdx] = useState<number | null>(null)
   const [editingChecklistValue, setEditingChecklistValue] = useState('')
   const [activeRightTab, setActiveRightTab] = useState('notes')
@@ -151,99 +103,71 @@ export default function Timeline() {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
-    // Merge Supabase data + localStorage leads
-    let localTables: TimelineTable[] = []
-    let localLeads: TimelineLead[] = []
+    remoteTableIdsRef.current = new Set()
+    remoteLeadIdsRef.current = new Set()
 
-    // Read from localStorage fallback
-    const savedTables = localStorage.getItem('exodia-timeline-tables')
-    if (savedTables) {
-      try { localTables = JSON.parse(savedTables) } catch {}
-    }
-    const savedLeads = localStorage.getItem('exodia-timeline-leads')
-    if (savedLeads) {
-      try { localLeads = JSON.parse(savedLeads).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) } catch {}
-    }
-    const fallbackTables = localTables
-    const fallbackLeads = localLeads
-
-    // Ensure a default onboarding table exists
-    if (localTables.length === 0) {
-      localTables = [{
-        id: 'onboarding-default',
-        title: 'Client Onboarding',
-        columns: defaultColumns(),
-        created_at: new Date().toISOString(),
-      }]
-      localStorage.setItem('exodia-timeline-tables', JSON.stringify(localTables))
-    }
-
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data: tableData, error: tableError } = await supabase
-          .from('timeline_tables')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (!tableError && tableData) {
-          localTables = tableData.map((t: any) => ({
-            ...t,
-            columns: typeof t.columns === 'string' ? JSON.parse(t.columns) : t.columns,
-          }))
-        }
-
-        const { data: leadData, error: leadError } = await supabase
-          .from('timeline_leads')
-          .select('*')
-          .order('created_at', { ascending: false })
-        if (!leadError && leadData) {
-          localLeads = leadData.map((l: any) => {
-            const fallbackLead = fallbackLeads.find(lead => lead.id === l.id)
-            const emailHistory = typeof l.email_history === 'string' ? JSON.parse(l.email_history) : (l.email_history || [])
-            return {
-              ...l,
-              attachments: typeof l.attachments === 'string' ? JSON.parse(l.attachments) : (l.attachments || []),
-              email_history: emailHistory.length ? emailHistory : (fallbackLead?.email_history || []),
-              last_email_sent: l.last_email_sent || fallbackLead?.last_email_sent || '',
-            }
-          })
-          const unsyncedCallingCards = fallbackLeads.filter(localLead =>
-            localLead.notes?.includes('Auto-created from calling card upload') &&
-            !localLeads.some(remoteLead =>
-              (localLead.email && remoteLead.email === localLead.email && remoteLead.date === localLead.date && remoteLead.notes === localLead.notes) ||
-              (!localLead.email && remoteLead.company === localLead.company && remoteLead.contact === localLead.contact && remoteLead.notes === localLead.notes)
-            )
-          )
-          if (unsyncedCallingCards.length > 0) {
-            localLeads = [...localLeads, ...unsyncedCallingCards]
-            fallbackTables.forEach(table => {
-              if (!localTables.some(remoteTable => remoteTable.id === table.id) && unsyncedCallingCards.some(lead => lead.table_id === table.id)) {
-                localTables.push(table)
-              }
-            })
+    if (!isSupabaseConfigured || !supabase) {
+      let localTables: TimelineTable[] = []
+      let localLeads: TimelineLead[] = []
+      const savedTables = localStorage.getItem('exodia-timeline-tables')
+      const savedLeads = localStorage.getItem('exodia-timeline-leads')
+      if (savedTables) {
+        try {
+          const parsed = JSON.parse(savedTables)
+          if (Array.isArray(parsed)) localTables = parsed
+        } catch {}
+      }
+      if (savedLeads) {
+        try {
+          const parsed = JSON.parse(savedLeads)
+          if (Array.isArray(parsed)) {
+            localLeads = parsed.sort((a: TimelineLead, b: TimelineLead) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
           }
-        }
-      } catch (err) {
-        console.error('Error fetching timeline data:', err)
+        } catch {}
       }
+      setTables(localTables)
+      setLeads(localLeads.map(lead => ({ ...lead, date: lead.date || fmtDate(lead.created_at) })))
+      setCanonicalReady(false)
+      setLoadError('Canonical timeline storage is unavailable. Preserved browser-only records are shown read-only.')
+      setLoading(false)
+      return
     }
 
-    // Migrate existing leads without a date
-    localLeads = localLeads.map(l => ({ ...l, date: l.date || fmtDate(l.created_at) }))
+    try {
+      const [tableResult, leadResult] = await Promise.all([
+        supabase.from('timeline_tables').select('*').order('created_at', { ascending: false }),
+        supabase.from('timeline_leads').select('*').order('created_at', { ascending: false }),
+      ])
+      if (tableResult.error || leadResult.error) throw tableResult.error || leadResult.error
 
-    // Persist to localStorage for cross-page sync
-    localStorage.setItem('exodia-timeline-leads', JSON.stringify(localLeads))
-
-    // Push migrated dates to Supabase
-    if (isSupabaseConfigured && supabase) {
-      const needsUpdate = localLeads.filter(l => !l.date || l.date === l.created_at?.slice(0, 10))
-      for (const lead of needsUpdate) {
-        supabase.from('timeline_leads').update({ date: lead.date }).eq('id', lead.id).then(() => {}, () => {})
-      }
+      const remoteTables = (tableResult.data || []).map((table: any) => ({
+        ...table,
+        columns: typeof table.columns === 'string' ? JSON.parse(table.columns) : table.columns,
+      }))
+      const remoteLeads = (leadResult.data || []).map((lead: any) => ({
+        ...lead,
+        attachments: typeof lead.attachments === 'string' ? JSON.parse(lead.attachments) : (lead.attachments || []),
+        email_history: typeof lead.email_history === 'string' ? JSON.parse(lead.email_history) : (lead.email_history || []),
+        last_email_sent: lead.last_email_sent || '',
+        date: lead.date || fmtDate(lead.created_at),
+      }))
+      remoteTableIdsRef.current = new Set(remoteTables.map((table: TimelineTable) => table.id))
+      remoteLeadIdsRef.current = new Set(remoteLeads.map((lead: TimelineLead) => lead.id))
+      setTables(remoteTables)
+      setLeads(remoteLeads)
+      setSelectedLead(current => current ? remoteLeads.find((lead: TimelineLead) => lead.id === current.id) || null : null)
+      setCanonicalReady(true)
+      setLoadError('')
+    } catch (error) {
+      console.error('Error fetching canonical timeline data:', error)
+      setTables([])
+      setLeads([])
+      setSelectedLead(null)
+      setCanonicalReady(false)
+      setLoadError('Canonical timeline data could not be loaded. Changes are disabled to prevent duplicates.')
+    } finally {
+      setLoading(false)
     }
-
-    setTables(localTables)
-    setLeads(localLeads)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -266,133 +190,152 @@ export default function Timeline() {
     }
   }, [fetchData])
 
-  // Persist to localStorage for cross-page sync
-  useEffect(() => {
-    localStorage.setItem('exodia-timeline-tables', JSON.stringify(tables))
-  }, [tables])
-
-  useEffect(() => {
-    localStorage.setItem('exodia-timeline-leads', JSON.stringify(leads))
-  }, [leads])
-
   useEffect(() => {
     const fetchTemplates = async () => {
-      const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
-      const saved = localStorage.getItem('exodia-message-templates')
-      if (saved) {
-        try { const parsed = JSON.parse(saved).map((t: any) => ({ ...t, body: migrateUrl(t.body) })); setTemplates(parsed); localStorage.setItem('exodia-message-templates', JSON.stringify(parsed)) } catch {}
+      const migrateUrl = (body: string) => body.replace(/https:\/\/exodiagamedev\.com(["')\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+      if (!isSupabaseConfigured || !supabase) {
+        const saved = localStorage.getItem('exodia-message-templates')
+        if (saved) {
+          try {
+            setTemplates(JSON.parse(saved).map((template: any) => ({
+              ...template,
+              body: migrateUrl(template.body),
+            })))
+          } catch {}
+        }
+        return
       }
-      if (!isSupabaseConfigured || !supabase) return
       try {
-        const { data } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
+        const { data, error } = await supabase.from('message_templates').select('*').order('created_at', { ascending: false })
+        if (error) throw error
         if (data) {
-          const migrated = data.map((t: any) => ({ ...t, body: migrateUrl(t.body) }))
-          setTemplates(migrated)
-          localStorage.setItem('exodia-message-templates', JSON.stringify(migrated))
+          setTemplates(data.map((template: any) => ({
+            ...template,
+            body: migrateUrl(template.body),
+          })))
         }
       } catch (err) { console.error('Error fetching message templates:', err) }
     }
     fetchTemplates()
   }, [])
 
-  const sendColumnAutoEmail = async (lead: TimelineLead, column: TimelineColumn) => {
-    const templateId = typeof column.emailTemplateId === 'string' ? column.emailTemplateId.trim() : ''
-    const wasAlreadyEmailed = Boolean(lead.last_email_sent?.trim() || lead.email_history?.length || lead.notes?.includes('Auto email sent:'))
-    if (!templateId || templateId === 'undefined' || templateId === 'null' || !lead.email || !supabase || wasAlreadyEmailed) return lead
-    const template = templates.find(t => t.id === templateId)
-    if (!template) return lead
-
-    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
-    const subject = fillTimelineTemplate(template.subject, lead)
-    const htmlBody = fixUrl(ensureDesignedEmailBody(fillTimelineTemplate(template.body, lead), lead))
-    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    const { error } = await supabase.functions.invoke('send-outreach-email', {
-      body: {
-        to: lead.email,
-        name: lead.contact || lead.email,
-        subject,
-        body: htmlBody,
-        htmlBody,
-        textBody: htmlToPlainText(htmlBody),
-        messageId: `<${crypto.randomUUID()}@exodiagamedev.com>`,
-      },
-    })
-    if (error) throw error
-    const emailHistory = [...(lead.email_history || []), { date: today, subject, preview: htmlToPlainText(htmlBody).slice(0, 160) }]
-    const notes = [lead.notes, `Auto email sent: ${template.title}`].filter(Boolean).join('\n')
-    const updated = { ...lead, last_email_sent: today, email_history: emailHistory, notes }
-    setLeads(prev => prev.map(l => l.id === lead.id ? updated : l))
-    const { error: updateError } = await supabase.from('timeline_leads').update({ email_history: emailHistory, notes }).eq('id', lead.id)
-    if (updateError) throw updateError
-    logActivity('Timeline', `Auto emailed "${lead.company}" using "${template.title}"`)
-    return updated
+  const getWritableLeadClient = (leadId: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Timeline changes require a Supabase connection. No changes were made.')
+      return null
+    }
+    if (!canonicalReady) {
+      alert('Canonical timeline data has not loaded successfully. No changes were made.')
+      return null
+    }
+    if (!remoteLeadIdsRef.current.has(leadId)) {
+      alert('This legacy browser-only lead is read-only. Its saved copy was not changed.')
+      return null
+    }
+    return supabase
   }
 
-  const handleDragStart = (e: React.DragEvent, leadId: string) => {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', leadId)
+  const getWritableTableClient = (tableId: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Timeline changes require a Supabase connection. No changes were made.')
+      return null
+    }
+    if (!canonicalReady) {
+      alert('Canonical timeline data has not loaded successfully. No changes were made.')
+      return null
+    }
+    if (!remoteTableIdsRef.current.has(tableId)) {
+      alert('This legacy browser-only timeline is read-only. Its saved copy was not changed.')
+      return null
+    }
+    return supabase
   }
 
-  const handleDragEnd = () => {}
+  const updateTimelineTableRecord = async (tableId: string, changes: Partial<TimelineTable>) => {
+    if (changes.columns && !isSales) {
+      alert('Only sales@exodiagamedev.com can change timeline stages. No changes were made.')
+      return false
+    }
+    const client = getWritableTableClient(tableId)
+    if (!client) return false
+    const { data, error } = await client
+      .from('timeline_tables')
+      .update(changes)
+      .eq('id', tableId)
+      .select('id')
+      .single()
+    if (error || !data) throw error || new Error('No canonical timeline was updated')
+    return true
+  }
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
+  const updateTimelineLeadRecord = async (leadId: string, changes: Partial<TimelineLead>) => {
+    const client = getWritableLeadClient(leadId)
+    if (!client) return false
+    const { data, error } = await client
+      .from('timeline_leads')
+      .update(changes)
+      .eq('id', leadId)
+      .select('id')
+      .single()
+    if (error || !data) throw error || new Error('No canonical lead was updated')
+    return true
+  }
+
+  const showTimelineWriteError = (action: string, error: unknown) => {
+    console.error(`Could not ${action}:`, error)
+    alert(`Could not ${action}. No changes were saved. Please try again.`)
+  }
+
+  const moveLead = async (lead: TimelineLead, tableId: string, column: TimelineColumn) => {
+    const movedLead = { ...lead, column_key: column.key, table_id: tableId, date: fmtDate() }
+    try {
+      const saved = await updateTimelineLeadRecord(lead.id, {
+        column_key: column.key,
+        table_id: tableId,
+        date: movedLead.date,
+        updated_at: new Date().toISOString(),
+      })
+      if (!saved) return
+      setLeads(prev => prev.map(item => item.id === lead.id ? movedLead : item))
+    } catch (error) {
+      showTimelineWriteError('move the lead', error)
+    }
+  }
+
+  const canMoveLeadToColumn = (table: TimelineTable, targetIndex: number) => {
+    const restrictedIndex = table.columns.findIndex(column => column.key === table.sales_restricted_from_key)
+    if (restrictedIndex !== -1 && targetIndex >= restrictedIndex && !isSales) {
+      alert('Only sales@exodiagamedev.com can move leads into or beyond SOW and Pricing Finalization.')
+      return false
+    }
+    return true
   }
 
   const handleDrop = async (e: React.DragEvent, tableId: string, columnKey: string) => {
     e.preventDefault()
     const leadId = e.dataTransfer.getData('text/plain')
-    if (!leadId || !supabase) return
+    if (!leadId) return
 
     // Check if the target column is at or past SOW
     const table = tables.find(t => t.id === tableId)
     if (table) {
       const targetIdx = table.columns.findIndex(c => c.key === columnKey)
-      const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
-      if (sowIdx !== -1 && targetIdx >= sowIdx) {
-        const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
-        if (!isSales) {
-          alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
-          return
-        }
-      }
+      if (!canMoveLeadToColumn(table, targetIdx)) return
     }
 
     const lead = leads.find(l => l.id === leadId)
     const targetColumn = table?.columns.find(c => c.key === columnKey)
-    if (!lead || (lead.table_id === tableId && lead.column_key === columnKey)) return
-    const movedLead = { ...lead, column_key: columnKey, table_id: tableId, date: fmtDate() }
-    setLeads(prev => prev.map(l => l.id === leadId ? movedLead : l))
-    try {
-      await supabase.from('timeline_leads').update({ column_key: columnKey, table_id: tableId, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', leadId)
-      if (targetColumn) await sendColumnAutoEmail(movedLead, targetColumn)
-    } catch (err) { console.error('Error moving lead:', err) }
+    if (!lead || !targetColumn || (lead.table_id === tableId && lead.column_key === columnKey)) return
+    await moveLead(lead, tableId, targetColumn)
   }
 
-const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
+  const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const currentIdx = table.columns.findIndex(c => c.key === lead.column_key)
     if (currentIdx === -1 || currentIdx >= table.columns.length - 1) return
     const nextCol = table.columns[currentIdx + 1]
 
-    // Only sales can move leads at or past "SOW and Costing Creation"
-    const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
-    if (sowIdx !== -1 && currentIdx >= sowIdx) {
-      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
-      if (!isSales) {
-        alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
-        return
-      }
-    }
-
-    const movedLead = { ...lead, column_key: nextCol.key, date: fmtDate() }
-    setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
-    if (supabase) {
-      try {
-        await supabase.from('timeline_leads').update({ column_key: nextCol.key, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', lead.id)
-        await sendColumnAutoEmail(movedLead, nextCol)
-      } catch (err) { console.error('Error moving lead:', err) }
-    }
+    if (!canMoveLeadToColumn(table, currentIdx + 1)) return
+    await moveLead(lead, table.id, nextCol)
   }
 
   const moveToPrevColumn = async (lead: TimelineLead, table: TimelineTable) => {
@@ -400,24 +343,8 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     if (currentIdx <= 0) return
     const prevCol = table.columns[currentIdx - 1]
 
-    // Only sales can move leads at or past "SOW and Costing Creation"
-    const sowIdx = table.columns.findIndex(c => /sow.*costing|costing.*sow/i.test(c.label))
-    if (sowIdx !== -1 && currentIdx >= sowIdx) {
-      const isSales = user?.email?.toLowerCase() === 'sales@exodiagamedev.com'
-      if (!isSales) {
-        alert('Only sales@exodiagamedev.com can move leads starting from SOW and Costing Creation.')
-        return
-      }
-    }
-
-    const movedLead = { ...lead, column_key: prevCol.key, date: fmtDate() }
-    setLeads(prev => prev.map(l => l.id === lead.id ? movedLead : l))
-    if (supabase) {
-      try {
-        await supabase.from('timeline_leads').update({ column_key: prevCol.key, date: movedLead.date, updated_at: new Date().toISOString() }).eq('id', lead.id)
-        await sendColumnAutoEmail(movedLead, prevCol)
-      } catch (err) { console.error('Error moving lead:', err) }
-    }
+    if (!canMoveLeadToColumn(table, currentIdx - 1)) return
+    await moveLead(lead, table.id, prevCol)
   }
 
   // Column drag handlers
@@ -431,17 +358,21 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     setDraggedColumn(null)
   }
 
-  const handleColumnDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-  }
-
   const handleColumnDrop = async (e: React.DragEvent, targetTableId: string, targetColKey: string) => {
     e.preventDefault()
     const data = e.dataTransfer.getData('application/column')
-    if (!data || !supabase) return
+    if (!data) return
 
-    const { tableId, colKey } = JSON.parse(data)
+    let tableId = ''
+    let colKey = ''
+    try {
+      const parsed = JSON.parse(data)
+      tableId = parsed.tableId
+      colKey = parsed.colKey
+    } catch {
+      setDraggedColumn(null)
+      return
+    }
 
     // Only allow reordering within the same table
     if (tableId !== targetTableId || colKey === targetColKey) {
@@ -463,100 +394,111 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     columns.splice(targetIndex, 0, draggedCol)
 
     try {
-      const { error } = await supabase
-        .from('timeline_tables')
-        .update({ columns })
-        .eq('id', tableId)
-      if (error) throw error
+      if (!await updateTimelineTableRecord(tableId, { columns })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns } : t))
-    } catch (err) { console.error('Error reordering columns:', err) }
-
-    setDraggedColumn(null)
+    } catch (error) {
+      showTimelineWriteError('reorder the columns', error)
+    } finally {
+      setDraggedColumn(null)
+    }
   }
 
   const addTimelineTable = async () => {
     const title = newTableTitle.trim() || `Timeline ${tables.length + 1}`
-    if (!supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Timeline changes require a Supabase connection. No changes were made.')
+      return
+    }
+    if (!canonicalReady) {
+      alert('Canonical timeline data has not loaded successfully. No timeline was created.')
+      return
+    }
     try {
       const { data, error } = await supabase
         .from('timeline_tables')
-        .insert([{ title, columns: defaultColumns() }])
+        .insert([{ title, columns: defaultColumns(), sales_restricted_from_key: 'col-4' }])
         .select()
         .single()
-      if (error) throw error
+      if (error || !data) throw error || new Error('Canonical timeline was not created')
+      remoteTableIdsRef.current.add(data.id)
       setTables(prev => [data, ...prev])
       setShowAddTable(false)
       setNewTableTitle('')
       logActivity('Timeline', `Created table "${data.title}"`)
-    } catch (err) { console.error('Error adding table:', err) }
+    } catch (error) {
+      showTimelineWriteError('create the timeline', error)
+    }
   }
 
   const deleteTimelineTable = async (tableId: string) => {
-    if (!confirm('Delete this timeline table and all its leads?') || !supabase) return
+    const client = getWritableTableClient(tableId)
+    if (!client || !confirm('Delete this timeline table and all its leads?')) return
     const table = tables.find(t => t.id === tableId)
     try {
-      const { error } = await supabase.from('timeline_tables').delete().eq('id', tableId)
-      if (error) throw error
-    } catch (err) { console.error('Error deleting table:', err) }
+      const { data, error } = await client
+        .from('timeline_tables')
+        .delete()
+        .eq('id', tableId)
+        .select('id')
+        .single()
+      if (error || !data) throw error || new Error('No canonical timeline was deleted')
+      remoteTableIdsRef.current.delete(tableId)
+      leads.filter(lead => lead.table_id === tableId).forEach(lead => remoteLeadIdsRef.current.delete(lead.id))
+      setTables(prev => prev.filter(item => item.id !== tableId))
+      setLeads(prev => prev.filter(lead => lead.table_id !== tableId))
+      setSelectedLead(current => current?.table_id === tableId ? null : current)
+      if (table) logActivity('Timeline', `Deleted table "${table.title}"`)
+    } catch (error) {
+      showTimelineWriteError('delete the timeline', error)
+    }
   }
 
   const saveTableTitle = async (tableId: string) => {
-    if (!supabase || !editingTableTitleValue.trim()) return
+    if (!editingTableTitleValue.trim()) return
     try {
-      const { error } = await supabase
-        .from('timeline_tables')
-        .update({ title: editingTableTitleValue.trim() })
-        .eq('id', tableId)
-      if (error) throw error
+      if (!await updateTimelineTableRecord(tableId, { title: editingTableTitleValue.trim() })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, title: editingTableTitleValue.trim() } : t))
       logActivity('Timeline', `Renamed table to "${editingTableTitleValue.trim()}"`)
-    } catch (err) { console.error('Error updating table title:', err) }
-    setEditingTableTitle(null)
+      setEditingTableTitle(null)
+    } catch (error) {
+      showTimelineWriteError('rename the timeline', error)
+    }
   }
 
   const saveColumnLabel = async (tableId: string, colKey: string) => {
-    if (!supabase || !editingColumnValue.trim()) return
+    if (!editingColumnValue.trim()) return
     const table = tables.find(t => t.id === tableId)
     if (!table) return
     const newColumns = table.columns.map(c => c.key === colKey ? { ...c, label: editingColumnValue.trim() } : c)
     try {
-      const { error } = await supabase
-        .from('timeline_tables')
-        .update({ columns: newColumns })
-        .eq('id', tableId)
-      if (error) throw error
+      if (!await updateTimelineTableRecord(tableId, { columns: newColumns })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
-    } catch (err) { console.error('Error updating column:', err) }
-    setEditingColumnLabel(null)
+      setEditingColumnLabel(null)
+    } catch (error) {
+      showTimelineWriteError('rename the column', error)
+    }
   }
 
   const saveColumnTemplate = async (tableId: string, colKey: string, emailTemplateId: string) => {
     const table = tables.find(t => t.id === tableId)
     if (!table) return
-    const currentColumn = table.columns.find(c => c.key === colKey)
-    const hadActiveTemplate = templates.some(template => template.id === currentColumn?.emailTemplateId)
     const selectedTemplateId = emailTemplateId.trim()
     const newColumns = table.columns.map(c => {
       if (c.key !== colKey) return c
       const { emailTemplateId: _emailTemplateId, ...column } = c
       return selectedTemplateId ? { ...column, emailTemplateId: selectedTemplateId } : column
     })
-    setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
-    if (!supabase) return
     try {
-      const { error } = await supabase.from('timeline_tables').update({ columns: newColumns }).eq('id', tableId)
-      if (error) throw error
-      if (!hadActiveTemplate && selectedTemplateId) {
-        const selectedColumn = newColumns.find(c => c.key === colKey)
-        const columnLeads = leads.filter(lead => lead.table_id === tableId && lead.column_key === colKey && lead.email)
-        if (selectedColumn) await Promise.all(columnLeads.map(lead => sendColumnAutoEmail(lead, selectedColumn)))
-      }
-    } catch (err) { console.error('Error updating column template:', err) }
+      if (!await updateTimelineTableRecord(tableId, { columns: newColumns })) return
+      setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
+    } catch (error) {
+      showTimelineWriteError('save the column template', error)
+    }
   }
 
   const addColumn = async () => {
     const label = newColumnName.trim()
-    if (!label || !supabase) return
+    if (!label) return
     const table = tables.find(t => t.id === addColumnTableId)
     if (!table) return
     // Generate a new column key
@@ -568,55 +510,28 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
     const newColumn = { key: newKey, label }
     const newColumns = [...table.columns, newColumn]
     try {
-      const { error } = await supabase
-        .from('timeline_tables')
-        .update({ columns: newColumns })
-        .eq('id', table.id)
-      if (error) throw error
+      if (!await updateTimelineTableRecord(table.id, { columns: newColumns })) return
       setTables(prev => prev.map(t => t.id === table.id ? { ...t, columns: newColumns } : t))
       setShowAddColumn(false)
       setNewColumnName('')
-    } catch (err) { console.error('Error adding column:', err) }
-  }
-
-  const deleteColumn = async (tableId: string, colKey: string) => {
-    if (!confirm('Delete this column and all its leads?')) return
-    const table = tables.find(t => t.id === tableId)
-    if (!table) return
-    
-    // Update UI immediately
-    const newColumns = table.columns.filter(c => c.key !== colKey)
-    setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
-    
-    // Delete leads in this column
-    if (supabase) {
-      try {
-        await supabase.from('timeline_leads').delete().eq('table_id', tableId).eq('column_key', colKey)
-        await supabase.from('timeline_tables').update({ columns: newColumns }).eq('id', tableId)
-      } catch (err) { console.error('Error deleting column:', err) }
+    } catch (error) {
+      showTimelineWriteError('add the column', error)
     }
   }
 
   const addLead = async () => {
-    if (!leadForm.company || !leadForm.contact || !leadForm.email || !supabase) { alert('Please fill in all fields'); return }
-    const tempId = `temp-${Date.now()}`
-    const newLead: TimelineLead = {
-      id: tempId,
-      table_id: addLeadTableId,
-      column_key: addLeadColumnKey,
-      ...leadForm,
-      date: leadForm.date || fmtDate(),
-      notes: '',
-      attachments: [],
-      email_history: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    if (!leadForm.company || !leadForm.contact || !leadForm.email) {
+      alert('Please fill in all required fields')
+      return
     }
-    // Add immediately to local state
-    setLeads(prev => [newLead, ...prev])
-    setShowAddLead(false)
-    setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
-    logActivity('Timeline', `Added lead "${leadForm.company}"`)
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Timeline changes require a Supabase connection. No changes were made.')
+      return
+    }
+    if (!remoteTableIdsRef.current.has(addLeadTableId)) {
+      alert('This legacy browser-only timeline is read-only. No lead was added.')
+      return
+    }
     try {
       const { data, error } = await supabase
         .from('timeline_leads')
@@ -631,146 +546,191 @@ const moveToNextColumn = async (lead: TimelineLead, table: TimelineTable) => {
         }])
         .select()
         .single()
-      if (error) throw error
-      // Replace temp lead with real one
-      if (data) {
-        setLeads(prev => prev.map(l => l.id === tempId ? data : l))
-      }
-    } catch (err) { console.error('Error adding lead:', err); alert('Failed to add lead') }
+      if (error || !data) throw error || new Error('Canonical lead was not created')
+      remoteLeadIdsRef.current.add(data.id)
+      setLeads(prev => [data, ...prev])
+      setShowAddLead(false)
+      setLeadForm({ company: '', contact: '', email: '', value: '', date: '' })
+      logActivity('Timeline', `Added lead "${data.company}"`)
+    } catch (error) {
+      showTimelineWriteError('add the lead', error)
+    }
   }
 
   const updateLead = async () => {
-    if (!editingLead || !supabase) return
-    // Update local state immediately
-    setLeads(prev => prev.map(l => l.id === editingLead.id ? { ...editingLead, updated_at: new Date().toISOString() } : l))
-    if (selectedLead?.id === editingLead.id) setSelectedLead(editingLead)
-    setEditingLead(null)
+    if (!editingLead) return
+    const client = getWritableLeadClient(editingLead.id)
+    if (!client) return
+    const updatedAt = new Date().toISOString()
     try {
-      const { error } = await supabase
+      const { data, error } = await client
         .from('timeline_leads')
-        .update({ ...editingLead, updated_at: new Date().toISOString() })
+        .update({
+          table_id: editingLead.table_id,
+          company: editingLead.company,
+          contact: editingLead.contact,
+          email: editingLead.email,
+          value: editingLead.value,
+          date: editingLead.date,
+          column_key: editingLead.column_key,
+          notes: editingLead.notes,
+          attachments: editingLead.attachments,
+          email_history: editingLead.email_history,
+          last_email_sent: editingLead.last_email_sent || null,
+          checklist: editingLead.checklist || [],
+          updated_at: updatedAt,
+        })
         .eq('id', editingLead.id)
-      if (error) throw error
-    } catch (err) { console.error('Error updating lead:', err) }
+        .eq('updated_at', editingLead.updated_at)
+        .select('*')
+        .single()
+      if (error || !data) throw error || new Error('No canonical lead was updated')
+      setLeads(prev => prev.map(lead => lead.id === data.id ? data : lead))
+      setSelectedLead(current => current?.id === data.id ? data : current)
+      setEditingLead(null)
+    } catch (error) {
+      showTimelineWriteError('update the lead', error)
+    }
   }
 
   const deleteLead = async (leadId: string) => {
-    if (!confirm('Delete this lead?') || !supabase) return
+    if (!confirm('Delete this lead?')) return
     const lead = leads.find(l => l.id === leadId)
-    setLeads(prev => prev.filter(l => l.id !== leadId))
-    setSelectedLead(null)
-    if (lead) logActivity('Timeline', `Deleted lead "${lead.company}"`)
+    const client = getWritableLeadClient(leadId)
+    if (!client) return
     try {
-      const { error } = await supabase.from('timeline_leads').delete().eq('id', leadId)
+      const { error } = await client
+        .from('timeline_leads')
+        .delete()
+        .eq('id', leadId)
+        .select('id')
+        .single()
       if (error) throw error
-    } catch (err) { console.error('Error deleting lead:', err) }
+      setLeads(prev => prev.filter(l => l.id !== leadId))
+      setSelectedLead(null)
+      if (lead) logActivity('Timeline', `Deleted lead "${lead.company}"`)
+    } catch (error) {
+      showTimelineWriteError('delete the lead', error)
+    }
   }
 
   const addNote = async () => {
-    if (!selectedLead || !addPopupValue.trim() || !supabase) return
+    if (!selectedLead || !addPopupValue.trim()) return
     const updatedNotes = selectedLead.notes ? `${selectedLead.notes}\n${addPopupValue.trim()}` : addPopupValue.trim()
     const updated = { ...selectedLead, notes: updatedNotes }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setShowAddPopup(null)
-    setAddPopupValue('')
-    logActivity('Timeline', `Added note to "${selectedLead.company}"`)
     try {
-      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error adding note:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setShowAddPopup(null)
+      setAddPopupValue('')
+      logActivity('Timeline', `Added note to "${selectedLead.company}"`)
+    } catch (error) {
+      showTimelineWriteError('add the note', error)
+    }
   }
 
   const deleteNote = async (noteIndex: number) => {
-    if (!selectedLead || !supabase) return
+    if (!selectedLead) return
     const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
     notes.splice(noteIndex, 1)
     const updatedNotes = notes.join('\n')
     const updated = { ...selectedLead, notes: updatedNotes }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     try {
-      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error deleting note:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    } catch (error) {
+      showTimelineWriteError('delete the note', error)
+    }
   }
 
   const updateNote = async (noteIndex: number) => {
-    if (!selectedLead || !editingNoteValue.trim() || !supabase) return
+    if (!selectedLead || !editingNoteValue.trim()) return
     const notes = selectedLead.notes ? selectedLead.notes.split('\n').filter(n => n.trim()) : []
     notes[noteIndex] = editingNoteValue.trim()
     const updatedNotes = notes.join('\n')
     const updated = { ...selectedLead, notes: updatedNotes }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setEditingNoteIndex(null)
-    setEditingNoteValue('')
     try {
-      await supabase.from('timeline_leads').update({ notes: updatedNotes }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error updating note:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setEditingNoteIndex(null)
+      setEditingNoteValue('')
+    } catch (error) {
+      showTimelineWriteError('update the note', error)
+    }
   }
 
   const addAttachment = async () => {
-    if (!selectedLead || !addPopupValue.trim() || !supabase) return
+    if (!selectedLead || !addPopupValue.trim()) return
     const updatedAttachments = [...selectedLead.attachments, addPopupValue.trim()]
     const updated = { ...selectedLead, attachments: updatedAttachments }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setShowAddPopup(null)
-    setAddPopupValue('')
     try {
-      await supabase.from('timeline_leads').update({ attachments: updatedAttachments }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error adding attachment:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { attachments: updatedAttachments })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setShowAddPopup(null)
+      setAddPopupValue('')
+    } catch (error) {
+      showTimelineWriteError('add the attachment', error)
+    }
   }
 
   const deleteAttachment = async (attIndex: number) => {
-    if (!selectedLead || !supabase) return
+    if (!selectedLead) return
     const updatedAttachments = selectedLead.attachments.filter((_, i) => i !== attIndex)
     const updated = { ...selectedLead, attachments: updatedAttachments }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
     try {
-      await supabase.from('timeline_leads').update({ attachments: updatedAttachments }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error deleting attachment:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { attachments: updatedAttachments })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    } catch (error) {
+      showTimelineWriteError('delete the attachment', error)
+    }
   }
 
-  const sendEmail = async () => {
-    if (!selectedLead || !emailSubject.trim() || !supabase) return
-    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["'\)\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
+  const sendEmail = () => {
+    if (!selectedLead || !emailSubject.trim()) return
+    const fixUrl = (text: string) => text.replace(/https:\/\/exodiagamedev\.com(["')\s>])/g, 'https://calendar.app.google/rV8V8QwCYUr4XrP98$1')
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(fixUrl(emailBody))}`
-    window.open(gmailUrl, '_blank')
-    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    const updated = { ...selectedLead, last_email_sent: today }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setLastEmailSent(today)
+    const popup = window.open(gmailUrl, '_blank', 'noopener,noreferrer')
+    if (!popup) {
+      alert('The Gmail draft was blocked by the browser. No delivery history was changed.')
+      return
+    }
     setShowSendEmail(false)
     setEmailSubject('')
-setEmailBody('')
-    logActivity('Timeline', `Emailed "${selectedLead.company}"`)
-    try {
-      await supabase.from('timeline_leads').update({ last_email_sent: today }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error updating email date:', err) }
+    setEmailBody('')
+    logActivity('Timeline', 'Opened a Gmail draft. Delivery was not recorded.')
   }
 
   const saveLastEmailSent = async () => {
-    if (!selectedLead || !supabase) return
+    if (!selectedLead) return
     const updated = { ...selectedLead, last_email_sent: lastEmailSent }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setEditingLastEmail(false)
     try {
-      await supabase.from('timeline_leads').update({ last_email_sent: lastEmailSent }).eq('id', selectedLead.id)
-    } catch (err) { console.error('Error saving email date:', err) }
+      if (!await updateTimelineLeadRecord(selectedLead.id, { last_email_sent: lastEmailSent })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setEditingLastEmail(false)
+    } catch (error) {
+      showTimelineWriteError('save the email date', error)
+    }
   }
 
   const addChecklistItem = async () => {
     if (!selectedLead || !addPopupValue.trim()) return
     const checklist = selectedLead.checklist || []
     const updated = { ...selectedLead, checklist: [...checklist, { text: addPopupValue.trim(), done: false }] }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setShowAddPopup(null)
-    setAddPopupValue('')
-    try { await supabase?.from('timeline_leads').update({ checklist: updated.checklist }).eq('id', selectedLead.id) } catch {}
+    try {
+      if (!await updateTimelineLeadRecord(selectedLead.id, { checklist: updated.checklist })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setShowAddPopup(null)
+      setAddPopupValue('')
+    } catch (error) {
+      showTimelineWriteError('add the checklist item', error)
+    }
   }
 
   const toggleChecklistItem = async (idx: number) => {
@@ -778,18 +738,26 @@ setEmailBody('')
     const checklist = [...selectedLead.checklist]
     checklist[idx] = { ...checklist[idx], done: !checklist[idx].done }
     const updated = { ...selectedLead, checklist }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try {
+      if (!await updateTimelineLeadRecord(selectedLead.id, { checklist })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    } catch (error) {
+      showTimelineWriteError('update the checklist item', error)
+    }
   }
 
   const deleteChecklistItem = async (idx: number) => {
     if (!selectedLead || !selectedLead.checklist) return
     const checklist = selectedLead.checklist.filter((_, i) => i !== idx)
     const updated = { ...selectedLead, checklist }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try {
+      if (!await updateTimelineLeadRecord(selectedLead.id, { checklist })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+    } catch (error) {
+      showTimelineWriteError('delete the checklist item', error)
+    }
   }
 
   const updateChecklistItem = async (idx: number) => {
@@ -797,11 +765,15 @@ setEmailBody('')
     const checklist = [...selectedLead.checklist]
     checklist[idx] = { ...checklist[idx], text: editingChecklistValue.trim() }
     const updated = { ...selectedLead, checklist }
-    setSelectedLead(updated)
-    setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-    setEditingChecklistIdx(null)
-    setEditingChecklistValue('')
-    try { await supabase?.from('timeline_leads').update({ checklist }).eq('id', selectedLead.id) } catch {}
+    try {
+      if (!await updateTimelineLeadRecord(selectedLead.id, { checklist })) return
+      setSelectedLead(updated)
+      setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      setEditingChecklistIdx(null)
+      setEditingChecklistValue('')
+    } catch (error) {
+      showTimelineWriteError('update the checklist item', error)
+    }
   }
 
   const filteredTables = searchQuery
@@ -908,17 +880,6 @@ const timelineTables = filteredTables.map((table) => {
             <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-secondary)', fontWeight: 500 }}>
               {colLeads.length}
             </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); deleteColumn(table.id, col.key) }}
-              className="p-1 rounded-lg transition opacity-0 group-hover:opacity-100 hover:bg-red-50"
-              style={{ color: 'var(--accent)' }}
-              title="Delete column"
-              onDragStart={(e) => e.stopPropagation()}
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
           </div>
         </div>
 
@@ -930,9 +891,9 @@ const timelineTables = filteredTables.map((table) => {
           onDragStart={(e) => e.stopPropagation()}
           className="w-full mb-3 px-2 py-1.5 text-xs rounded-lg border outline-none"
           style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)' }}
-          title="Auto email template"
+          title="Planned email template; automatic sending is disabled until an auditable outbox is available"
         >
-          <option value="">No auto email</option>
+          <option value="">No planned email</option>
           {templates.map(template => (
             <option key={template.id} value={template.id}>{template.title}</option>
           ))}
@@ -1125,7 +1086,8 @@ const timelineTables = filteredTables.map((table) => {
               )}
               <button
                 onClick={() => setShowAddTable(true)}
-                className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
+                disabled={!canonicalReady}
+                className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,6 +1099,12 @@ const timelineTables = filteredTables.map((table) => {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <p role="status" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {loadError}
+        </p>
+      )}
 
       {/* Add Table Modal */}
       {showAddTable && (
@@ -1437,11 +1405,11 @@ const timelineTables = filteredTables.map((table) => {
                       {showAddPopup === 'attachment' ? (
                         <input type="url" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addAttachment() }} placeholder="Paste a link or file URL..." className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
                       ) : (
-                        <input type="text" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { showAddPopup === 'note' ? addNote() : addChecklistItem() } }} placeholder={showAddPopup === 'note' ? 'Enter a note...' : 'Enter a checklist item...'} className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
+                        <input type="text" value={addPopupValue} onChange={(e) => setAddPopupValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { if (showAddPopup === 'note') addNote(); else addChecklistItem() } }} placeholder={showAddPopup === 'note' ? 'Enter a note...' : 'Enter a checklist item...'} className="w-full px-3 py-2 text-sm border rounded-lg outline-none mb-3" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-card)' }} autoFocus />
                       )}
 <div className="flex gap-2 justify-end">
                         <button onClick={() => { setShowAddPopup(null); setAddPopupValue('') }} className="px-3 py-1.5 text-xs rounded-lg" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>Cancel</button>
-                        <button onClick={() => { showAddPopup === 'note' ? addNote() : showAddPopup === 'checklist' ? addChecklistItem() : addAttachment() }} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
+                        <button onClick={() => { if (showAddPopup === 'note') addNote(); else if (showAddPopup === 'checklist') addChecklistItem(); else addAttachment() }} className="px-3 py-1.5 text-xs text-white rounded-lg" style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}>Add</button>
                       </div>
                     </div>
                   </div>
@@ -1457,8 +1425,10 @@ const timelineTables = filteredTables.map((table) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowSendEmail(false)} />
           <div className="relative rounded-2xl border p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Compose Email</h3>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>To: {selectedLead.email}</p>
+            <h3 className="text-lg mb-1" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Open Gmail Draft</h3>
+            <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
+              To: {selectedLead.email}. Delivery is not recorded until you update the date manually.
+            </p>
             <input
               type="text"
               placeholder="Subject"
@@ -1484,7 +1454,7 @@ const timelineTables = filteredTables.map((table) => {
                 className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
               >
-                Send Email
+                Open Gmail Draft
               </button>
             </div>
           </div>
@@ -1520,9 +1490,9 @@ const timelineTables = filteredTables.map((table) => {
       {filteredTables.length === 0 && (
         <div className="text-center py-12">
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>
-            {searchQuery ? 'No timelines match your search.' : 'No timeline tables yet. Create one to get started.'}
+            {searchQuery ? 'No timelines match your search.' : canonicalReady ? 'No timeline tables yet. Create one to get started.' : 'No canonical timeline data is available.'}
           </p>
-          {!searchQuery && (
+          {!searchQuery && canonicalReady && (
             <button
               onClick={() => setShowAddTable(true)}
               className="px-5 py-2.5 text-sm text-white rounded-lg"

@@ -11,14 +11,6 @@ const PROCESSED_DIR = join(WATCH_DIR, 'processed')
 const ERRORS_DIR = join(WATCH_DIR, 'errors')
 const DEBOUNCE_MS = 2000
 
-let xlsx
-try {
-  xlsx = (await import('xlsx')).default
-} catch {
-  console.warn('[file-watcher] xlsx package not available. Only .csv files will be processed.')
-  console.warn('[file-watcher] Install with: npm install xlsx')
-}
-
 function loadEnv() {
   const envPath = join(PROJECT_ROOT, '.env')
   if (!existsSync(envPath)) {
@@ -71,23 +63,6 @@ function parseCSV(text) {
   return { headers, rows }
 }
 
-function parseExcel(filePath) {
-  if (!xlsx) throw new Error('xlsx package not installed')
-  const workbook = xlsx.readFile(filePath)
-  const sheetName = workbook.SheetNames[0]
-  if (!sheetName) return { headers: [], rows: [] }
-  const sheet = workbook.Sheets[sheetName]
-  const json = xlsx.utils.sheet_to_json(sheet, { defval: '' })
-  if (json.length === 0) return { headers: [], rows: [] }
-  const headers = Object.keys(json[0])
-  const rows = json.map(row => {
-    const r = {}
-    headers.forEach(h => { r[h] = String(row[h] ?? '') })
-    return r
-  })
-  return { headers, rows }
-}
-
 function ensureDir(dir) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 }
@@ -115,13 +90,6 @@ async function processFile(filePath, supabase) {
     if (ext === '.csv') {
       const text = readFileSync(filePath, 'utf-8')
       const parsed = parseCSV(text)
-      headers = parsed.headers
-      rows = parsed.rows
-    } else if (ext === '.xlsx' || ext === '.xls') {
-      if (!xlsx) {
-        throw new Error('xlsx package is required for Excel files. Run: npm install xlsx')
-      }
-      const parsed = parseExcel(filePath)
       headers = parsed.headers
       rows = parsed.rows
     } else {
@@ -290,7 +258,7 @@ async function main() {
   const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
   console.log(`[file-watcher] Watching directory: ${WATCH_DIR}`)
-  console.log('[file-watcher] Supported formats: .csv' + (xlsx ? ', .xlsx, .xls' : ''))
+  console.log('[file-watcher] Supported formats: .csv')
   console.log('[file-watcher] Ready for files...')
   console.log('')
 
@@ -326,7 +294,7 @@ async function main() {
     }
 
     const ext = extname(filename).toLowerCase()
-    if (ext !== '.csv' && ext !== '.xlsx' && ext !== '.xls') return
+    if (ext !== '.csv') return
 
     if (timers[filename]) clearTimeout(timers[filename])
 

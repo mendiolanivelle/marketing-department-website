@@ -1,0 +1,30 @@
+{
+  "fileTrackerRows": [
+    {
+      "id": "legacy-secret-filename",
+      "data_url": "data:text/plain;base64,SGVsbG8=",
+      "storage_path": null,
+      "checksum_sha256": null
+    }
+  ],
+  "websiteRequestRows": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "updated_at": "2026-07-30T00:00:00.000Z",
+      "attachments": [
+        {
+          "name": "sensitive-screenshot.png",
+          "type": "image/png",
+          "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        },
+        {
+          "name": "already-private.png",
+          "type": "image/png",
+          "path": "existing/private-object",
+          "size": 12,
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    }
+  ]
+}

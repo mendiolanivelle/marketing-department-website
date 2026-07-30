@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
@@ -10,7 +10,6 @@ const categories = [
     name: 'General',
     items: [
       { path: '/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-      { path: '/team', label: 'Team & Directory', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
       { path: '/calendar', label: 'Calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { path: '/files', label: 'File Tracker', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
       { path: '/website-requests', label: 'Website Requests', icon: 'M7.5 8.25h9m-9 3.75h6M5.25 5.25h13.5v10.5H8.25L5.25 18.75V5.25z' },
@@ -24,7 +23,6 @@ const categories = [
       { path: '/templates', label: 'Messaging', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
       { path: '/acceptance-criteria', label: 'Acceptance Criteria Form', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
       { path: '/marketing-projects', label: 'Project List', icon: 'M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z' },
-      { path: '/meeting-playbook', label: 'Meeting Playbook', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     ],
   },
   {
@@ -40,17 +38,10 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
-  const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [acUnreadCount, setAcUnreadCount] = useState(0)
   const [websiteRequestCount, setWebsiteRequestCount] = useState(0)
-  const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<string | null>(null)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
-    const saved = localStorage.getItem('user-avatar')
-    return saved || null
-  })
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const location = useLocation()
   const { user, signOut } = useAuth()
 
@@ -58,70 +49,77 @@ export default function Sidebar() {
     if (!isSupabaseConfigured || !supabase || !user?.id) return
     const client = supabase
     const fetchAvatar = async () => {
-      try {
-        const { data: { user: authUser } } = await client.auth.getUser()
-        const metaUrl = authUser?.user_metadata?.avatar_url
-        if (metaUrl) {
-          setAvatarUrl(metaUrl)
-          localStorage.setItem('user-avatar', metaUrl)
-        }
-      } catch {}
+      const { data: { user: authUser }, error } = await client.auth.getUser()
+      if (error) {
+        console.error('Failed to load profile photo:', error)
+        return
+      }
+      setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
     }
-    fetchAvatar()
+    void fetchAvatar()
   }, [user?.id])
 
   const isActive = (path: string) => location.pathname === path
 
   const markWebsiteRequestsSeen = async () => {
     const now = new Date().toISOString()
-    localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, now)
-    setWebsiteRequestCount(0)
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data } = await supabase.from('website_requests_seen').select('id').order('id', { ascending: false }).limit(1)
-        if (data && data.length > 0) {
-          await supabase.from('website_requests_seen').update({ seen_at: now }).eq('id', data[0].id)
-        } else {
-          await supabase.from('website_requests_seen').insert({ seen_at: now })
-        }
-      } catch {}
+    if (!isSupabaseConfigured || !supabase) {
+      localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, now)
+      setWebsiteRequestCount(0)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('website_requests_seen')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1)
+      if (error) throw error
+      const result = data?.[0]
+        ? await supabase.from('website_requests_seen').update({ seen_at: now }).eq('id', data[0].id).select('id').maybeSingle()
+        : await supabase.from('website_requests_seen').insert({ seen_at: now }).select('id').single()
+      if (result.error || !result.data) throw result.error || new Error('Seen state was not persisted')
+      setWebsiteRequestCount(0)
+    } catch (error) {
+      console.error('Failed to mark website requests as seen:', error)
     }
   }
 
   // Fetch unread counts
   const fetchUnread = async () => {
-    // Compute unread from localStorage (instant, works offline)
-    const readIds = new Set(JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]'))
-    const localTotal = JSON.parse(localStorage.getItem('exodia-ac-total') || '0')
-    setAcUnreadCount(Math.max(0, localTotal - readIds.size))
-
-    // Also fetch from Supabase for accurate cross-device count
-    if (isSupabaseConfigured && supabase) {
+    if (!isSupabaseConfigured || !supabase) {
       try {
-        const { count: mr } = await supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false)
-        setUnreadCount(mr ?? 0)
+        const parsedReadIds = JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]')
+        const localTotal = Number(JSON.parse(localStorage.getItem('exodia-ac-total') || '0'))
+        const readIds = new Set(Array.isArray(parsedReadIds) ? parsedReadIds : [])
+        setAcUnreadCount(Math.max(0, localTotal - readIds.size))
+      } catch {
+        setAcUnreadCount(0)
+      }
+      return
+    }
 
-        const { count: acUnread } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false)
-        const { count: total } = await supabase.from('acceptance_forms').select('id', { count: 'exact', head: true })
-        if (total !== null) {
-          localStorage.setItem('exodia-ac-total', JSON.stringify(total))
-          setAcUnreadCount(acUnread ?? 0)
-        }
-
-        let seenAt = localStorage.getItem(WEBSITE_REQUESTS_SEEN_KEY) || '1970-01-01T00:00:00.000Z'
-        try {
-          const { data: seenData } = await supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1)
-          if (seenData && seenData.length > 0 && seenData[0].seen_at) {
-            const supabaseSeenAt = seenData[0].seen_at
-            if (supabaseSeenAt > seenAt) {
-              seenAt = supabaseSeenAt
-              localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, supabaseSeenAt)
-            }
-          }
-        } catch {}
-        const { count: wr } = await supabase.from('website_requests').select('id', { count: 'exact', head: true }).gt('created_at', seenAt)
-        setWebsiteRequestCount(wr ?? 0)
-      } catch {}
+    try {
+      const [marketingResult, acceptanceResult, seenResult] = await Promise.all([
+        supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false),
+        supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false),
+        supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1),
+      ])
+      if (marketingResult.error || acceptanceResult.error || seenResult.error) {
+        throw marketingResult.error || acceptanceResult.error || seenResult.error
+      }
+      const seenAt = seenResult.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
+      const websiteResult = await supabase
+        .from('website_requests')
+        .select('id', { count: 'exact', head: true })
+        .gt('created_at', seenAt)
+      if (websiteResult.error) throw websiteResult.error
+      setUnreadCount(marketingResult.count ?? 0)
+      setAcUnreadCount(acceptanceResult.count ?? 0)
+      setWebsiteRequestCount(websiteResult.count ?? 0)
+    } catch (error) {
+      console.error('Failed to load sidebar notification counts:', error)
     }
   }
 
@@ -141,122 +139,6 @@ export default function Sidebar() {
     }
     return () => { clearInterval(interval); window.removeEventListener('acceptance-forms-changed', handleChange); window.removeEventListener('lead-data-changed', handleChange) }
   }, [])
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        const result = reader.result as string
-        setAvatarUrl(result)
-        localStorage.setItem('user-avatar', result)
-        if (isSupabaseConfigured && supabase) {
-          try { await supabase.auth.updateUser({ data: { avatar_url: result } }) } catch {}
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleRemoveAvatar = async () => {
-    setAvatarUrl(null)
-    localStorage.removeItem('user-avatar')
-    if (isSupabaseConfigured && supabase) {
-      try { await supabase.auth.updateUser({ data: { avatar_url: null } }) } catch {}
-    }
-    setShowAvatarModal(false)
-  }
-
-  const syncAllData = async () => {
-    setSyncing(true)
-    setSyncResult(null)
-    let pulled = 0
-    let pushed = 0
-    try {
-      if (isSupabaseConfigured && supabase) {
-        const pullResults = await Promise.allSettled([
-          supabase.from('file_tracker_assets').select('*').order('added_at', { ascending: false }).then(({ data, error }) => {
-            if (error || !data || data.length === 0) return
-            const mapped = data.map((r: any) => ({ id: r.id, name: r.name, category: r.category, type: r.type, dataUrl: r.data_url, url: r.url, addedAt: r.added_at, size: r.size, isMock: r.is_mock }))
-            localStorage.setItem('exodia-file-tracker-assets', JSON.stringify(mapped))
-            pulled += mapped.length
-          }),
-          supabase.from('calendar_items').select('*').order('date', { ascending: true }).then(({ data, error }) => {
-            if (error || !data || data.length === 0) return
-            localStorage.setItem('exodia-calendar-items', JSON.stringify(data))
-            pulled += data.length
-          }),
-          supabase.from('campaigns').select('*').then(({ data, error }) => {
-            if (error || !data || data.length === 0) return
-            const existing: any[] = (() => { try { const s = localStorage.getItem('exodia-campaigns'); return s ? JSON.parse(s) : [] } catch { return [] } })()
-            const existingIds = new Set(existing.map((c: any) => c.id))
-            let added = 0
-            data.forEach((r: any) => {
-              if (!existingIds.has(r.id)) {
-                existing.push({ id: r.id, name: r.name, dept: r.dept || '', status: r.status || 'Pending', due: r.due || '', requesterName: r.requester_name || '', requesterEmail: r.requester_email || '', priority: r.priority || '', requestType: r.request_type || [], description: r.description || '', tracking_id: r.tracking_id || null })
-                added++
-              }
-            })
-            if (added > 0) localStorage.setItem('exodia-campaigns', JSON.stringify(existing))
-            pulled += added
-          }),
-        ])
-        pullResults.forEach(r => { if (r.status === 'rejected') console.error('Sync pull error:', r.reason) })
-      }
-
-      const keys = ['exodia-file-tracker-assets', 'exodia-calendar-items', 'exodia-campaigns', 'exodia-tasks']
-      const items: any[] = []
-      for (const key of keys) {
-        const raw = localStorage.getItem(key)
-        if (!raw) continue
-        let data = JSON.parse(raw)
-        if (!Array.isArray(data)) data = [data]
-        for (const row of data) {
-          if (key === 'exodia-file-tracker-assets') {
-            items.push({ table: 'file_tracker_assets', row: { id: row.id, name: row.name, category: row.category, type: row.type, data_url: row.dataUrl || null, url: row.url || null, added_at: row.addedAt, size: row.size || 0, is_mock: false } })
-          } else if (key === 'exodia-calendar-items') {
-            items.push({ table: 'calendar_items', row: { id: row.id, title: row.title, type: row.type, date: row.date, start_time: row.start_time || null, end_time: row.end_time || null, description: row.description || null, location: row.location || null, color: row.color || '#FF5900', assignees: row.assignees || [], notes: row.notes || '', created_at: row.created_at, updated_at: row.updated_at } })
-          } else if (key === 'exodia-campaigns') {
-            items.push({ table: 'campaigns', row: { id: row.id, name: row.name, dept: row.dept || '', status: row.status || 'Pending', due: row.due || '' } })
-          }
-        }
-      }
-      if (items.length > 0) {
-        try {
-          const token = supabase ? (await supabase.auth.getSession())?.data?.session?.access_token : ''
-          const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' }, body: JSON.stringify({ items }) })
-          const result = await resp.json()
-          pushed = result.ok || 0
-        } catch {
-          if (isSupabaseConfigured && supabase) {
-            for (const { table, row } of items) {
-              try {
-                const { data: existing } = await supabase.from(table).select('id').eq('id', row.id).maybeSingle()
-                if (!existing) {
-                  const { error } = await supabase.from(table).insert(row)
-                  if (!error) pushed++
-                } else {
-                  pushed++
-                }
-              } catch { /* skip */ }
-            }
-          }
-        }
-      }
-      const parts: string[] = []
-      if (pulled > 0) parts.push(`Pulled ${pulled}`)
-      if (pushed > 0) parts.push(`Pushed ${pushed}`)
-      if (parts.length === 0) { setSyncResult('No data to sync'); return }
-      setSyncResult(parts.join(' · '))
-      window.dispatchEvent(new CustomEvent('calendar-updated'))
-      window.dispatchEvent(new CustomEvent('storage'))
-    } catch (e: any) {
-      setSyncResult('Sync failed: ' + (e?.message || 'unknown'))
-    } finally {
-      setSyncing(false)
-      setTimeout(() => setSyncResult(null), 5000)
-    }
-  }
 
   const getDisplayName = () => {
     if (!user?.email) return 'User'
@@ -355,22 +237,19 @@ export default function Sidebar() {
                       <img
                         src={avatarUrl}
                         alt="Avatar"
-                        className="w-9 h-9 rounded-full object-cover cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
+                        className="w-9 h-9 rounded-full object-cover border-2"
                         style={{ borderColor: '#FF5900' }}
-                        onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       />
                     ) : (
                       <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-2 transition-transform duration-200 hover:scale-105"
+                        className="w-9 h-9 rounded-full flex items-center justify-center border-2"
                         style={{ backgroundColor: '#FF5900', borderColor: '#FF5900' }}
-                        onClick={(e) => { e.stopPropagation(); setShowAvatarModal(true) }}
                       >
                         <span className="text-sm text-white" style={{ fontWeight: 600 }}>
                           {getDisplayName().charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
-                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
                   </div>
                   {!isCollapsed && (
                     <>
@@ -388,37 +267,6 @@ export default function Sidebar() {
                     </>
                   )}
                 </div>
-
-                {/* Avatar Modal */}
-                {showAvatarModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowAvatarModal(false)}>
-                    <div className="relative rounded-2xl border p-6 max-w-sm w-full theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
-                      <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Profile Photo</h3>
-                      <div className="flex justify-center mb-4">
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt="Current Avatar" className="w-24 h-24 rounded-full object-cover border-4" style={{ borderColor: 'var(--accent)' }} />
-                        ) : (
-                          <div className="w-24 h-24 rounded-full flex items-center justify-center border-4" style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>
-                            <span className="text-3xl text-white" style={{ fontWeight: 700 }}>{getDisplayName().charAt(0).toUpperCase()}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <button onClick={() => { fileInputRef.current?.click(); setShowAvatarModal(false) }} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 hover:opacity-90 active:scale-[0.98]" style={{ backgroundColor: 'var(--accent)', color: 'white', fontWeight: 500 }}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          {avatarUrl ? 'Change Photo' : 'Upload Photo'}
-                        </button>
-                        {avatarUrl && (
-                          <button onClick={handleRemoveAvatar} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 hover:opacity-80 active:scale-[0.98]" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                            Remove Photo
-                          </button>
-                        )}
-                        <button onClick={() => setShowAvatarModal(false)} className="w-full px-4 py-2.5 rounded-xl transition-all duration-200" style={{ backgroundColor: 'transparent', color: 'var(--text-tertiary)', fontWeight: 500 }}>Cancel</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Profile Dropdown */}
                 {showProfileDropdown && (
@@ -515,15 +363,6 @@ export default function Sidebar() {
               </div>
             ))}
           </nav>
-
-          {/* Sync button */}
-          {!isCollapsed && (
-            <div className="px-3 pb-2">
-              <button onClick={syncAllData} disabled={syncing} className="w-full px-4 py-2 rounded-xl text-xs font-medium transition" style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
-                {syncing ? 'Syncing...' : syncResult || 'Sync All Data'}
-              </button>
-            </div>
-          )}
 
           {/* Bottom accent bar */}
           <div className="px-3 pb-4">

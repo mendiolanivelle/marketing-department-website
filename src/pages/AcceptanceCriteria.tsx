@@ -1,5 +1,76 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+
+interface AccessibleDialogProps {
+  children: ReactNode
+  labelledBy: string
+  describedBy?: string
+  role?: 'dialog' | 'alertdialog'
+  requestClose: () => void
+  preventClose?: boolean
+  returnFocusTo?: HTMLElement | null
+}
+
+function AccessibleDialog({
+  children,
+  labelledBy,
+  describedBy,
+  role = 'dialog',
+  requestClose,
+  preventClose = false,
+  returnFocusTo,
+}: AccessibleDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialog.showModal()
+    const focusFrame = requestAnimationFrame(() => {
+      const target = dialog.querySelector<HTMLElement>(
+        '[data-dialog-autofocus], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      )
+      ;(target || dialog).focus()
+    })
+
+    return () => {
+      cancelAnimationFrame(focusFrame)
+      if (dialog.open) dialog.close()
+      const target = returnFocusTo || previousFocusRef.current
+      requestAnimationFrame(() => {
+        if (target?.isConnected) target.focus()
+      })
+    }
+  }, [returnFocusTo])
+
+  return (
+    <dialog
+      ref={dialogRef}
+      role={role}
+      aria-modal="true"
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      tabIndex={-1}
+      onCancel={(event) => {
+        event.preventDefault()
+        if (!preventClose) requestClose()
+      }}
+      className="fixed inset-0 m-0 h-full w-full max-w-none overflow-y-auto border-0 bg-transparent p-0 backdrop:bg-black/50 backdrop:backdrop-blur-sm"
+    >
+      <div
+        className="flex min-h-full items-center justify-center p-4"
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !preventClose) requestClose()
+        }}
+      >
+        {children}
+      </div>
+    </dialog>
+  )
+}
 
 interface Submission {
   id: number | string
@@ -32,12 +103,17 @@ interface Submission {
   performance_constraints: string
   signature: string
   signature_date: string
+  signatory_name?: string | null
+  signature_png?: string | null
+  accepted_at?: string | null
   created_at: string
 }
 
 export default function AcceptanceCriteria() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [remoteSubmissionIds, setRemoteSubmissionIds] = useState<Set<string>>(() => new Set())
   const [loading, setLoading] = useState(true)
+  const [submissionsReady, setSubmissionsReady] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
   const [filterType, setFilterType] = useState<string | null>(null)
@@ -51,15 +127,27 @@ export default function AcceptanceCriteria() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [showSentModal, setShowSentModal] = useState(false)
   const [sentTicketLink, setSentTicketLink] = useState('')
-  const [sentCount, setSentCount] = useState(0)
-
+  const [sentDeliveryRecorded, setSentDeliveryRecorded] = useState(true)
   const [sendForm, setSendForm] = useState({ to: '', subject: '', body: '', additionalAttachments: [] as string[] })
-  const [savedEmails, setSavedEmails] = useState<string[]>(() => {
-    try { const s = localStorage.getItem('exodia-ops-emails'); return s ? JSON.parse(s) : [] } catch { return [] }
+  const [localOpsEmails] = useState<string[]>(() => {
+    if (isSupabaseConfigured) return []
+    try {
+      const saved = localStorage.getItem('exodia-ops-emails')
+      const parsed = saved ? JSON.parse(saved) : []
+      return Array.isArray(parsed) ? parsed.filter((email): email is string => typeof email === 'string') : []
+    } catch {
+      return []
+    }
   })
+  const [remoteOpsEmails, setRemoteOpsEmails] = useState<string[]>([])
+  const [opsEmailsReady, setOpsEmailsReady] = useState(false)
+  const [opsEmailError, setOpsEmailError] = useState<string | null>(null)
+  const savedEmails = useMemo(() => [...new Set([...localOpsEmails, ...remoteOpsEmails])], [localOpsEmails, remoteOpsEmails])
   const [showEmailManager, setShowEmailManager] = useState(false)
   const [emailManagerValue, setEmailManagerValue] = useState('')
   const [emailManagerEditIdx, setEmailManagerEditIdx] = useState<number | null>(null)
+  const lastSubmissionTriggerRef = useRef<HTMLElement | null>(null)
+  const prepareToSendRef = useRef<HTMLButtonElement>(null)
 
   const formatId = (sub: Submission): string => {
     if (sub.tracking_id) return sub.tracking_id
@@ -68,14 +156,20 @@ export default function AcceptanceCriteria() {
 
   const fetchSubmissions = async () => {
     setFetchError(null)
-    const cached = (() => {
-      try { const s = localStorage.getItem('exodia-ac-submissions'); return s ? JSON.parse(s) : null } catch { return null }
-    })()
-    if (cached && Array.isArray(cached) && cached.length > 0) {
-      setSubmissions(cached)
-    }
-
+    setSubmissionsReady(false)
     if (!isSupabaseConfigured || !supabase) {
+      const cached = (() => {
+        try {
+          const saved = localStorage.getItem('exodia-ac-submissions')
+          if (!saved) return []
+          const parsed = JSON.parse(saved)
+          return Array.isArray(parsed) ? parsed : []
+        } catch {
+          return []
+        }
+      })()
+      setRemoteSubmissionIds(new Set())
+      setSubmissions(cached)
       setLoading(false)
       return
     }
@@ -86,289 +180,27 @@ export default function AcceptanceCriteria() {
         .order('created_at', { ascending: false })
       if (error) throw error
       const supabaseData = data || []
+      setRemoteSubmissionIds(new Set(supabaseData.map((submission: Submission) => String(submission.id))))
       setSubmissions(supabaseData)
-      localStorage.setItem('exodia-ac-submissions', JSON.stringify(supabaseData))
-      const localSubmissions = (() => {
-        try { const s = localStorage.getItem('exodia-acceptance-form'); return s ? JSON.parse(s) : [] } catch { return [] }
-      })()
-      const localList = Array.isArray(localSubmissions) ? localSubmissions : [localSubmissions]
-      const supabaseIds = new Set(supabaseData.map((s: any) => s.tracking_id).filter(Boolean))
-      const localOnly = localList.filter((s: Submission) => !s.tracking_id || !supabaseIds.has(s.tracking_id))
-      if (localOnly.length > 0) {
-        setSubmissions(prev => [...supabaseData, ...localOnly])
-        for (const sub of localOnly) {
-          try {
-            const payload = { ...sub }
-            delete (payload as any).id
-            await supabase.from('acceptance_forms').insert([payload])
-          } catch {}
-        }
-      }
+      setSelectedSubmission(current => current
+        ? supabaseData.find((submission: Submission) => String(submission.id) === String(current.id)) || null
+        : null)
+      setSubmissionsReady(true)
     } catch (err: any) {
       console.error('Error fetching submissions:', err)
-      if (!cached) setFetchError(err?.message || 'Failed to load submissions')
+      setRemoteSubmissionIds(new Set())
+      setSubmissions([])
+      setSelectedSubmission(null)
+      setShowSendModal(false)
+      setSubmissionsReady(false)
+      setFetchError(err?.message || 'Failed to load canonical submissions. Browser-only records remain quarantined.')
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchSentCount = async () => {
-    if (!isSupabaseConfigured || !supabase) return
-    try {
-      const { count } = await supabase
-        .from('project_review_tickets')
-        .select('id', { count: 'exact', head: true })
-      if (count !== null) setSentCount(count)
-    } catch {}
-  }
-
-  const generatePDF = (sub: Submission): Blob => {
-    const esc = (t: string) => (t || '—').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\n/g, '\\n')
-    const pt = (mm: number) => Math.round(mm * 2.83465 * 10) / 10
-    const pw = pt(210), ph = 841.89, mg = pt(18), cw = pw - 2 * mg
-
-    const streams: string[] = []
-    let curStream = ''
-    let y = 18
-    let pageIdx = 0
-    const MAX_Y = 270
-    const PAGE_WIDTH = 174
-
-    const w = (s: string) => { curStream += s + '\n' }
-    const color = (r: number, g: number, b: number) => w(r / 255 + ' ' + g / 255 + ' ' + b / 255 + ' rg')
-    const colorg = (r: number, g: number, b: number) => w(r / 255 + ' ' + g / 255 + ' ' + b / 255 + ' RG')
-    const fnt = (id: string, sz: number) => w('/' + id + ' ' + sz + ' Tf')
-    const txt = (x: number, yPos: number, t: string) => w(pt(x) + ' ' + pt(yPos) + ' Td (' + esc(t) + ') Tj')
-    const rect = (x: number, y2: number, w2: number, h2: number) => w(pt(x) + ' ' + pt(y2) + ' ' + pt(w2) + ' ' + pt(h2) + ' re')
-    const fill = () => w('f')
-    const S = () => w('S')
-    const nextPage = () => {
-      curStream += 'ET'
-      streams.push(curStream)
-      curStream = 'BT\n'
-      y = 18
-      pageIdx++
-    }
-
-    const check = () => { if (y > MAX_Y) nextPage() }
-    const addPageFooter = () => {
-      colorg(200, 200, 205); fnt('F3', 7)
-      txt(18, 8, 'Exodia Game Dev · Marketing Department')
-      txt(PAGE_WIDTH - 25, 8, 'Page ' + (pageIdx + 1))
-    }
-
-    w('BT')
-
-    // === HEADER ===
-    // Orange accent bar
-    color(255, 89, 0); rect(18, y, PAGE_WIDTH, 14); fill()
-    color(255, 255, 255); fnt('F2', 14)
-    txt(20, y + 3.5, 'Exodia Game Dev')
-    color(255, 220, 190); fnt('F1', 8)
-    txt(20, y + 9.5, 'Acceptance Criteria Form')
-    y += 18
-
-    // ID and date line
-    colorg(156, 163, 175); fnt('F3', 7)
-    txt(18, y + 1, 'ID: ' + formatId(sub))
-    txt(PAGE_WIDTH - 45, y + 1, new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
-    y += 7
-
-    // Separator line
-    colorg(229, 231, 235); rect(18, y, PAGE_WIDTH, 0.3); fill()
-    y += 6
-
-    // === HELPERS ===
-    const section = (title: string, fn: () => void) => {
-      check()
-      color(255, 89, 0); rect(18, y, 4, 7); fill()
-      color(255, 89, 0); fnt('F2', 9)
-      txt(26, y + 2.2, title)
-      y += 10
-      color(27, 26, 28); fnt('F1', 8)
-      fn()
-      y += 3
-    }
-
-    const row = (label: string, value: string) => {
-      check()
-      colorg(156, 163, 175); fnt('F1', 7.5); txt(18, y, label)
-      color(27, 26, 28); fnt('F1', 8)
-      const val = value || '—'
-      const maxW = Math.floor((cw - 55) / 1.5)
-      const lines: string[] = []
-      for (let i = 0; i < val.length; i += maxW) lines.push(val.substring(i, i + maxW))
-      lines.forEach((line, idx) => {
-        if (idx > 0) { check(); txt(18, y, '') }
-        txt(65, y, line)
-        y += 3.5
-      })
-    }
-
-    const multi = (label: string, items: string[] | any[]) => row(label, items?.length ? items.join(', ') : '—')
-
-    // === SECTION 1 ===
-    section('Basic Project Information', () => {
-      row('Client / Studio Name', sub.client_name); row('Project Name', sub.project_name)
-      row('Point of Contact', sub.contact); row('Email', sub.email)
-      row('Project Type', sub.project_type); multi('Target Platform', sub.target_platform)
-      row('Timezone', sub.timezone); row('Expected Start Date', sub.start_date)
-      row('Expected Deadline', sub.deadline); row('Budget Range', sub.budget)
-      if (sub.doc_link) row('Project Document Link', sub.doc_link)
-    })
-
-    // === SECTION 2 ===
-    section('What You Want Us to Create', () => {
-      if (sub.deliverables?.length) {
-        colorg(107, 114, 128); fnt('F2', 7)
-        txt(18, y, 'Deliverable'); txt(70, y, 'Description'); txt(118, y, 'Acceptance Criteria'); txt(175, y, 'Qty')
-        y += 1
-        colorg(229, 231, 235); rect(18, y, PAGE_WIDTH, 0.3); fill()
-        y += 4
-        color(27, 26, 28); fnt('F1', 7.5)
-        sub.deliverables.forEach((d: any) => {
-          check()
-          txt(18, y, (d.name || '—').substring(0, 22))
-          txt(70, y, (d.description || '—').substring(0, 18))
-          txt(118, y, (d.criteria || '—').substring(0, 18))
-          txt(175, y, String(d.quantity || '—'))
-          y += 4
-          colorg(240, 240, 245); rect(18, y, PAGE_WIDTH, 0.2); fill()
-          y += 1
-        })
-      } else { fnt('F3', 8); txt(18, y, 'No deliverables specified.'); y += 4 }
-    })
-
-    // === SECTION 3 ===
-    section('Review & Approval', () => {
-      multi('Reviewers', sub.reviewer); row('Review Rounds', sub.review_rounds)
-      row('Expected Review Time', sub.review_time); multi('Basis for Approval', sub.approval_basis)
-    })
-
-    // === SECTION 4 ===
-    section('Project Governance', () => {
-      multi('Communication Tool', sub.comms_tool); multi('Weekly Meeting', sub.weekly_meeting)
-      row('Meeting Time', sub.meeting_time); multi('Daily Sync', sub.daily_sync)
-      row('Sync Time', sub.sync_time); multi('Training', sub.training)
-    })
-
-    // === SECTION 5 ===
-    section('Technical Details', () => {
-      multi('Game Engine', sub.game_engine)
-      if (sub.tech_requirements) row('Technical Requirements', sub.tech_requirements)
-      if (sub.tools_software) row('Tools & Software', sub.tools_software)
-      if (sub.performance_constraints) row('Performance Constraints', sub.performance_constraints)
-    })
-
-    // === SECTION 6 ===
-    section('Client Confirmation', () => {
-      // Notice box
-      check()
-      color(255, 247, 237); rect(18, y - 1, PAGE_WIDTH, 22); fill()
-      colorg(255, 89, 0); rect(18, y - 1, 2, 22); fill()
-      color(154, 52, 18); fnt('F3', 7)
-      const conf = 'By signing this form, the client confirms that the deliverables, specifications, and acceptance expectations stated above are accurate and approved. This document will be used as the basis for project scoping, quotation, production execution, and QA validation.'
-      for (let i = 0; i < conf.length; i += 110) { check(); txt(23, y, conf.substring(i, i + 110)); y += 3 }
-      y += 8
-      row('Signed by', sub.signature?.startsWith('data:image') ? 'See signed form' : (sub.signature || '—'))
-      row('Date', sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
-    })
-
-    // === FOOTER ===
-    check()
-    addPageFooter()
-
-    curStream += 'ET'
-    streams.push(curStream)
-
-    // Add footer to all pages
-    for (let i = 0; i < streams.length; i++) {
-      const s = streams[i]
-      if (i === 0) {
-        streams[i] = s.substring(0, s.length - 2) // remove ET
-        let tempStream = ''
-        const temp = curStream
-        curStream = tempStream
-        y = 8
-        pageIdx = i
-        addPageFooter()
-        streams[i] += curStream + 'ET'
-        curStream = temp
-      } else {
-        streams[i] = s.substring(0, s.length - 2)
-        let tempStream = ''
-        const temp = curStream
-        curStream = tempStream
-        y = 8
-        pageIdx = i
-        addPageFooter()
-        streams[i] += curStream + 'ET'
-        curStream = temp
-      }
-    }
-
-    const numPages = streams.length
-
-    let objIdx = 1
-    const obj = (s: string) => { const n = objIdx++; return { num: n, data: n + ' 0 obj\n' + s + '\nendobj' } }
-
-    const catalog = obj('<< /Type /Catalog /Pages ' + (objIdx + 1) + ' 0 R >>')
-    const fHelv = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
-    const fHelvB = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>')
-    const fHelvO = obj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>')
-    const fontObjNums = { F1: fHelv.num, F2: fHelvB.num, F3: fHelvO.num }
-
-    const pageObjNum = objIdx
-    const pagesObj = obj('<< /Type /Pages /Kids [' + Array.from({ length: numPages }, (_, i) => (pageObjNum + 1 + i * 2) + ' 0 R').join(' ') + '] /Count ' + numPages + ' >>')
-
-    const allObjs = [catalog, fHelv, fHelvB, fHelvO, pagesObj]
-    for (let i = 0; i < numPages; i++) {
-      const s = streams[i]
-      const fontRef = '/F1 ' + fontObjNums.F1 + ' 0 R /F2 ' + fontObjNums.F2 + ' 0 R /F3 ' + fontObjNums.F3 + ' 0 R'
-      const page = obj('<< /Type /Page /Parent ' + pagesObj.num + ' 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Contents ' + (objIdx + 1) + ' 0 R /Resources << /Font << ' + fontRef + ' >> >> >>')
-      const stream = obj('<< /Length ' + s.length + ' >>\nstream\n' + s + '\nendstream')
-      allObjs.push(page, stream)
-    }
-
-    const body = allObjs.map(o => o.data).join('\n')
-    let currentOff = '%PDF-1.4\n'.length
-    const offsets: number[] = []
-    for (const o of allObjs) {
-      offsets[o.num] = currentOff
-      currentOff += o.data.length + 1
-    }
-    const xrefOff = currentOff
-    const xref = 'xref\n0 ' + (allObjs.length + 1) + '\n' +
-      '0000000000 65535 f \n' +
-      allObjs.map(o => String(offsets[o.num]).padStart(10, '0') + ' 00000 n \n').join('')
-    const trailer = 'trailer\n<< /Size ' + (allObjs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefOff + '\n%%EOF'
-
-    return new Blob(['%PDF-1.4\n' + body + '\n' + xref + trailer], { type: 'application/pdf' })
-  }
-
-  const uploadPDF = async (sub: Submission): Promise<string | null> => {
-    if (!isSupabaseConfigured || !supabase) return null
-    try {
-      const pdfBlob = generatePDF(sub)
-      const fileName = 'acceptance-form-' + sub.id + '.pdf'
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' })
-      const { data, error } = await supabase.storage
-        .from('acceptance-forms')
-        .upload(fileName, file, { upsert: true, contentType: 'application/pdf' })
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage
-        .from('acceptance-forms')
-        .getPublicUrl(fileName)
-      return publicUrl
-    } catch (err) {
-      console.error('Error uploading PDF:', err)
-      return null
-    }
-  }
-
   useEffect(() => {
     fetchSubmissions()
-    fetchSentCount()
     if (!isSupabaseConfigured || !supabase) return
 
     // Realtime subscription for new submissions
@@ -376,7 +208,6 @@ export default function AcceptanceCriteria() {
       .channel('acceptance_forms_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => {
         fetchSubmissions()
-        fetchSentCount()
       })
       .subscribe()
 
@@ -385,63 +216,213 @@ export default function AcceptanceCriteria() {
     }
   }, [])
 
-  useEffect(() => {
-    localStorage.setItem('exodia-ops-emails', JSON.stringify(savedEmails))
-  }, [savedEmails])
+  const refreshOpsEmails = async () => {
+    if (!isSupabaseConfigured || !supabase) {
+      setOpsEmailError('Supabase is unavailable. Browser-only emails remain viewable and read-only.')
+      return false
+    }
+    try {
+      const { data, error } = await supabase
+        .from('ops_emails')
+        .select('email')
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      const emails = (data || []).map((row: any) => row.email).filter((email): email is string => typeof email === 'string')
+      setRemoteOpsEmails([...new Set(emails)])
+      setOpsEmailsReady(true)
+      setOpsEmailError(null)
+      return true
+    } catch (error) {
+      console.error('Failed to load ops emails:', error)
+      setRemoteOpsEmails([])
+      setOpsEmailsReady(false)
+      setOpsEmailError('Could not load canonical recipients. Browser-only emails remain quarantined.')
+      return false
+    }
+  }
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return
-    const client = supabase
-    const fetchAndMerge = async () => {
-      try {
-        const { data, error } = await client
-          .from('ops_emails')
-          .select('email')
-          .order('created_at', { ascending: true })
-        if (error) throw error
-        const supabaseEmails = (data || []).map((r: any) => r.email)
-        const localEmails = (() => {
-          try { const s = localStorage.getItem('exodia-ops-emails'); return s ? JSON.parse(s) : [] } catch { return [] }
-        })()
-        const merged = [...new Set([...localEmails, ...supabaseEmails])]
-        setSavedEmails(merged)
-        const newEmails = localEmails.filter((e: string) => !supabaseEmails.includes(e))
-        for (const email of newEmails) {
-          try { await client.from('ops_emails').insert({ email }) } catch {}
-        }
-      } catch (err) {
-        console.error('Failed to sync ops emails:', err)
-      }
-    }
-    fetchAndMerge()
+    refreshOpsEmails()
   }, [])
 
+  const getOpsEmailClient = () => {
+    if (isSupabaseConfigured && supabase && opsEmailsReady) return supabase
+    const message = 'Canonical recipients are unavailable. No recipient changes were made.'
+    setOpsEmailError(message)
+    window.alert(message)
+    return null
+  }
+
   const addOpsEmail = async (email: string) => {
-    setSavedEmails(prev => [...prev, email])
-    if (isSupabaseConfigured && supabase) {
-      try { await supabase.from('ops_emails').insert({ email }) } catch {}
+    const client = getOpsEmailClient()
+    if (!client) return false
+    try {
+      const { data, error } = await client
+        .from('ops_emails')
+        .insert({ email })
+        .select('email')
+        .single()
+      if (error) throw error
+      setRemoteOpsEmails(prev => [...new Set([...prev, data.email])])
+      setOpsEmailError(null)
+      return true
+    } catch (error) {
+      console.error('Failed to add ops email:', error)
+      const message = 'Could not add the recipient. No recipient changes were saved.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
     }
   }
 
   const updateOpsEmail = async (oldEmail: string, newEmail: string) => {
-    setSavedEmails(prev => prev.map(e => e === oldEmail ? newEmail : e))
-    if (isSupabaseConfigured && supabase) {
-      try {
-        await supabase.from('ops_emails').delete().eq('email', oldEmail)
-        await supabase.from('ops_emails').insert({ email: newEmail })
-      } catch {}
+    if (oldEmail === newEmail) return true
+    if (!remoteOpsEmails.includes(oldEmail)) {
+      const message = 'This browser-only email is read-only and was not changed.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
+    }
+    const client = getOpsEmailClient()
+    if (!client) return false
+
+    try {
+      const { error: insertError } = await client
+        .from('ops_emails')
+        .insert({ email: newEmail })
+        .select('email')
+        .single()
+      if (insertError) throw insertError
+    } catch (error) {
+      console.error('Failed to insert replacement ops email:', error)
+      const message = 'Could not save the new recipient. The existing recipient was not changed.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
+    }
+
+    try {
+      const { error: deleteError } = await client
+        .from('ops_emails')
+        .delete()
+        .eq('email', oldEmail)
+        .select('email')
+        .single()
+      if (deleteError) throw deleteError
+      setRemoteOpsEmails(prev => [...new Set(prev.map(email => email === oldEmail ? newEmail : email))])
+      setOpsEmailError(null)
+      return true
+    } catch (error) {
+      console.error('Replacement recipient saved, but old recipient removal was not confirmed:', error)
+      setRemoteOpsEmails(prev => [...new Set([...prev, newEmail])])
+      const refreshed = await refreshOpsEmails()
+      const message = refreshed
+        ? 'The new recipient was saved, but removing the old recipient could not be confirmed. The list was refreshed; verify both entries before retrying.'
+        : 'The new recipient was saved, but removing the old recipient and refreshing the list both failed. Verify both entries before retrying.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
     }
   }
 
   const deleteOpsEmail = async (email: string) => {
-    setSavedEmails(prev => prev.filter(e => e !== email))
-    if (isSupabaseConfigured && supabase) {
-      try { await supabase.from('ops_emails').delete().eq('email', email) } catch {}
+    if (!remoteOpsEmails.includes(email)) {
+      const message = 'This browser-only email is read-only and was not removed.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
+    }
+    const client = getOpsEmailClient()
+    if (!client) return false
+    try {
+      const { error } = await client
+        .from('ops_emails')
+        .delete()
+        .eq('email', email)
+        .select('email')
+        .single()
+      if (error) throw error
+      setRemoteOpsEmails(prev => prev.filter(item => item !== email))
+      setOpsEmailError(null)
+      return true
+    } catch (error) {
+      console.error('Failed to delete ops email:', error)
+      const message = 'Could not remove the recipient. No recipient changes were saved.'
+      setOpsEmailError(message)
+      window.alert(message)
+      return false
+    }
+  }
+
+  const deleteSubmission = async (submission: Submission) => {
+    if (!isSupabaseConfigured || !supabase) {
+      window.alert('Supabase is unavailable. The submission was not deleted.')
+      return
+    }
+    if (!submissionsReady) {
+      window.alert('Canonical submissions are unavailable. The submission was not deleted.')
+      return
+    }
+    if (!remoteSubmissionIds.has(String(submission.id))) {
+      window.alert('This browser-only submission is read-only and was not deleted.')
+      return
+    }
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return
+    try {
+      const { error } = await supabase
+        .from('acceptance_forms')
+        .delete()
+        .eq('id', submission.id)
+        .select('id')
+        .single()
+      if (error) throw error
+      setRemoteSubmissionIds(prev => {
+        const next = new Set(prev)
+        next.delete(String(submission.id))
+        return next
+      })
+      setSubmissions(prev => prev.filter(item => String(item.id) !== String(submission.id)))
+      await fetchSubmissions()
+    } catch (error) {
+      console.error('Failed to delete acceptance submission:', error)
+      window.alert('Could not delete the submission. No submission records were changed.')
+    }
+  }
+
+  const openSubmission = async (submission: Submission, trigger: HTMLElement) => {
+    trigger.focus()
+    lastSubmissionTriggerRef.current = trigger
+    setSelectedSubmission(submission)
+
+    if (!submission.id) return
+    if (!isSupabaseConfigured || !supabase) {
+      const key = 'exodia-ac-read-ids'
+      const readIds = new Set(JSON.parse(localStorage.getItem(key) || '[]'))
+      readIds.add(submission.id)
+      localStorage.setItem(key, JSON.stringify([...readIds]))
+      window.dispatchEvent(new CustomEvent('acceptance-forms-changed'))
+      return
+    }
+
+    if (!submissionsReady || !remoteSubmissionIds.has(String(submission.id))) return
+    try {
+      const { data, error } = await supabase
+        .from('acceptance_forms')
+        .update({ is_read: true })
+        .eq('id', submission.id)
+        .select('id')
+        .single()
+      if (error || String(data?.id) !== String(submission.id)) throw error || new Error('Submission was not confirmed')
+      window.dispatchEvent(new CustomEvent('acceptance-forms-changed'))
+    } catch (error) {
+      console.error('Failed to mark acceptance submission as read:', error)
+      window.alert('The submission opened, but its read status could not be saved.')
     }
   }
 
   // Save total submission count to localStorage for sidebar badge
   useEffect(() => {
+    if (isSupabaseConfigured) return
     localStorage.setItem('exodia-ac-total', JSON.stringify(submissions.length))
   }, [submissions])
 
@@ -511,9 +492,16 @@ export default function AcceptanceCriteria() {
       </div>
 
       {showSentModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)' }} onClick={() => setShowSentModal(false)}>
-          <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
+        <AccessibleDialog
+          role="alertdialog"
+          labelledBy="acceptance-sent-title"
+          describedBy="acceptance-sent-description"
+          requestClose={() => setShowSentModal(false)}
+          returnFocusTo={prepareToSendRef.current}
+        >
+          <div className="relative rounded-2xl border p-8 max-w-sm w-full text-center theme-transition" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', boxShadow: 'var(--shadow-lg)' }}>
             <button
+              aria-label="Close sent confirmation"
               onClick={() => setShowSentModal(false)}
               className="absolute top-3 right-3 p-1.5 rounded-lg transition hover:opacity-70"
               style={{ color: '#9CA3AF' }}
@@ -524,14 +512,23 @@ export default function AcceptanceCriteria() {
             </button>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FFF0E6' }}>
               <svg className="w-8 h-8" style={{ color: '#FF5900' }} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d={sentDeliveryRecorded ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 9v3m0 4h.01m9-4a9 9 0 11-18 0 9 9 0 0118 0z'}
+                />
               </svg>
             </div>
-            <h3 className="text-lg mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Sent to Ops!</h3>
-            <p className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
-              The ticket has been submitted and is now available for review.
+            <h3 id="acceptance-sent-title" className="text-lg mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>
+              {sentDeliveryRecorded ? 'Sent to Ops!' : 'Email sent — delivery state unknown'}
+            </h3>
+            <p id="acceptance-sent-description" className="text-sm" style={{ color: '#6B7280', fontWeight: 300 }}>
+              {sentDeliveryRecorded
+                ? 'The ticket has been submitted and is now available for review.'
+                : 'The provider accepted the email, but its delivery state was not recorded. Do not resend; ask an administrator to reconcile the ticket.'}
             </p>
             <button
+              data-dialog-autofocus
               onClick={() => navigator.clipboard.writeText(sentTicketLink)}
               className="mt-4 px-4 py-2 rounded-xl text-xs font-medium transition hover:opacity-80"
               style={{ backgroundColor: '#FFF0E6', color: '#FF5900' }}
@@ -539,7 +536,7 @@ export default function AcceptanceCriteria() {
               Copy ticket link
             </button>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
 {loading ? (
@@ -586,19 +583,16 @@ export default function AcceptanceCriteria() {
                 {filteredSubmissions.map((sub) => (
                   <tr
                     key={sub.id}
-                    onClick={async () => {
-  if (sub.id) {
-    const key = 'exodia-ac-read-ids'
-    const readIds = new Set(JSON.parse(localStorage.getItem(key) || '[]'))
-    readIds.add(sub.id)
-    localStorage.setItem(key, JSON.stringify([...readIds]))
-    if (isSupabaseConfigured && supabase) {
-      try { const { error } = await supabase.from('acceptance_forms').update({ is_read: true }).eq('id', sub.id); if (error) console.error('Failed to mark as read:', error) } catch (e) { console.error('Update error:', e) }
-    }
-  }
-  window.dispatchEvent(new CustomEvent('acceptance-forms-changed'))
-  setSelectedSubmission(sub)
-}}
+                    tabIndex={0}
+                    aria-label={`View acceptance criteria for ${sub.project_name || 'Untitled'}`}
+                    onClick={(event) => {
+                      void openSubmission(sub, event.currentTarget)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return
+                      event.preventDefault()
+                      void openSubmission(sub, event.currentTarget)
+                    }}
                     className="cursor-pointer transition hover:opacity-80"
                     style={{ borderTop: '2px solid var(--border-secondary)' }}
                   >
@@ -639,16 +633,14 @@ export default function AcceptanceCriteria() {
                     </td>
                     <td className="p-3">
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation()
-                          if (window.confirm('Delete this submission? This cannot be undone.')) {
-                            if (!isSupabaseConfigured || !supabase) return
-                            supabase.from('acceptance_forms').delete().eq('id', sub.id).then(() => fetchSubmissions())
-                          }
+                          await deleteSubmission(sub)
                         }}
-                        className="p-1.5 rounded-lg transition hover:opacity-70"
-                        style={{ color: '#FF5900' }}
-                        title="Delete"
+                        disabled={!submissionsReady || !remoteSubmissionIds.has(String(sub.id))}
+                        className="p-1.5 rounded-lg transition hover:opacity-70 disabled:cursor-not-allowed"
+                        style={{ color: '#FF5900', opacity: submissionsReady && remoteSubmissionIds.has(String(sub.id)) ? 1 : 0.35 }}
+                        title={submissionsReady && remoteSubmissionIds.has(String(sub.id)) ? 'Delete' : 'Submission is not confirmed in Supabase (read-only)'}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -681,8 +673,11 @@ export default function AcceptanceCriteria() {
 
       {/* Detail Modal - PDF-style form view */}
       {selectedSubmission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => setSelectedSubmission(null)} />
+        <AccessibleDialog
+          labelledBy="acceptance-detail-title"
+          requestClose={() => setSelectedSubmission(null)}
+          returnFocusTo={lastSubmissionTriggerRef.current}
+        >
           <div className="relative rounded-2xl border max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
             {/* Print-style header */}
             <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-secondary)' }}>
@@ -700,7 +695,7 @@ export default function AcceptanceCriteria() {
             </svg>
 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Exodia Game Dev</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Acceptance Criteria Form</p>
+                    <p id="acceptance-detail-title" className="text-xs" style={{ color: 'var(--text-muted)' }}>Acceptance Criteria Form</p>
                     <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>ID: {formatId(selectedSubmission)}</p>
                   </div>
               </div>
@@ -777,7 +772,13 @@ export default function AcceptanceCriteria() {
                   </svg>
                   PDF
                 </button>
-                <button onClick={() => setSelectedSubmission(null)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: 'var(--text-muted)' }}>
+                <button
+                  data-dialog-autofocus
+                  aria-label="Close acceptance criteria details"
+                  onClick={() => setSelectedSubmission(null)}
+                  className="p-2 rounded-lg transition hover:bg-gray-100"
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -896,8 +897,35 @@ export default function AcceptanceCriteria() {
                 <div className="pdf-signature">
                   <div className="pdf-grid">
                     <div className="pdf-field"><span className="pdf-field-label">Client Name</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.client_name || '—'}</span></div>
-                    <div className="pdf-field"><span className="pdf-field-label">Signed by</span><span className="pdf-field-value" style={{ fontWeight: 600 }}>{selectedSubmission.signature?.startsWith('data:image') ? <img src={selectedSubmission.signature} alt="Signature" style={{ height: 32, display: 'block' }} /> : (selectedSubmission.signature || '—')}</span></div>
-                    <div className="pdf-field"><span className="pdf-field-label">Date</span><span className="pdf-field-value">{selectedSubmission.signature_date || new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+                    <div className="pdf-field">
+                      <span className="pdf-field-label">Signed by</span>
+                      <span className="pdf-field-value" style={{ fontWeight: 600 }}>
+                        {selectedSubmission.signatory_name ||
+                          (!selectedSubmission.signature?.startsWith('data:image/png;base64,') && selectedSubmission.signature) ||
+                          '—'}
+                      </span>
+                    </div>
+                    {(selectedSubmission.signature_png || selectedSubmission.signature?.startsWith('data:image/png;base64,')) && (
+                      <div className="pdf-field">
+                        <span className="pdf-field-label">Drawn signature</span>
+                        <span className="pdf-field-value">
+                          <img
+                            src={selectedSubmission.signature_png || selectedSubmission.signature}
+                            alt="Client signature"
+                            style={{ height: 32, display: 'block' }}
+                          />
+                        </span>
+                      </div>
+                    )}
+                    <div className="pdf-field">
+                      <span className="pdf-field-label">Accepted</span>
+                      <span className="pdf-field-value">
+                        {selectedSubmission.accepted_at
+                          ? new Date(selectedSubmission.accepted_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+                          : selectedSubmission.signature_date ||
+                            new Date(selectedSubmission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -908,11 +936,12 @@ export default function AcceptanceCriteria() {
               {/* Prepare to Send */}
               <div className="pt-4 text-center pdf-no-print">
                 <button
-                  onClick={async () => {
+                  ref={prepareToSendRef}
+                  onClick={() => {
                       setSendForm({
                         to: '',
                         subject: 'Forwarded Acceptance Criteria | ' + (selectedSubmission.project_name || 'Untitled') + ' (Ref: ' + formatId(selectedSubmission) + ')',
-                        body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/view-acceptance.html?id=${selectedSubmission.id}&v=1\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
+                        body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/#/view-acceptance/${selectedSubmission.id}\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
                         additionalAttachments: [],
                       })
                     setShowSendModal(true)
@@ -925,17 +954,19 @@ export default function AcceptanceCriteria() {
               </div>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Send Modal */}
       {showSendModal && selectedSubmission && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'var(--overlay-blur)' }} onClick={() => setShowSendModal(false)} />
+        <AccessibleDialog
+          labelledBy="acceptance-send-title"
+          requestClose={() => setShowSendModal(false)}
+        >
           <div className="relative rounded-2xl border max-w-5xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
             <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }}>
-              <h2 className="text-base font-bold" style={{ color: '#1B1A1C' }}>Send to Operations</h2>
-              <button onClick={() => setShowSendModal(false)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
+              <h2 id="acceptance-send-title" className="text-base font-bold" style={{ color: '#1B1A1C' }}>Send to Operations</h2>
+              <button aria-label="Close send to operations dialog" onClick={() => setShowSendModal(false)} className="p-2 rounded-lg transition hover:bg-gray-100" style={{ color: '#6B7280' }}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -950,6 +981,7 @@ export default function AcceptanceCriteria() {
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <input
+                          data-dialog-autofocus
                           type="email"
                           value={sendForm.to}
                           onChange={(e) => setSendForm({ ...sendForm, to: e.target.value })}
@@ -982,14 +1014,18 @@ export default function AcceptanceCriteria() {
                           <div className="absolute right-0 top-full mt-1 z-50 w-72 rounded-xl border shadow-lg" style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB' }} onClick={(e) => e.stopPropagation()}>
                             <div className="p-3 border-b" style={{ borderColor: '#E5E7EB' }}>
                               <p className="text-xs font-semibold" style={{ color: '#374151' }}>Manage Emails</p>
+                              {opsEmailError && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{opsEmailError}</p>}
                             </div>
                             <div className="max-h-48 overflow-y-auto">
                               {savedEmails.length === 0 ? (
                                 <p className="text-xs p-3 text-center" style={{ color: '#9CA3AF' }}>No saved emails yet.</p>
                               ) : (
                                 savedEmails.map((email, i) => (
-                                  <div key={i} className="flex items-center gap-2 px-3 py-2 border-b group" style={{ borderColor: '#F3F4F6' }}>
-                                    <span className="flex-1 text-xs truncate" style={{ color: '#1B1A1C' }}>{email}</span>
+                                  <div key={email} className="flex items-center gap-2 px-3 py-2 border-b group" style={{ borderColor: '#F3F4F6' }}>
+                                    <div className="flex-1 min-w-0">
+                                      <span className="block text-xs truncate" style={{ color: '#1B1A1C' }}>{email}</span>
+                                      {!remoteOpsEmails.includes(email) && <span className="block text-[10px]" style={{ color: '#9CA3AF' }}>Browser only · read-only</span>}
+                                    </div>
                                     <button
                                       onClick={() => { setSendForm({ ...sendForm, to: email }); setShowEmailManager(false) }}
                                       className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
@@ -1000,26 +1036,32 @@ export default function AcceptanceCriteria() {
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                       </svg>
                                     </button>
-                                    <button
-                                      onClick={() => { setEmailManagerValue(email); setEmailManagerEditIdx(i); setShowEmailManager(true) }}
-                                      className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
-                                      style={{ color: '#6B7280' }}
-                                      title="Edit"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                      </svg>
-                                    </button>
-                                    <button
-                                      onClick={() => deleteOpsEmail(email)}
-                                      className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100"
-                                      style={{ color: '#EF4444' }}
-                                      title="Remove"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
+                                    {remoteOpsEmails.includes(email) && (
+                                      <>
+                                        <button
+                                          onClick={() => { setEmailManagerValue(email); setEmailManagerEditIdx(i); setShowEmailManager(true) }}
+                                          disabled={!opsEmailsReady}
+                                          className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                          style={{ color: '#6B7280' }}
+                                          title="Edit"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                          </svg>
+                                        </button>
+                                        <button
+                                          onClick={() => deleteOpsEmail(email)}
+                                          disabled={!opsEmailsReady}
+                                          className="p-1 rounded transition hover:bg-gray-100 opacity-0 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                          style={{ color: '#EF4444' }}
+                                          title="Remove"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 ))
                               )}
@@ -1037,16 +1079,18 @@ export default function AcceptanceCriteria() {
                                     autoFocus
                                   />
                                   <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                       const v = emailManagerValue.trim()
                                       if (v && emailManagerEditIdx !== null) {
                                         const old = savedEmails[emailManagerEditIdx]
-                                        updateOpsEmail(old, v)
-                                        setEmailManagerEditIdx(null)
-                                        setEmailManagerValue('')
+                                        if (await updateOpsEmail(old, v)) {
+                                          setEmailManagerEditIdx(null)
+                                          setEmailManagerValue('')
+                                        }
                                       }
                                     }}
-                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white"
+                                    disabled={!opsEmailsReady}
+                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white disabled:cursor-not-allowed disabled:opacity-50"
                                     style={{ backgroundColor: '#FF5900', fontWeight: 500 }}
                                   >
                                     Save
@@ -1063,14 +1107,14 @@ export default function AcceptanceCriteria() {
                                     placeholder="Add new email"
                                   />
                                   <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                       const v = emailManagerValue.trim()
                                       if (v) {
-                                        addOpsEmail(v)
-                                        setEmailManagerValue('')
+                                        if (await addOpsEmail(v)) setEmailManagerValue('')
                                       }
                                     }}
-                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white"
+                                    disabled={!opsEmailsReady}
+                                    className="px-2.5 py-1.5 text-xs rounded-lg text-white disabled:cursor-not-allowed disabled:opacity-50"
                                     style={{ backgroundColor: '#FF5900', fontWeight: 500 }}
                                   >
                                     Add
@@ -1109,6 +1153,7 @@ export default function AcceptanceCriteria() {
                             placeholder="Paste a link..."
                           />
                           <button
+                            aria-label={`Remove attachment link ${idx + 1}`}
                             onClick={() => {
                               const updated = sendForm.additionalAttachments.filter((_, i) => i !== idx)
                               setSendForm({ ...sendForm, additionalAttachments: updated })
@@ -1136,62 +1181,57 @@ export default function AcceptanceCriteria() {
                   </div>
                   <button
                     onClick={async () => {
+                      const submission = selectedSubmission
+                      if (!isSupabaseConfigured || !supabase || !submissionsReady || !submission || !remoteSubmissionIds.has(String(submission.id))) {
+                        window.alert('Canonical submission data is unavailable. No ticket was created or sent.')
+                        return
+                      }
                       const attLinks = sendForm.additionalAttachments.filter(l => l.trim())
                       const attSection = attLinks.length > 0 ? '\nAttachment Link:\n' + attLinks.join('\n') : ''
                       const fullBody = sendForm.body.replace('📎 Resource Links', '📎 Resource Links') + attSection
-                      const ticketLink = window.location.origin + '/#/view-acceptance/' + (selectedSubmission ? formatId(selectedSubmission) : '')
-                      const apiUrl = import.meta.env.VITE_SUPABASE_URL
-                      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-                      let saved = false
-                      if (selectedSubmission && apiUrl && anonKey) {
-                        try {
-                          const resp = await fetch(apiUrl + '/rest/v1/project_review_tickets', {
-                            method: 'POST',
-                            headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-                            body: JSON.stringify({
-                              tracking_id: formatId(selectedSubmission),
-                              project_name: selectedSubmission.project_name,
-                              client_name: selectedSubmission.client_name,
-                              email_to: sendForm.to,
-                              email_subject: sendForm.subject,
-                              email_body: fullBody,
-                              additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
-                              ticket_link: 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission)),
-                              status: 'Sent',
-                            }),
-                          })
-                          if (resp.ok) saved = true
-                          if (resp.ok) {
-                            const viewLink = 'https://operations.exodiagamedev.com/project-review-ticket?tracking_id=' + encodeURIComponent(formatId(selectedSubmission))
-                            try {
-                              const emailResp = await fetch(apiUrl + '/functions/v1/send-ticket-email', {
-                                method: 'POST',
-                                headers: { 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  to: sendForm.to,
-                                  trackingId: formatId(selectedSubmission),
-                                  projectName: selectedSubmission.project_name,
-                                  ticketLink: viewLink,
-                                }),
-                              })
-                              if (!emailResp.ok) {
-                                console.error('Email function returned:', emailResp.status, await emailResp.text())
-                              }
-                            } catch (emailErr) {
-                              console.error('Failed to send email:', emailErr)
-                            }
-                          }
-                        } catch (err) {
-                          console.error('Failed to save ticket:', err)
+                      const ticketLink = window.location.origin + '/#/view-acceptance/' + submission.id
+                      let sent = false
+                      try {
+                        const ticketPayload = {
+                          acceptance_form_id: Number(submission.id),
+                          tracking_id: formatId(submission),
+                          project_name: submission.project_name,
+                          client_name: submission.client_name,
+                          email_to: sendForm.to,
+                          email_subject: sendForm.subject,
+                          email_body: fullBody,
+                          additional_attachments: sendForm.additionalAttachments.filter(l => l.trim()),
+                          status: 'Pending',
                         }
+                        const { error: saveError } = await supabase
+                          .from('project_review_tickets')
+                          .upsert([ticketPayload], { onConflict: 'acceptance_form_id', ignoreDuplicates: true })
+                        if (saveError) throw saveError
+                        const { data: savedTicket, error: lookupError } = await supabase
+                          .from('project_review_tickets')
+                          .select('id')
+                          .eq('acceptance_form_id', Number(submission.id))
+                          .single()
+                        if (lookupError || !savedTicket) throw lookupError || new Error('Review ticket was not returned')
+                        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-ticket-email', {
+                          body: { ticketId: savedTicket.id },
+                        })
+                        if (emailError) throw emailError
+                        setSentDeliveryRecorded(emailResult?.deliveryRecorded !== false)
+                        sent = true
+                      } catch (err) {
+                        console.error('Failed to send ticket:', err)
+                      }
+                      if (!sent) {
+                        window.alert('The ticket delivery could not be confirmed. Check its delivery status before retrying to avoid a duplicate email.')
+                        return
                       }
                       setShowSendModal(false)
                       setSentTicketLink(ticketLink)
-                      fetchSentCount()
                       setShowSentModal(true)
-                      setTimeout(() => setShowSentModal(false), 6000)
                     }}
-                    className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
+                    disabled={!submissionsReady || !remoteSubmissionIds.has(String(selectedSubmission.id))}
+                    className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                     style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.3)' }}
                   >
                     Send to Ops
@@ -1200,7 +1240,7 @@ export default function AcceptanceCriteria() {
               </div>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   )

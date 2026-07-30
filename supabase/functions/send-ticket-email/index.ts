@@ -1,30 +1,84 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createTransport } from 'npm:nodemailer@6.9.16'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
-}
+import {
+  authenticatedClient,
+  corsHeaders,
+  escapeHtml,
+  headerText,
+  hasOnlyKeys,
+  isEmail,
+  isRecord,
+  json,
+  readJson,
+  safeHttpUrl,
+  smtpConfig,
+  text,
+} from '../_shared/http.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders(req) })
+  }
+  if (req.method !== 'POST') {
+    return json(req, { error: 'Method not allowed' }, 405)
   }
 
   try {
-    const { to, trackingId, projectName, ticketLink } = await req.json()
-    if (!to || !trackingId || !ticketLink) {
-      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400, headers: corsHeaders })
+    const client = await authenticatedClient(req)
+    if (!client) {
+      return json(req, { error: 'Unauthorized' }, 401)
     }
 
-    const pass = Deno.env.get('SMTP_PASS')
-    if (!pass) {
-      return new Response(JSON.stringify({ error: 'SMTP_PASS not set' }), { status: 500, headers: corsHeaders })
+    const parsed = await readJson(req, 4 * 1024)
+    if (parsed.error) return parsed.error
+    const payload = parsed.value
+    if (!isRecord(payload) || !hasOnlyKeys(payload, ['ticketId']) ||
+      !Number.isSafeInteger(payload.ticketId) || Number(payload.ticketId) <= 0) {
+      return json(req, { error: 'Invalid ticket' }, 400)
     }
 
-    const subject = trackingId + ' - ' + (projectName || 'Untitled')
-    const textBody = trackingId + ' - ' + (projectName || 'Untitled') + ' Ready for review.\n\nView: ' + ticketLink
+    const { data: ticket, error: ticketError } = await client
+      .from('project_review_tickets')
+      .select('tracking_id, project_name, email_to, status, sent_at')
+      .eq('id', payload.ticketId)
+      .maybeSingle()
+    if (ticketError || !ticket) {
+      return json(req, { error: 'Ticket not found' }, 404)
+    }
+    if (ticket.status === 'Sent' || ticket.sent_at) {
+      return json(req, { success: true, alreadySent: true })
+    }
+    if (ticket.status !== 'Pending' && ticket.status !== 'Failed') {
+      return json(req, { error: 'Ticket delivery is already in progress' }, 409)
+    }
+
+    const to = text(ticket.email_to, 254)
+    const trackingId = headerText(ticket.tracking_id, 100)
+    const projectName = headerText(ticket.project_name, 300) || 'Untitled'
+    const operationsUrl = safeHttpUrl(Deno.env.get('OPERATIONS_SITE_URL') || '')
+    if (!to || !isEmail(to) || !trackingId || !operationsUrl || !operationsUrl.startsWith('https://')) {
+      return json(req, { error: 'Ticket is incomplete' }, 409)
+    }
+    const { data: approvedRecipient, error: recipientError } = await client
+      .from('ops_emails')
+      .select('email')
+      .eq('email', to)
+      .maybeSingle()
+    if (recipientError || !approvedRecipient) {
+      return json(req, { error: 'Recipient is not approved' }, 403)
+    }
+    const ticketLink = new URL(`/project-review-ticket?tracking_id=${encodeURIComponent(trackingId)}`, operationsUrl).toString()
+
+    const smtp = smtpConfig()
+    if (!smtp) {
+      return json(req, { error: 'Email service unavailable' }, 503)
+    }
+
+    const subject = trackingId + ' - ' + projectName
+    const textBody = trackingId + ' - ' + projectName + ' Ready for review.\n\nView: ' + ticketLink
+    const safeTrackingId = escapeHtml(trackingId)
+    const safeProjectName = escapeHtml(projectName)
+    const safeTicketLink = escapeHtml(ticketLink)
     const htmlBody = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,11 +133,11 @@ serve(async (req) => {
         <div class="details">
           <div class="details-row">
             <span class="details-label">Tracking ID</span>
-            <span class="details-value">${trackingId}</span>
+            <span class="details-value">${safeTrackingId}</span>
           </div>
           <div class="details-row">
             <span class="details-label">Project</span>
-            <span class="details-value-text">${projectName || 'Untitled'}</span>
+            <span class="details-value-text">${safeProjectName}</span>
           </div>
           <div class="details-row">
             <span class="details-label">Date</span>
@@ -92,11 +146,11 @@ serve(async (req) => {
         </div>
         <div class="divider"></div>
         <div class="btn-wrap">
-          <a href="${ticketLink}" class="btn">&#x1F513; Open Ticket</a>
+          <a href="${safeTicketLink}" class="btn">&#x1F513; Open Ticket</a>
         </div>
         <div class="fallback-wrap">
           <span class="fallback-label">Or copy the link below</span>
-          <a href="${ticketLink}" class="fallback-link">${ticketLink}</a>
+          <a href="${safeTicketLink}" class="fallback-link">${safeTicketLink}</a>
         </div>
       </div>
       <div class="footer">
@@ -111,23 +165,55 @@ serve(async (req) => {
 </html>`
 
     const transporter = createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user: 'maxene_pableo@exodiagamedev.com', pass: pass },
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.port === 465,
+      auth: { user: smtp.user, pass: smtp.pass },
     })
 
-    await transporter.sendMail({
-      from: 'maxene_pableo@exodiagamedev.com',
-      to: to,
-      subject: subject,
-      text: textBody,
-      html: htmlBody,
-    })
+    const { data: claimed, error: claimError } = await client
+      .from('project_review_tickets')
+      .update({ status: 'Sending' })
+      .eq('id', payload.ticketId)
+      .in('status', ['Pending', 'Failed'])
+      .is('sent_at', null)
+      .select('id')
+      .maybeSingle()
+    if (claimError) {
+      return json(req, { error: 'Ticket delivery could not be reserved' }, 500)
+    }
+    if (!claimed) {
+      return json(req, { error: 'Ticket delivery is already in progress' }, 409)
+    }
 
-    return new Response(JSON.stringify({ success: true }), { status: 200, headers: corsHeaders })
-  } catch (err) {
-    console.error(err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })
+    try {
+      await transporter.sendMail({
+        from: smtp.from,
+        to: to,
+        subject: subject,
+        text: textBody,
+        html: htmlBody,
+      })
+    } catch (error) {
+      console.error('send-ticket-email delivery outcome is unresolved', error)
+      return json(req, { error: 'Delivery outcome requires administrator review' }, 409)
+    }
+
+    const { data: sentTicket, error: statusError } = await client
+      .from('project_review_tickets')
+      .update({ status: 'Sent', sent_at: new Date().toISOString() })
+      .eq('id', payload.ticketId)
+      .eq('status', 'Sending')
+      .select('id')
+      .maybeSingle()
+    if (statusError || !sentTicket) {
+      console.error('send-ticket-email status update failed', statusError?.code || 'no-row')
+      return json(req, { success: true, deliveryRecorded: false }, 202)
+    }
+
+    return json(req, { success: true })
+  } catch (error) {
+    console.error('send-ticket-email failed', error)
+    return json(req, { error: 'Email could not be sent' }, 500)
   }
 })

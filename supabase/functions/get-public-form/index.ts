@@ -1,48 +1,45 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
-}
+import { authenticatedClient, corsHeaders, json, text } from '../_shared/http.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders(req, 'GET, OPTIONS') })
+  }
+  if (req.method !== 'GET') {
+    return json(req, { error: 'Method not allowed' }, 405)
   }
 
   try {
-    const url = new URL(req.url)
-    const id = url.searchParams.get('id')
-
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Missing id parameter' }), { status: 400, headers: corsHeaders })
+    const supabase = await authenticatedClient(req)
+    if (!supabase) {
+      return json(req, { error: 'Unauthorized' }, 401)
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const url = new URL(req.url)
+    const id = text(url.searchParams.get('id'), 100)
+
+    if (!id) {
+      return json(req, { error: 'Missing id parameter' }, 400)
+    }
 
     const { data, error } = await supabase
       .from('acceptance_forms')
-      .select('*')
+      .select('id, tracking_id, project_name, client_name, project_type, created_at')
       .eq('id', id)
       .maybeSingle()
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
+      console.error('get-public-form query failed', error.code)
+      return json(req, { error: 'Form could not be loaded' }, 500)
     }
 
     if (!data) {
-      return new Response(JSON.stringify({ error: 'Form not found' }), { status: 404, headers: corsHeaders })
+      return json(req, { error: 'Form not found' }, 404)
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })
+    return json(req, data)
+  } catch (error) {
+    console.error('get-public-form failed', error)
+    return json(req, { error: 'Form could not be loaded' }, 500)
   }
 })

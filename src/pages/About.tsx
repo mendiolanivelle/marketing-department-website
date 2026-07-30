@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { logActivity } from '../lib/activityLogger'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 interface TeamMember {
   id: number
@@ -9,27 +10,21 @@ interface TeamMember {
   photoUrl?: string
 }
 
-const defaultMembers: TeamMember[] = [
-  { id: 1, name: 'Maxene Pableo', role: 'Marketing Coordinator', email: 'maxene_pableo@exodiagamedev.com' },
-  { id: 2, name: 'Sarah Chen', role: 'Marketing Associate', email: 'sarah@exodiagamedev.com' },
-  { id: 3, name: 'Marcus Johnson', role: 'Social Media Manager', email: 'marcus@exodiagamedev.com' },
-  { id: 4, name: 'Emily Rodriguez', role: 'Digital Marketing Manager', email: 'emily@exodiagamedev.com' },
-]
-
 function getInitials(name: string) {
   return name.split(' ').map(w => w.charAt(0)).join('').toUpperCase()
 }
 
 export default function About() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
-    const version = localStorage.getItem('exodia-team-directory-v')
-    if (version !== '2') {
-      localStorage.removeItem('exodia-team-directory')
-      localStorage.setItem('exodia-team-directory-v', '2')
-      return defaultMembers
-    }
+    if (isSupabaseConfigured) return []
     const saved = localStorage.getItem('exodia-team-directory')
-    return saved ? JSON.parse(saved) : defaultMembers
+    if (!saved) return []
+    try {
+      const parsed = JSON.parse(saved)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
   })
   const [editingEmail, setEditingEmail] = useState<{ id: number; email: string } | null>(null)
   const [showAddMember, setShowAddMember] = useState(false)
@@ -38,6 +33,7 @@ export default function About() {
   const memberFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    if (isSupabaseConfigured) return
     localStorage.setItem('exodia-team-directory', JSON.stringify(teamMembers))
   }, [teamMembers])
 
@@ -78,10 +74,6 @@ export default function About() {
       }
     }
     input.click()
-  }
-
-  const removePhoto = (id: number) => {
-    setTeamMembers(prev => prev.map(m => m.id === id ? { ...m, photoUrl: undefined } : m))
   }
 
   return (
@@ -186,8 +178,10 @@ export default function About() {
             </h2>
             <button
               onClick={() => setShowAddMember(true)}
+              disabled={isSupabaseConfigured}
+              title={isSupabaseConfigured ? 'Team records are unavailable until canonical storage and migration are approved' : 'Add team member'}
               className="px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--accent)', fontWeight: 500 }}
+              style={{ backgroundColor: 'var(--accent)', fontWeight: 500, opacity: isSupabaseConfigured ? 0.5 : 1 }}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -195,8 +189,17 @@ export default function About() {
               Add Member
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {teamMembers.map((member) => (
+          {isSupabaseConfigured ? (
+            <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+              Team records are unavailable until canonical storage and browser-record recovery are approved. Existing browser-only records are preserved.
+            </div>
+          ) : teamMembers.length === 0 ? (
+            <div className="rounded-2xl border p-10 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No team members yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {teamMembers.map((member) => (
               <div
                 key={member.id}
                 className="group rounded-2xl border-2 p-6 text-center transition-all duration-200 hover:shadow-lg theme-transition"
@@ -290,13 +293,14 @@ export default function About() {
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Add Member Modal */}
-      {showAddMember && (
+      {!isSupabaseConfigured && showAddMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'var(--bg-overlay)', backdropFilter: 'blur(4px)' }} onClick={() => setShowAddMember(false)}>
           <div className="relative rounded-2xl border p-6 max-w-md w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} onClick={e => e.stopPropagation()}>
             <h3 className="text-lg mb-4" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Add Team Member</h3>

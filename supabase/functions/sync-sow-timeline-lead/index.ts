@@ -1,10 +1,13 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+import {
+  authenticatedClient,
+  corsHeaders,
+  hasOnlyKeys,
+  isRecord,
+  json,
+  readJson,
+  text,
+} from '../_shared/http.ts'
 
 const isSowCostingColumn = (label = '') => {
   const normalized = label.toLowerCase().replace(/[^a-z0-9]+/g, ' ')
@@ -23,24 +26,34 @@ const getServiceKey = () => {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders(req) })
   }
 
   if (req.method !== 'POST') {
-    return Response.json({ error: 'Method not allowed' }, { status: 405, headers: corsHeaders })
+    return json(req, { error: 'Method not allowed' }, 405)
   }
 
   try {
+    if (!await authenticatedClient(req, 'sales@exodiagamedev.com')) {
+      return json(req, { error: 'Unauthorized' }, 401)
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceKey = getServiceKey()
 
     if (!supabaseUrl || !serviceKey) {
-      return Response.json({ error: 'Supabase function secrets are missing' }, { status: 500, headers: corsHeaders })
+      return json(req, { error: 'Sync service unavailable' }, 503)
     }
 
-    const { leadId } = await req.json()
-    if (!leadId) {
-      return Response.json({ error: 'leadId is required' }, { status: 400, headers: corsHeaders })
+    const parsed = await readJson(req, 4 * 1024)
+    if (parsed.error) return parsed.error
+    const payload = parsed.value
+    if (!isRecord(payload) || !hasOnlyKeys(payload, ['leadId'])) {
+      return json(req, { error: 'Invalid request' }, 400)
+    }
+    const leadId = text(payload.leadId, 36)
+    if (!leadId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(leadId)) {
+      return json(req, { error: 'Invalid leadId' }, 400)
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
@@ -49,7 +62,7 @@ Deno.serve(async (req) => {
 
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('timeline_leads')
-      .select('*')
+      .select('id, table_id, company, contact, email, value, date, column_key, notes')
       .eq('id', leadId)
       .single()
 
@@ -67,12 +80,12 @@ Deno.serve(async (req) => {
     const targetColumn = columns.find((column: { key: string }) => column.key === lead.column_key)
 
     if (!targetColumn || !isSowCostingColumn(targetColumn.label)) {
-      return Response.json({ synced: false, reason: 'Lead is not in SOW and costing creation' }, { headers: corsHeaders })
+      return json(req, { synced: false, reason: 'Lead is not in SOW and costing creation' })
     }
 
     const clientKey = `${String(lead.company || '').trim()}|${String(lead.contact || '').trim()}`.toLowerCase()
     if (!clientKey || clientKey === '|') {
-      return Response.json({ error: 'Lead company and contact are required' }, { status: 400, headers: corsHeaders })
+      return json(req, { error: 'Lead company and contact are required' }, 400)
     }
 
     const email = String(lead.email || '').trim()
@@ -164,9 +177,9 @@ Deno.serve(async (req) => {
       if (forwardInsertError) throw forwardInsertError
     }
 
-    return Response.json({ synced: true, clientId }, { headers: corsHeaders })
+    return json(req, { synced: true, clientId })
   } catch (error) {
-    console.error(error)
-    return Response.json({ error: error.message || 'Sync failed' }, { status: 500, headers: corsHeaders })
+    console.error('sync-sow-timeline-lead failed', error)
+    return json(req, { error: 'Sync failed' }, 500)
   }
 })

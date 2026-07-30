@@ -57,6 +57,14 @@ const styles = `
   0%, 100% { opacity: 0.5; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
 }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 `
 
 export default function Login() {
@@ -82,13 +90,7 @@ export default function Login() {
     if (error) {
       setError(error.message)
     } else {
-      const hash = window.location.hash.replace('#/', '')
-      const redirectMatch = hash.match(/[?&]redirect=([^&]+)/)
-      if (redirectMatch) {
-        window.location.href = decodeURIComponent(redirectMatch[1])
-      } else {
-        navigate('/dashboard')
-      }
+      navigate('/dashboard')
     }
   }
 
@@ -266,7 +268,7 @@ export default function Login() {
 
             {/* Error */}
             {(error || configError) && (
-              <div className="mb-6 flex items-start gap-3 rounded-xl p-4" style={{ backgroundColor: '#FF590010', border: '1px solid #FF590030' }}>
+              <div role="alert" className="mb-6 flex items-start gap-3 rounded-xl p-4" style={{ backgroundColor: '#FF590010', border: '1px solid #FF590030' }}>
                 <svg className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#FF5900' }} fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
@@ -331,6 +333,7 @@ export default function Login() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center transition"
                     style={{ color: '#FF5900', opacity: 0.6 }}
@@ -357,19 +360,16 @@ export default function Login() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4 rounded" style={{ accentColor: '#FF5900', borderColor: '#3E4048' }} />
                   <span className="text-sm" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 300 }}>Remember me</span>
                 </label>
-                <a href="#" className="text-sm transition hover:underline" style={{ color: '#CACDD7', opacity: 0.6, fontWeight: 500 }}>
-                  Forgot password?
-                </a>
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || Boolean(configError)}
                 className="w-full py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#FF5900', color: '#1B1A1C', fontWeight: 700 }}
               >
@@ -397,17 +397,14 @@ export default function Login() {
               {showEmbed && (
                 <div className="mb-4">
                   <div className="relative">
-                    <textarea readOnly value={'<a href="https://marketing.exodiagamedev.com/#/submit-request" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(255,89,0,0.3);">\n  Submit a Marketing Request\n</a>'} onClick={(e) => { (e.target as HTMLTextAreaElement).select(); navigator.clipboard.writeText((e.target as HTMLTextAreaElement).value); setEmbedCopied(true) }} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none text-xs resize-none" style={{ borderColor: '#3E4048', color: '#CACDD7', backgroundColor: '#1B1A1C' }} />
+                    <textarea readOnly value={`<a href="${window.location.origin}/#/submit-request" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:#FF5900;color:#ffffff;text-decoration:none;border-radius:12px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(255,89,0,0.3);">\n  Submit a Marketing Request\n</a>`} onClick={(e) => { (e.target as HTMLTextAreaElement).select(); navigator.clipboard.writeText((e.target as HTMLTextAreaElement).value); setEmbedCopied(true) }} rows={6} className="w-full px-3 py-2.5 border rounded-lg outline-none text-xs resize-none" style={{ borderColor: '#3E4048', color: '#CACDD7', backgroundColor: '#1B1A1C' }} />
                     {embedCopied && <span className="absolute top-2 right-2 text-xs" style={{ color: '#0B8043' }}>Copied!</span>}
                   </div>
                   <p className="text-xs mt-1.5 text-center" style={{ color: '#CACDD7', opacity: 0.4, fontWeight: 300 }}>Click the code to copy it, then paste into your website's HTML</p>
                 </div>
               )}
               <p className="text-center text-sm" style={{ color: '#CACDD7', opacity: 0.5, fontWeight: 300 }}>
-                Need access? Contact{' '}
-                <a href="mailto:it@company.com" className="hover:underline" style={{ color: '#CACDD7', fontWeight: 500 }}>
-                  IT Support
-                </a>
+                Need access? Contact your system administrator.
               </p>
               <p className="text-center text-xs mt-2" style={{ color: '#CACDD7', opacity: 0.35, fontWeight: 300 }}>
                 This is an internal system. Unauthorized access is prohibited.

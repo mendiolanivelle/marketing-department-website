@@ -2,13 +2,44 @@ import { createServer } from 'node:http'
 import { createReadStream, existsSync } from 'node:fs'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isStaffUser } from '../src/lib/staff.js'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const distDir = join(rootDir, 'dist')
-const port = Number(process.env.PORT || 3000)
-const openRouterTimeoutMs = Number(process.env.OPENROUTER_TIMEOUT_MS || 45000)
-const imageStore = new Map()
-const imageTtlMs = Number(process.env.CALLING_CARD_IMAGE_TTL_MS || 10 * 60 * 1000)
+const portConfig = integerConfig('PORT', 3000, process.env.NODE_ENV === 'production' ? 1 : 0, 65_535)
+const openRouterTimeoutConfig = integerConfig('OPENROUTER_TIMEOUT_MS', 45_000, 1_000, 300_000)
+const port = portConfig.value
+const openRouterTimeoutMs = openRouterTimeoutConfig.value
+const imageBodyLimit = 16_000_000
+const shutdownTimeoutMs = 10_000
+// ponytail: per-process limit; use a shared limiter only when the app runs multiple replicas.
+const aiRateLimits = new Map()
+const aiRateLimit = 5
+const aiRateWindowMs = 60_000
+const maxAiRateLimitUsers = 1_000
+
+const securityHeaders = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "connect-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://*.googleapis.com https://*.supabase.co wss://*.supabase.co",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'frame-src https://accounts.google.com https://challenges.cloudflare.com',
+    "img-src 'self' data: blob: https:",
+    "object-src 'none'",
+    "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  ].join('; '),
+  'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+  'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet',
+}
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -39,39 +70,174 @@ function getEnv(...names) {
   return ''
 }
 
+function integerConfig(name, fallback, min, max) {
+  const raw = cleanEnv(process.env[name])
+  if (!raw) return { valid: true, value: fallback }
+  const value = Number(raw)
+  const valid = Number.isInteger(value) && value >= min && value <= max
+  return { valid, value: valid ? value : fallback }
+}
+
 function sendJson(res, status, payload) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' })
+  res.writeHead(status, {
+    'Cache-Control': 'no-store',
+    'Content-Type': 'application/json; charset=utf-8',
+  })
   res.end(JSON.stringify(payload))
+}
+
+function setSecurityHeaders(res) {
+  for (const [name, value] of Object.entries(securityHeaders)) res.setHeader(name, value)
 }
 
 function normalizePublicUrl(value) {
   const clean = cleanEnv(value)
   if (!clean) return ''
-  const withScheme = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`
+  const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(clean) ? clean : `https://${clean}`
   return withScheme.replace(/\/$/, '')
 }
 
-function getRequestOrigin(req) {
-  const configuredUrl = normalizePublicUrl(process.env.PUBLIC_SITE_URL)
-  if (configuredUrl) return configuredUrl
-  const proto = req.headers['x-forwarded-proto'] || 'http'
-  const host = req.headers['x-forwarded-host'] || req.headers.host
-  return `${proto}://${host}`
+function isLoopback(hostname) {
+  return hostname === 'localhost'
+    || hostname === '[::1]'
+    || hostname === '::1'
+    || /^127(?:\.\d{1,3}){3}$/.test(hostname)
 }
 
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = ''
-    req.on('data', chunk => {
-      body += chunk
-      if (body.length > 15_000_000) {
-        reject(new Error('Request body is too large'))
-        req.destroy()
-      }
+function isSecureHttpEndpoint(value) {
+  try {
+    const url = new URL(normalizePublicUrl(value))
+    return url.protocol === 'https:' || (url.protocol === 'http:' && isLoopback(url.hostname))
+  } catch {
+    return false
+  }
+}
+
+function runtimeReadiness() {
+  const issues = []
+  const publicSiteUrl = normalizePublicUrl(getEnv('PUBLIC_SITE_URL'))
+  const supabaseUrl = normalizePublicUrl(getEnv('SUPABASE_URL', 'VITE_SUPABASE_URL'))
+  const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
+
+  try {
+    if (!publicSiteUrl || new URL(publicSiteUrl).protocol !== 'https:') issues.push('PUBLIC_SITE_URL')
+  } catch {
+    issues.push('PUBLIC_SITE_URL')
+  }
+  if (!isSecureHttpEndpoint(supabaseUrl)) issues.push('SUPABASE_URL')
+  if (!getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')) issues.push('SUPABASE_ANON_KEY')
+  if (!getEnv('OPENROUTER_API_KEY', 'OPENROUTER_KEY')) issues.push('OPENROUTER_API_KEY')
+  if (!isSecureHttpEndpoint(openRouterBaseUrl)) issues.push('OPENROUTER_BASE_URL')
+  if (!portConfig.valid) issues.push('PORT')
+  if (!openRouterTimeoutConfig.valid) issues.push('OPENROUTER_TIMEOUT_MS')
+
+  return { ready: issues.length === 0, issues }
+}
+
+async function authenticateRequest(req) {
+  const supabaseUrl = normalizePublicUrl(getEnv('SUPABASE_URL', 'VITE_SUPABASE_URL'))
+  const apikey = getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
+  if (!isSecureHttpEndpoint(supabaseUrl) || !apikey) {
+    throw Object.assign(new Error('Authentication is not configured'), { statusCode: 503 })
+  }
+
+  const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization.trim() : ''
+  const match = authorization.match(/^Bearer\s+(\S+)$/i)
+  if (!match) throw Object.assign(new Error('Authentication required'), { statusCode: 401 })
+
+  let response
+  try {
+    response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey, Authorization: `Bearer ${match[1]}` },
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000),
     })
-    req.on('end', () => resolve(body))
+  } catch {
+    throw Object.assign(new Error('Authentication service unavailable'), { statusCode: 503 })
+  }
+  if (response.status >= 500) {
+    throw Object.assign(new Error('Authentication service unavailable'), { statusCode: 503 })
+  }
+  if (!response.ok) throw Object.assign(new Error('Authentication required'), { statusCode: 401 })
+
+  const user = await response.json().catch(() => null)
+  if (!user?.id || typeof user.id !== 'string') {
+    throw Object.assign(new Error('Authentication required'), { statusCode: 401 })
+  }
+  if (!isStaffUser(user)) {
+    throw Object.assign(new Error('Staff access required'), { statusCode: 403 })
+  }
+  return { apikey, authorization: `Bearer ${match[1]}`, supabaseUrl, userId: user.id }
+}
+
+async function requireAuthentication(req, res) {
+  try {
+    return await authenticateRequest(req)
+  } catch (error) {
+    const status = error?.statusCode === 503 ? 503 : error?.statusCode === 403 ? 403 : 401
+    sendJson(res, status, {
+      error: status === 503
+        ? 'Authentication service unavailable'
+        : status === 403 ? 'Staff access required' : 'Authentication required',
+    })
+    return null
+  }
+}
+
+function consumeAiRateLimit(userId) {
+  const now = Date.now()
+  const current = aiRateLimits.get(userId)
+  if (current?.resetAt > now) {
+    if (current.count >= aiRateLimit) {
+      return { allowed: false, retryAfter: Math.max(1, Math.ceil((current.resetAt - now) / 1000)) }
+    }
+    current.count += 1
+    return { allowed: true }
+  }
+
+  if (current) aiRateLimits.delete(userId)
+  if (aiRateLimits.size >= maxAiRateLimitUsers) {
+    for (const [id, entry] of aiRateLimits) {
+      if (entry.resetAt <= now) aiRateLimits.delete(id)
+    }
+  }
+  if (aiRateLimits.size >= maxAiRateLimitUsers) return { allowed: false, retryAfter: 60 }
+
+  aiRateLimits.set(userId, { count: 1, resetAt: now + aiRateWindowMs })
+  return { allowed: true }
+}
+
+function readBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    let rejected = false
+
+    req.on('data', chunk => {
+      if (rejected) return
+      size += chunk.length
+      if (size > limit) {
+        rejected = true
+        chunks.length = 0
+        reject(Object.assign(new Error('Request body is too large'), { statusCode: 413 }))
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks).toString('utf8'))
+    })
     req.on('error', reject)
   })
+}
+
+async function readJsonBody(req, limit) {
+  const body = await readBody(req, limit)
+  try {
+    return JSON.parse(body)
+  } catch {
+    throw Object.assign(new Error('Invalid JSON body'), { statusCode: 400 })
+  }
 }
 
 function validateLead(lead) {
@@ -80,47 +246,6 @@ function validateLead(lead) {
     acc[field] = typeof lead?.[field] === 'string' ? lead[field] : ''
     return acc
   }, {})
-}
-
-function storeImage(dataUrl) {
-  const match = dataUrl.match(/^data:(image\/(?:png|jpe?g|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/i)
-  if (!match) throw new Error('Image must be a PNG, JPEG, WebP, or GIF base64 data URL')
-  const id = crypto.randomUUID()
-  const contentType = match[1].toLowerCase().replace('image/jpg', 'image/jpeg')
-  const buffer = Buffer.from(match[2].replace(/\s/g, ''), 'base64')
-  const timeout = setTimeout(() => imageStore.delete(id), imageTtlMs)
-  imageStore.set(id, { buffer, contentType, timeout })
-  return id
-}
-
-function cleanupImage(id) {
-  const entry = imageStore.get(id)
-  if (!entry) return
-  clearTimeout(entry.timeout)
-  imageStore.delete(id)
-}
-
-function serveStoredImage(req, res) {
-  const id = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname.replace('/api/calling-card-image/', ''))
-  const entry = imageStore.get(id)
-  if (!entry) {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
-    res.end('Image not found')
-    return
-  }
-  res.writeHead(200, {
-    'Content-Type': entry.contentType,
-    'Content-Length': entry.buffer.length,
-    'Cache-Control': 'no-store',
-  })
-  res.end(entry.buffer)
-}
-
-function getOpenRouterMessage(errorPayload) {
-  const message = errorPayload?.error?.message || errorPayload?.message || 'OpenRouter extraction failed'
-  const param = errorPayload?.error?.param ? ` (${errorPayload.error.param})` : ''
-  const code = errorPayload?.error?.code ? ` [${errorPayload.error.code}]` : ''
-  return `${message}${param}${code}`
 }
 
 function extractJson(content = '') {
@@ -148,7 +273,7 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
         role: 'user',
         content: [
           { type: 'text', text: 'Read this calling card and return only the JSON object.' },
-          { type: 'image_url', image_url: image },
+          { type: 'image_url', image_url: { url: image } },
         ],
       },
     ],
@@ -178,49 +303,42 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
   }
 }
 
-async function extractCallingCard(req, res) {
-  let imageId = ''
+async function extractCallingCard(req, res, userId) {
   try {
     const apiKey = getEnv('OPENROUTER_API_KEY', 'OPENROUTER_KEY')
-    if (!apiKey) return sendJson(res, 500, { error: 'OPENROUTER_API_KEY is not set' })
+    if (!apiKey) return sendJson(res, 503, { error: 'Calling-card extraction is not configured' })
+    const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
+    if (!openRouterTimeoutConfig.valid || !isSecureHttpEndpoint(openRouterBaseUrl)) {
+      return sendJson(res, 503, { error: 'Calling-card extraction is not configured' })
+    }
 
-    const body = JSON.parse(await readBody(req))
+    const body = await readJsonBody(req, imageBodyLimit)
     if (!body.image || typeof body.image !== 'string' || !body.image.startsWith('data:image/')) {
       return sendJson(res, 400, { error: 'Missing image data URL' })
     }
     if (!/^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(body.image)) {
       return sendJson(res, 400, { error: 'Image must be a PNG, JPEG, WebP, or GIF base64 data URL' })
     }
-    imageId = storeImage(body.image)
-    const imageUrl = `${getRequestOrigin(req)}/api/calling-card-image/${imageId}`
-    if (!/^https:\/\//i.test(imageUrl) && !/^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])/i.test(imageUrl)) {
-      return sendJson(res, 500, {
-        error: 'PUBLIC_SITE_URL must be set to your public HTTPS app URL in Coolify so OpenRouter can fetch the calling card image.',
-        imageUrl,
-      })
+    const rateLimit = consumeAiRateLimit(userId)
+    if (!rateLimit.allowed) {
+      res.setHeader('Retry-After', rateLimit.retryAfter)
+      return sendJson(res, 429, { error: 'Calling-card extraction rate limit exceeded' })
     }
-
     const model = getEnv('OPENROUTER_MODEL', 'OPENROUTER_MODEL_NAME') || 'openai/gpt-4o-mini'
     const siteUrl = getEnv('OPENROUTER_SITE_URL', 'PUBLIC_SITE_URL')
     const appName = getEnv('OPENROUTER_APP_NAME') || 'Marketing Department Website'
-    const openRouterBaseUrl = getEnv('OPENROUTER_BASE_URL') || 'https://openrouter.ai/api/v1'
     const { response, payload } = await callOpenRouter({
       apiKey,
       model,
       siteUrl,
       appName,
       openRouterBaseUrl,
-      image: imageUrl,
+      image: body.image,
     })
 
     if (!response.ok) {
-      return sendJson(res, response.status, {
-        error: getOpenRouterMessage(payload),
-        code: payload.error?.code,
-        param: payload.error?.param,
-        type: payload.error?.type,
-        model,
-      })
+      const status = response.status === 429 ? 429 : 502
+      return sendJson(res, status, { error: 'Calling-card extraction provider failed' })
     }
 
     const content = payload.choices?.[0]?.message?.content || ''
@@ -230,14 +348,13 @@ async function extractCallingCard(req, res) {
     }
     return sendJson(res, 200, { lead, model })
   } catch (err) {
-    return sendJson(res, 500, { error: err.message || 'Failed to extract calling card' })
-  } finally {
-    if (imageId) setTimeout(() => cleanupImage(imageId), 60_000)
+    const status = err?.statusCode === 400 || err?.statusCode === 413 ? err.statusCode : 500
+    return sendJson(res, status, { error: status === 500 ? 'Failed to extract calling card' : err.message })
   }
 }
 
-function serveStatic(req, res) {
-  const rawPath = decodeURIComponent(new URL(req.url || '/', 'http://localhost').pathname)
+function serveStatic(req, res, pathname) {
+  const rawPath = decodeURIComponent(pathname)
   const cleanPath = normalize(rawPath).replace(/^(\.\.[/\\])+/, '').replace(/^[/\\]+/, '')
   const requested = cleanPath === '' || cleanPath === '.' ? 'index.html' : cleanPath
   const filePath = join(distDir, requested)
@@ -254,55 +371,80 @@ function serveStatic(req, res) {
 
   const safeFilePath = filePath.startsWith(distDir) && existsSync(filePath) ? filePath : fallbackPath
   const type = contentTypes[extname(safeFilePath)] || 'application/octet-stream'
-  const cacheControl = 'no-cache'
+  const cacheControl = isAsset
+    ? 'public, max-age=31536000, immutable'
+    : safeFilePath === fallbackPath || extname(safeFilePath) === '.html'
+      ? 'no-cache'
+      : 'public, max-age=3600'
 
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl })
+  if (req.method === 'HEAD') return res.end()
   createReadStream(safeFilePath).pipe(res)
 }
 
-createServer(async (req, res) => {
-  if (req.method === 'POST' && req.url === '/api/extract-calling-card') {
-    return extractCallingCard(req, res)
+async function handleRequest(req, res) {
+  const pathname = new URL(req.url || '/', 'http://localhost').pathname
+
+  if (req.method === 'GET' && pathname === '/livez') {
+    return sendJson(res, 200, { status: 'ok' })
+  }
+  if (req.method === 'GET' && pathname === '/healthz') {
+    const readiness = runtimeReadiness()
+    return readiness.ready
+      ? sendJson(res, 200, { status: 'ready' })
+      : sendJson(res, 503, { status: 'not_ready', configuration: readiness.issues })
   }
 
-  if (req.method === 'GET' && req.url?.startsWith('/api/calling-card-image/')) {
-    return serveStoredImage(req, res)
+  if (req.method === 'POST' && pathname === '/api/extract-calling-card') {
+    const auth = await requireAuthentication(req, res)
+    if (!auth) return
+    return extractCallingCard(req, res, auth.userId)
   }
 
-  if (req.method === 'POST' && req.url === '/api/sync') {
-    return syncAll(req, res)
+  if (pathname === '/api' || pathname.startsWith('/api/')) {
+    return sendJson(res, 404, { error: 'API endpoint not found' })
   }
 
   if (req.method === 'GET' || req.method === 'HEAD') {
-    return serveStatic(req, res)
+    return serveStatic(req, res, pathname)
   }
 
   return sendJson(res, 405, { error: 'Method not allowed' })
-}).listen(port, () => {
-  console.log(`Marketing website server listening on port ${port}`)
+}
+
+const server = createServer((req, res) => {
+  setSecurityHeaders(res)
+  handleRequest(req, res).catch(() => {
+    if (res.headersSent) return res.destroy()
+    sendJson(res, 500, { error: 'Internal server error' })
+  })
 })
 
-async function syncAll(req, res) {
-  try {
-    const supabaseUrl = cleanEnv(process.env.VITE_SUPABASE_URL || 'https://extkotvjigtswrrnxikw.supabase.co')
-    const apikey = cleanEnv(process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_17C83bnQAgpEwASSlFKxZw_6U6Qaa4o')
-    const { items } = JSON.parse(await readBody(req))
-    if (!items || !Array.isArray(items)) return sendJson(res, 400, { error: 'items array required' })
+server.listen(port, () => {
+  console.log(`Marketing website server listening on port ${server.address().port}`)
+})
 
-    const h = { 'Content-Type': 'application/json', apikey, Authorization: req.headers.authorization || `Bearer ${apikey}`, Prefer: 'return=minimal' }
-    let ok = 0; let fail = 0
+let shuttingDown = false
+function shutdown(signal) {
+  if (shuttingDown) return
+  shuttingDown = true
+  console.log(`${signal} received; shutting down`)
 
-    for (const { table, row } of items) {
-      try {
-        const resp = await fetch(`${supabaseUrl}/rest/v1/${table}?id=eq.${encodeURIComponent(row.id)}`, { method: 'GET', headers: h })
-        const existing = await resp.json()
-        if (existing && existing.length > 0) { ok++; continue }
-        const insertResp = await fetch(`${supabaseUrl}/rest/v1/${table}`, { method: 'POST', headers: h, body: JSON.stringify(row) })
-        if (insertResp.ok) ok++; else fail++
-      } catch { fail++ }
+  const timeout = setTimeout(() => {
+    console.error('Graceful shutdown timed out')
+    process.exit(1)
+  }, shutdownTimeoutMs)
+  timeout.unref()
+
+  server.close(err => {
+    clearTimeout(timeout)
+    if (err) {
+      console.error('Server shutdown failed')
+      process.exitCode = 1
     }
-    sendJson(res, 200, { ok, fail })
-  } catch (err) {
-    sendJson(res, 500, { error: err.message })
-  }
+  })
+  server.closeIdleConnections?.()
 }
+
+process.once('SIGTERM', () => shutdown('SIGTERM'))
+process.once('SIGINT', () => shutdown('SIGINT'))

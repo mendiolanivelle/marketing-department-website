@@ -12,39 +12,26 @@ export default function ViewAcceptanceForm() {
   useEffect(() => {
     if (!id) { setLoading(false); setError('Invalid submission ID'); return }
     if (!isSupabaseConfigured || !supabase) { setLoading(false); setError('Database not configured'); return }
+    const client = supabase
     ;(async () => {
       try {
-        const apiUrl = import.meta.env.VITE_SUPABASE_URL
-        let data = null
-
-        // Method 1: Try Supabase client (authenticated user)
-        if (!data) {
-          try {
-            const { data: d, error: e } = await supabase!
-              .from('acceptance_forms')
-              .select('*')
-              .eq('id', id)
-              .maybeSingle()
-            if (!e && d) data = d
-          } catch (_) {}
+        const { data: authData, error: authError } = await client.auth.getUser()
+        if (authError || !authData.user) {
+          setError('Sign in required')
+          return
         }
 
-        // Method 2: Try edge function (bypasses RLS)
-        if (!data) {
-          try {
-            const res = await fetch(apiUrl + '/functions/v1/get-public-form?id=' + encodeURIComponent(id), {
-              headers: { 'Authorization': 'Bearer ' + (import.meta.env.VITE_SUPABASE_ANON_KEY || ''), 'apikey': (import.meta.env.VITE_SUPABASE_ANON_KEY || '') }
-            })
-            if (res.ok) {
-              data = await res.json()
-            }
-          } catch (_) {}
-        }
+        const { data, error: queryError } = await client
+          .from('acceptance_forms')
+          .select('tracking_id,client_name,project_name,contact,email,project_type,target_platform,timezone,start_date,deadline,budget,doc_link,deliverables,reviewer,review_rounds,review_time,approval_basis,comms_tool,weekly_meeting,meeting_time,daily_sync,sync_time,training,game_engine,tech_requirements,tools_software,performance_constraints,signature,signature_date,signatory_name,signature_png,accepted_at,created_at')
+          .eq('id', id)
+          .maybeSingle()
 
+        if (queryError) throw queryError
         if (!data) { setError('Form not found'); return }
         setSub(data)
-      } catch (err: any) {
-        setError(err.message || 'Failed to load form')
+      } catch {
+        setError('Unable to securely load this form')
       } finally {
         setLoading(false)
       }
@@ -63,6 +50,7 @@ export default function ViewAcceptanceForm() {
   }
 
   if (error || !sub) {
+    const signInRequired = error === 'Sign in required'
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{ background: 'linear-gradient(135deg, #FAFAFA 0%, #FFF5F0 100%)' }}>
         <div className="w-16 h-16 rounded-[18px] flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, #FFF0E6, #FFE4D0)' }}>
@@ -70,13 +58,22 @@ export default function ViewAcceptanceForm() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>Form Not Found</h1>
+        <h1 className="text-xl mb-2" style={{ color: '#1B1A1C', fontWeight: 700 }}>
+          {signInRequired ? 'Sign-in Required' : 'Form Unavailable'}
+        </h1>
         <p className="text-sm mb-2 px-6 text-center" style={{ color: '#6B7280', fontWeight: 400 }}>
-          {error === 'Form not found'
+          {signInRequired
+            ? 'This form contains sensitive information. Secure public sharing is unavailable; authorized team members must sign in.'
+            : error === 'Form not found'
             ? 'The acceptance criteria form you\'re looking for doesn\'t exist or may have been removed. Please check the link or contact the Marketing Department.'
             : error}
         </p>
         <p className="text-xs mb-6 font-mono" style={{ color: '#9CA3AF', fontWeight: 400 }}>ID: {id}</p>
+        {signInRequired && (
+          <Link to="/login" className="rounded-xl px-6 py-2.5 text-sm font-medium text-white" style={{ backgroundColor: '#FF5900' }}>
+            Sign in to the portal
+          </Link>
+        )}
       </div>
     )
   }
@@ -91,7 +88,7 @@ export default function ViewAcceptanceForm() {
   const MultiRow = ({ label, items }: { label: string; items: string[] | any }) => (
     <div className="flex border-b py-2.5" style={{ borderColor: '#F3F4F6' }}>
       <span className="w-56 text-sm flex-shrink-0" style={{ color: '#6B7280' }}>{label}</span>
-      <span className="text-sm" style={{ color: '#1B1A1C' }}>{(items || []).join(', ') || '—'}</span>
+      <span className="text-sm" style={{ color: '#1B1A1C' }}>{Array.isArray(items) ? items.join(', ') || '—' : '—'}</span>
     </div>
   )
 
@@ -145,7 +142,7 @@ export default function ViewAcceptanceForm() {
             <h2 className="text-sm text-white font-medium">What You Want Us to Create</h2>
           </div>
           <div className="px-6 py-5">
-            {sub.deliverables && sub.deliverables.length > 0 ? (
+            {Array.isArray(sub.deliverables) && sub.deliverables.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -217,8 +214,23 @@ export default function ViewAcceptanceForm() {
             <h2 className="text-sm text-white font-medium">Client Confirmation</h2>
           </div>
           <div className="px-6 py-5 space-y-1">
-            <Row label="Signed by" value={sub.signature?.startsWith('data:image') ? <img src={sub.signature} alt="Signature" style={{ height: 32, display: 'block' }} /> : sub.signature} />
-            <Row label="Date" value={sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
+            <Row
+              label="Signed by"
+              value={sub.signatory_name ||
+                (typeof sub.signature === 'string' && !sub.signature.startsWith('data:image/png;base64,') ? sub.signature : '')}
+            />
+            {(sub.signature_png || (typeof sub.signature === 'string' && sub.signature.startsWith('data:image/png;base64,'))) && (
+              <Row
+                label="Drawn signature"
+                value={<img src={sub.signature_png || sub.signature} alt="Client signature" style={{ height: 32, display: 'block' }} />}
+              />
+            )}
+            <Row
+              label="Accepted"
+              value={sub.accepted_at
+                ? new Date(sub.accepted_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+                : sub.signature_date || new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            />
           </div>
         </div>
 

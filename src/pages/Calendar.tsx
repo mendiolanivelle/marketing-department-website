@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
 
@@ -87,6 +87,8 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [items, setItems] = useState<CalendarItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [canonicalReady, setCanonicalReady] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<CalendarItem | null>(null)
   const [viewItem, setViewItem] = useState<CalendarItem | null>(null)
@@ -97,17 +99,23 @@ export default function Calendar() {
   const [submitting, setSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('')
+  const canonicalItemIds = useRef(new Set<string>())
+  const notesBaselineUpdatedAt = useRef('')
 
   const fetchItems = useCallback(async () => {
-    // Always merge local calendar items (from Campaigns page, etc.)
-    let localItems: CalendarItem[] = []
-    const saved = localStorage.getItem('exodia-calendar-items')
-    if (saved) {
-      try { localItems = JSON.parse(saved) } catch {}
-    }
-
     if (!isSupabaseConfigured || !supabase) {
+      let localItems: CalendarItem[] = []
+      const saved = localStorage.getItem('exodia-calendar-items')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          if (Array.isArray(parsed)) localItems = parsed
+        } catch {}
+      }
+      canonicalItemIds.current = new Set()
       setItems(localItems)
+      setCanonicalReady(false)
+      setLoadError('Canonical calendar storage is unavailable. Browser-only items are shown read-only.')
       setLoading(false)
       return
     }
@@ -118,15 +126,18 @@ export default function Calendar() {
         .order('date', { ascending: true })
       if (error) throw error
       if (data) {
-        // Merge Supabase data with local items (local items take precedence)
-        const supabaseIds = new Set(data.map((i: CalendarItem) => i.id))
-        const merged = [...data, ...localItems.filter(i => !supabaseIds.has(i.id))]
-        setItems(merged)
-        localStorage.setItem('exodia-calendar-items', JSON.stringify(merged))
+        const canonicalItems = data.map(item => ({ ...item, notes: item.notes || '' })) as CalendarItem[]
+        canonicalItemIds.current = new Set(canonicalItems.map(item => item.id))
+        setItems(canonicalItems)
+        setCanonicalReady(true)
+        setLoadError('')
       }
     } catch (err) {
       console.error('Error fetching calendar items:', err)
-      setItems(localItems)
+      canonicalItemIds.current = new Set()
+      setItems([])
+      setCanonicalReady(false)
+      setLoadError('Canonical calendar items could not be loaded. Preserved browser-only records are quarantined until recovery is approved.')
     } finally {
       setLoading(false)
     }
@@ -157,20 +168,22 @@ export default function Calendar() {
     return () => window.removeEventListener('calendar-updated', handler)
   }, [fetchItems])
 
-  // Persist items to localStorage (skip initial empty write before first fetch completes)
-  useEffect(() => {
-    if (!loading) {
-      localStorage.setItem('exodia-calendar-items', JSON.stringify(items))
-    }
-  }, [items, loading])
-
   // Sync viewItem when items refresh (e.g. campaign status update)
   useEffect(() => {
-    if (viewItem) {
-      const updated = items.find(i => i.id === viewItem.id)
-      if (updated) setViewItem(updated)
+    if (!viewItem) return
+    const updated = items.find(item => item.id === viewItem.id)
+    if (!updated) {
+      setViewItem(null)
+      return
     }
-  }, [items])
+    if (updated === viewItem) return
+    setEditingNotes(current => {
+      if (current !== viewItem.notes) return current
+      notesBaselineUpdatedAt.current = updated.updated_at
+      return updated.notes
+    })
+    setViewItem(updated)
+  }, [items, viewItem])
 
   // Listen for localStorage changes from other tabs
   useEffect(() => {
@@ -239,6 +252,14 @@ export default function Calendar() {
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
 
   const openCreateModal = (date?: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Canonical calendar storage is unavailable. New items cannot be saved.')
+      return
+    }
+    if (!canonicalReady) {
+      alert('Canonical calendar data has not loaded successfully. No item was created.')
+      return
+    }
     setEditingItem(null)
     setForm({ ...defaultForm, date: date || formatDateKey(today.getFullYear(), today.getMonth(), today.getDate()) })
     setAssigneeInput('')
@@ -246,6 +267,10 @@ export default function Calendar() {
   }
 
   const openEditModal = (item: CalendarItem) => {
+    if (!canonicalItemIds.current.has(item.id)) {
+      alert('This browser-only item is read-only until it is safely imported.')
+      return
+    }
     setEditingItem(item)
     setForm({
       title: item.title,
@@ -266,21 +291,37 @@ export default function Calendar() {
   const openViewItem = (item: CalendarItem) => {
     setViewItem(item)
     setEditingNotes(item.notes || '')
+    notesBaselineUpdatedAt.current = item.updated_at
   }
 
   const saveNotes = async () => {
-    if (!viewItem || !supabase) return
+    if (!viewItem) return
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Canonical calendar storage is unavailable. Notes cannot be saved.')
+      return
+    }
+    if (!canonicalItemIds.current.has(viewItem.id)) {
+      alert('This browser-only item is read-only until it is safely imported.')
+      return
+    }
     setSavingNotes(true)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('calendar_items')
         .update({ notes: editingNotes })
         .eq('id', viewItem.id)
-      if (error) throw error
-      setViewItem({ ...viewItem, notes: editingNotes })
-      setItems(prev => prev.map(i => i.id === viewItem.id ? { ...i, notes: editingNotes } : i))
+        .eq('updated_at', notesBaselineUpdatedAt.current)
+        .select('*')
+        .single()
+      if (error || !data) throw error || new Error('No canonical calendar item was updated')
+      const updatedItem = { ...data, notes: data.notes || '' } as CalendarItem
+      setViewItem(updatedItem)
+      setEditingNotes(updatedItem.notes)
+      notesBaselineUpdatedAt.current = updatedItem.updated_at
+      setItems(prev => prev.map(item => item.id === viewItem.id ? updatedItem : item))
     } catch (err) {
       console.error('Error saving notes:', err)
+      alert('Failed to save notes')
     } finally {
       setSavingNotes(false)
     }
@@ -304,6 +345,14 @@ export default function Calendar() {
 
   const handleSubmit = async () => {
     if (!form.title.trim()) return
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Canonical calendar storage is unavailable. This item was not saved.')
+      return
+    }
+    if (editingItem && !canonicalItemIds.current.has(editingItem.id)) {
+      alert('This browser-only item is read-only until it is safely imported.')
+      return
+    }
     setSubmitting(true)
 
     const payload = {
@@ -321,32 +370,28 @@ export default function Calendar() {
 
     try {
       const now = new Date().toISOString()
-      const { notes, ...dbPayload } = payload
-      if (isSupabaseConfigured && supabase) {
-        if (editingItem) {
-          const { error } = await supabase
-            .from('calendar_items')
-            .update({ ...dbPayload, updated_at: now })
-            .eq('id', editingItem.id)
-          if (error) throw error
-          setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload, updated_at: now } as CalendarItem : i))
-        } else {
-          const id = crypto.randomUUID()
-          const newItem: CalendarItem = { id, ...payload, created_at: now, updated_at: now }
-          const { error } = await supabase
-            .from('calendar_items')
-            .insert([{ id, ...dbPayload, created_at: now, updated_at: now }])
-          if (error) throw error
-          setItems(prev => [...prev, newItem])
-        }
+      if (editingItem) {
+        const { data, error } = await supabase
+          .from('calendar_items')
+          .update({ ...payload, updated_at: now })
+          .eq('id', editingItem.id)
+          .eq('updated_at', editingItem.updated_at)
+          .select('*')
+          .single()
+        if (error || !data) throw error || new Error('No canonical calendar item was updated')
+        const updatedItem = { ...data, notes: data.notes || '' } as CalendarItem
+        setItems(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item))
       } else {
-        if (editingItem) {
-          setItems(prev => prev.map(i => i.id === editingItem.id ? { ...i, ...payload, updated_at: now } as CalendarItem : i))
-        } else {
-          const id = crypto.randomUUID()
-          const newItem: CalendarItem = { id, ...payload, created_at: now, updated_at: now }
-          setItems(prev => [...prev, newItem])
-        }
+        const id = crypto.randomUUID()
+        const { data, error } = await supabase
+          .from('calendar_items')
+          .insert([{ id, ...payload, created_at: now, updated_at: now }])
+          .select('*')
+          .single()
+        if (error || !data) throw error || new Error('Canonical calendar item was not created')
+        const newItem = { ...data, notes: data.notes || '' } as CalendarItem
+        canonicalItemIds.current.add(newItem.id)
+        setItems(prev => [...prev, newItem])
       }
       setShowModal(false)
       setEditingItem(null)
@@ -361,17 +406,29 @@ export default function Calendar() {
   }
 
   const handleDelete = async (id: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Canonical calendar storage is unavailable. This item was not deleted.')
+      return
+    }
+    if (!canonicalItemIds.current.has(id)) {
+      alert('This browser-only item is read-only until it is safely imported.')
+      return
+    }
     if (!confirm('Delete this item?')) return
     const item = items.find(i => i.id === id)
+    if (!item) return
     try {
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
-          .from('calendar_items')
-          .delete()
-          .eq('id', id)
-        if (error) throw error
-      }
+      const { data, error } = await supabase
+        .from('calendar_items')
+        .delete()
+        .eq('id', id)
+        .eq('updated_at', item.updated_at)
+        .select('id')
+        .single()
+      if (error || !data) throw error || new Error('No canonical calendar item was deleted')
+      canonicalItemIds.current.delete(id)
       setItems(prev => prev.filter(i => i.id !== id))
+      setViewItem(current => current?.id === id ? null : current)
       if (item) logActivity('Calendar', `Deleted "${item.title}"`)
     } catch (err) {
       console.error('Error deleting calendar item:', err)
@@ -379,7 +436,7 @@ export default function Calendar() {
     }
   }
 
-  const selectedItems = selectedDate ? itemsByDate[selectedDate] || [] : []
+  const viewItemIsCanonical = viewItem ? canonicalItemIds.current.has(viewItem.id) : false
 
   const rows: (typeof calendarDays)[] = []
   for (let i = 0; i < calendarDays.length; i += 7) {
@@ -392,6 +449,11 @@ export default function Calendar() {
         <div className="bg-white rounded-2xl shadow-[0_4px_20px_rgba(27,26,28,0.06)] border border-[#E5E7EB] overflow-hidden">
           {/* Orange gradient accent bar */}
           <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF5900, #FF8C33, #FFB366)' }}></div>
+          {loadError && (
+            <p role="status" className="px-4 sm:px-6 py-3 text-sm bg-amber-50 text-amber-900 border-b border-amber-200">
+              {loadError}
+            </p>
+          )}
           
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-[#E5E7EB] gap-3">
@@ -431,7 +493,8 @@ export default function Calendar() {
               </button>
               <button
                 onClick={() => openCreateModal()}
-                className="px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition flex items-center gap-1.5 hover:-translate-y-0.5"
+                disabled={!canonicalReady}
+                className="px-4 py-1.5 text-sm font-semibold text-white rounded-lg transition flex items-center gap-1.5 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 style={{ backgroundColor: '#FF5900', boxShadow: '0 4px 12px rgba(255,89,0,0.25)' }}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,8 +561,9 @@ export default function Calendar() {
                         </span>
                         <button
                           onClick={(e) => { e.stopPropagation(); openCreateModal(dateKey) }}
-                          className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-orange-100 transition opacity-0 group-hover:opacity-100"
-                          title="Add item"
+                          disabled={!canonicalReady}
+                          className="hidden sm:flex w-5 h-5 items-center justify-center rounded-full hover:bg-orange-100 transition opacity-0 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"
+                          title={canonicalReady ? 'Add item' : 'Canonical calendar data is unavailable'}
                         >
                           <svg className="w-3 h-3 text-[#FF5900]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -575,19 +639,23 @@ export default function Calendar() {
               <div className="flex items-center gap-1 ml-4">
                 <button
                   onClick={() => { openEditModal(viewItem); setViewItem(null) }}
-                  className="p-2 rounded-lg transition"
+                  disabled={!viewItemIsCanonical}
+                  className="p-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ color: 'var(--accent)' }}
-                  title="Edit"
+                  title={viewItemIsCanonical ? 'Edit' : 'Browser-only items are read-only'}
+                  aria-label="Edit calendar item"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
                 <button
-                  onClick={() => { handleDelete(viewItem.id); setViewItem(null) }}
-                  className="p-2 rounded-lg transition"
+                  onClick={() => { void handleDelete(viewItem.id) }}
+                  disabled={!viewItemIsCanonical}
+                  className="p-2 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ color: 'var(--accent)' }}
-                  title="Delete"
+                  title={viewItemIsCanonical ? 'Delete' : 'Browser-only items are read-only'}
+                  aria-label="Delete calendar item"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -597,6 +665,7 @@ export default function Calendar() {
                   onClick={() => setViewItem(null)}
                   className="p-2 rounded-lg transition"
                   style={{ color: 'var(--accent)' }}
+                  aria-label="Close calendar item details"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -663,9 +732,14 @@ export default function Calendar() {
 
               {/* Notes - Editable */}
               <div>
+                {!viewItemIsCanonical && (
+                  <p className="mb-3 text-sm text-amber-800">
+                    This browser-only item is preserved for recovery and is read-only.
+                  </p>
+                )}
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Notes</h4>
-                  {editingNotes !== viewItem.notes && (
+                  {viewItemIsCanonical && editingNotes !== viewItem.notes && (
                     <button
                       onClick={saveNotes}
                       disabled={savingNotes}
@@ -679,6 +753,7 @@ export default function Calendar() {
                 <textarea
                   value={editingNotes}
                   onChange={(e) => setEditingNotes(e.target.value)}
+                  readOnly={!viewItemIsCanonical}
                   rows={4}
                   className="w-full px-3 py-2 text-sm border rounded-lg outline-none resize-none"
                   style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)', backgroundColor: 'var(--bg-secondary)' }}
