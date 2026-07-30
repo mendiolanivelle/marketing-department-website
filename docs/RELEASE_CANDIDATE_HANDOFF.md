@@ -1,6 +1,6 @@
 # Release Candidate Handoff
 
-Updated: 2026-07-30 (Asia/Manila)
+Updated: 2026-07-31 (Asia/Manila)
 
 This is the authoritative continuation point for the current worktree. It
 supersedes older status statements in the longer audit documents.
@@ -14,6 +14,24 @@ changed by this execution.
 
 The release remains externally blocked. Do not describe it as production
 ready until every gate in this document passes.
+
+## Current External Gate Status
+
+- Release commit `75cf1d6` is pushed to `master`.
+- GitHub CI run `#723` was not started because the GitHub account is locked by
+  a billing issue. No test failed in that run; there was no runner.
+- The production portal and Coolify control plane both return Cloudflare Tunnel
+  error `1033`. The hosting connector must be restored before deployment.
+- The production Supabase project is healthy but reports no managed backups.
+- Its migration ledger ends at `016`; repository migrations `017` onward must
+  be reconciled before `043`–`051` can be applied.
+- Both free Supabase project slots are occupied, and no staging branch/project
+  exists. Do not repurpose the other project without an exact data-owner
+  decision.
+- The management token disclosed in chat matches an already expired token.
+  Other active tokens were not changed or exposed.
+- No production database, Storage, Auth, Edge Function, or application
+  deployment mutation was attempted.
 
 ## Implemented Release Boundary
 
