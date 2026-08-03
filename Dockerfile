@@ -23,6 +23,7 @@ ENV NODE_ENV=production \
     PORT=3000
 
 COPY --chown=node:node server ./server
+COPY --chown=node:node src/lib ./src/lib
 COPY --chown=node:node --from=build /app/dist ./dist
 
 EXPOSE 3000
