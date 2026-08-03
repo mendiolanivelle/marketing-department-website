@@ -36,13 +36,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      setLoading(false)
+    }, 8000)
+
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (timedOut) return
+      clearTimeout(timeout)
       if (error || (session && !applySession(session))) {
         await supabase?.auth.signOut({ scope: 'local' })
         applySession(null)
       } else {
         applySession(session)
       }
+      setLoading(false)
+    }).catch(() => {
+      if (timedOut) return
+      clearTimeout(timeout)
       setLoading(false)
     })
 
@@ -58,7 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [applySession])
 
   const signIn = async (email: string, password: string, rememberMe?: boolean) => {
