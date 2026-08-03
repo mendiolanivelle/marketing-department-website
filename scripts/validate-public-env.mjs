@@ -34,8 +34,8 @@ export function validatePublicBuildEnv(env = process.env) {
     invalid('VITE_PRIVATE_STORAGE_ENABLED must be true or false')
   }
   if (!urlValue && !keyValue && !turnstileSiteKey) return
-  if (!urlValue || !keyValue || !turnstileSiteKey) {
-    invalid('VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_TURNSTILE_SITE_KEY are required together')
+  if (!urlValue || !keyValue) {
+    invalid('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required')
   }
 
   let url
@@ -69,12 +69,14 @@ export function validatePublicBuildEnv(env = process.env) {
     if (payload?.role !== 'anon') invalid('VITE_SUPABASE_ANON_KEY JWT role must be anon')
   }
 
-  if (
-    placeholderPattern.test(turnstileSiteKey) ||
-    turnstileTestSiteKeys.has(turnstileSiteKey) ||
-    !/^[A-Za-z0-9_-]{10,100}$/.test(turnstileSiteKey)
-  ) {
-    invalid('VITE_TURNSTILE_SITE_KEY must be a valid public site key')
+  if (turnstileSiteKey) {
+    if (
+      placeholderPattern.test(turnstileSiteKey) ||
+      turnstileTestSiteKeys.has(turnstileSiteKey) ||
+      !/^[A-Za-z0-9_-]{10,100}$/.test(turnstileSiteKey)
+    ) {
+      invalid('VITE_TURNSTILE_SITE_KEY must be a valid public site key')
+    }
   }
 }
 
