@@ -78,6 +78,8 @@ export default function Sidebar() {
         setAcUnreadCount(acf.count ?? 0)
 
         const seenAt = seen.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
+        await new Promise(r => setTimeout(r, 500))
+        if (ac.signal.aborted) return
         const wr = await client
           .from('website_requests')
           .select('id', { count: 'exact', head: true })
@@ -91,7 +93,7 @@ export default function Sidebar() {
       }
     }
 
-    void fetchAll()
+    const timer = setTimeout(() => { if (!ac.signal.aborted) fetchAll() }, 300)
 
     let channel: ReturnType<typeof client['channel']> | null = null
     channel = client.channel('sidebar-badges')
@@ -101,6 +103,7 @@ export default function Sidebar() {
       .subscribe()
 
     return () => {
+      clearTimeout(timer)
       ac.abort()
       abortRef.current = null
       if (channel) client.removeChannel(channel)
