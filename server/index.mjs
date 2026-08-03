@@ -382,6 +382,29 @@ function serveStatic(req, res, pathname) {
   createReadStream(safeFilePath).pipe(res)
 }
 
+async function proxyToSupabase(req, res, targetUrl) {
+  try {
+    const body = req.method !== 'GET' && req.method !== 'HEAD' ? await readBody(req) : undefined
+    const headers = { 'Content-Type': 'application/json' }
+    if (req.headers['authorization']) headers['Authorization'] = req.headers['authorization']
+    if (req.headers['apikey']) headers['apikey'] = req.headers['apikey']
+    if (req.headers['prefer']) headers['Prefer'] = req.headers['prefer']
+
+    const resp = await fetch(targetUrl, {
+      method: req.method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(30000),
+    })
+
+    const text = await resp.text()
+    res.writeHead(resp.status, { 'Content-Type': resp.headers.get('content-type') || 'application/json' })
+    res.end(text)
+  } catch (err) {
+    sendJson(res, 502, { error: 'Proxy error', detail: err.message })
+  }
+}
+
 async function handleRequest(req, res) {
   const pathname = new URL(req.url || '/', 'http://localhost').pathname
 
@@ -399,6 +422,12 @@ async function handleRequest(req, res) {
     const auth = await requireAuthentication(req, res)
     if (!auth) return
     return extractCallingCard(req, res, auth.userId)
+  }
+
+  if (pathname.startsWith('/api/supabase/')) {
+    const targetPath = pathname.replace('/api/supabase', '')
+    const targetUrl = `https://extkotvjigtswrrnxikw.supabase.co${targetPath}${req.url?.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`
+    return proxyToSupabase(req, res, targetUrl)
   }
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
