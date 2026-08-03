@@ -42,6 +42,25 @@ if (!isSupabaseConfigured) {
   )
 }
 
+const resilientFetch: typeof fetch = async (input, init) => {
+  const method = (init?.method || 'GET').toUpperCase()
+  const isReadOnly = method === 'GET' || method === 'HEAD'
+  const maxRetries = isReadOnly ? 2 : 0
+  let lastErr: unknown
+
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      return await fetch(input, init)
+    } catch (err) {
+      lastErr = err
+      if (i < maxRetries) {
+        await new Promise(r => setTimeout(r, 800 * (i + 1)))
+      }
+    }
+  }
+  throw lastErr
+}
+
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!, {
       auth: {
@@ -51,6 +70,9 @@ export const supabase = isSupabaseConfigured
       },
       realtime: {
         params: { log_level: 'silent' },
+      },
+      global: {
+        fetch: resilientFetch,
       },
     })
   : null
