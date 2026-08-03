@@ -43,18 +43,7 @@ if (!isSupabaseConfigured) {
 }
 
 const resilientFetch: typeof fetch = async (input, init) => {
-  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
   const method = (init?.method || 'GET').toUpperCase()
-
-  if (url && url.includes('.supabase.co')) {
-    const proxied = url.replace(/^https?:\/\/[^/]+/, '/api/supabase')
-    if (input instanceof Request) {
-      input = new Request(proxied, input as RequestInit)
-    } else {
-      input = new Request(proxied, init)
-    }
-  }
-
   const isReadOnly = method === 'GET' || method === 'HEAD'
   const maxRetries = isReadOnly ? 2 : 0
   let lastErr: unknown
