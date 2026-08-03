@@ -72,7 +72,7 @@ export default function Sidebar() {
       try {
         const { data: { user: authUser }, error } = await fetchWithRetry(async (s) => {
           if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-          return supabase.auth.getUser()
+          return supabase!.auth.getUser()
         }, ac.signal)
         if (ac.signal.aborted) return
         if (error) {
@@ -135,9 +135,9 @@ export default function Sidebar() {
       const [marketingResult, acceptanceResult, seenResult] = await fetchWithRetry(async (s) => {
         if (s.aborted) throw new DOMException('Aborted', 'AbortError')
         return Promise.all([
-          supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
-          supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
-          supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(s),
+          supabase!.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
+          supabase!.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
+          supabase!.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(s),
         ])
       }, signal)
       if (signal?.aborted) return
@@ -147,7 +147,7 @@ export default function Sidebar() {
       const seenAt = seenResult.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
       const websiteResult = await fetchWithRetry(async (s) => {
         if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-        return supabase
+        return supabase!
           .from('website_requests')
           .select('id', { count: 'exact', head: true })
           .gt('created_at', seenAt)

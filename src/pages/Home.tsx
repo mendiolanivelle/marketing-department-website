@@ -96,10 +96,11 @@ export default function Home() {
       return
     }
 
+    const calClient = supabase
     try {
       const { data, error } = await fetchWithRetry(async (s) => {
         if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-        return supabase
+        return calClient
           .from('calendar_items')
           .select('*')
           .order('created_at', { ascending: false })
@@ -231,11 +232,12 @@ export default function Home() {
     let totalLeads = countTotalLeads()
 
     if (isSupabaseConfigured && supabase) {
+      const leadClient = supabase
       setLeadCountReady(false)
       try {
         const { data: files, error: filesError } = await fetchWithRetry(async (s) => {
           if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-          return supabase
+          return leadClient
             .from('lead_files')
             .select('id, name, columns')
             .abortSignal(s)
@@ -250,7 +252,7 @@ export default function Home() {
         if (nonDuplicateFileIds.length > 0) {
           const { data: allRows, error: rowsError } = await fetchWithRetry(async (s) => {
             if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-            return supabase
+            return leadClient
               .from('lead_rows')
               .select('file_id, data')
               .in('file_id', nonDuplicateFileIds)

@@ -129,10 +129,11 @@ export default function Calendar() {
       setLoading(false)
       return
     }
+    const client = supabase
     try {
       const { data, error } = await fetchWithRetry(async (s) => {
         if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-        return supabase
+        return client
           .from('calendar_items')
           .select('*')
           .order('date', { ascending: true })
