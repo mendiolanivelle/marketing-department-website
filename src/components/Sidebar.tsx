@@ -49,6 +49,7 @@ export default function Sidebar() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
 
+    const client = supabase
     const ac = new AbortController()
     abortRef.current = ac
 
@@ -57,7 +58,7 @@ export default function Sidebar() {
 
       if (user?.id) {
         try {
-          const { data: { user: authUser } } = await supabase.auth.getUser()
+          const { data: { user: authUser } } = await client.auth.getUser()
           if (!ac.signal.aborted) {
             setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
           }
@@ -67,9 +68,9 @@ export default function Sidebar() {
       try {
         if (ac.signal.aborted) return
         const [mr, acf, seen] = await Promise.all([
-          supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
-          supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
-          supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(ac.signal),
+          client.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
+          client.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
+          client.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(ac.signal),
         ])
         if (ac.signal.aborted) return
 
@@ -77,7 +78,7 @@ export default function Sidebar() {
         setAcUnreadCount(acf.count ?? 0)
 
         const seenAt = seen.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
-        const wr = await supabase
+        const wr = await client
           .from('website_requests')
           .select('id', { count: 'exact', head: true })
           .gt('created_at', seenAt)
@@ -92,8 +93,8 @@ export default function Sidebar() {
 
     void fetchAll()
 
-    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null
-    channel = supabase.channel('sidebar-badges')
+    let channel: ReturnType<typeof client['channel']> | null = null
+    channel = client.channel('sidebar-badges')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { void fetchAll() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { void fetchAll() })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { void fetchAll() })
@@ -102,7 +103,7 @@ export default function Sidebar() {
     return () => {
       ac.abort()
       abortRef.current = null
-      if (channel) supabase?.removeChannel(channel)
+      if (channel) client.removeChannel(channel)
     }
   }, [user?.id])
 
@@ -115,17 +116,18 @@ export default function Sidebar() {
       setWebsiteRequestCount(0)
       return
     }
+    const client = supabase
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('website_requests_seen')
         .select('id')
         .order('id', { ascending: false })
         .limit(1)
       if (error) throw error
       const result = data?.[0]
-        ? await supabase.from('website_requests_seen').update({ seen_at: now }).eq('id', data[0].id).select('id').maybeSingle()
-        : await supabase.from('website_requests_seen').insert({ seen_at: now }).select('id').single()
+        ? await client.from('website_requests_seen').update({ seen_at: now }).eq('id', data[0].id).select('id').maybeSingle()
+        : await client.from('website_requests_seen').insert({ seen_at: now }).select('id').single()
       if (result.error || !result.data) throw result.error || new Error('Seen state was not persisted')
       setWebsiteRequestCount(0)
     } catch {
