@@ -101,29 +101,44 @@ export default function Calendar() {
   const [filterType, setFilterType] = useState<string>('')
   const canonicalItemIds = useRef(new Set<string>())
   const notesBaselineUpdatedAt = useRef('')
+  const fetchAbortRef = useRef<AbortController | null>(null)
 
-  const fetchItems = useCallback(async () => {
-    if (!isSupabaseConfigured || !supabase) {
-      let localItems: CalendarItem[] = []
-      const saved = localStorage.getItem('exodia-calendar-items')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          if (Array.isArray(parsed)) localItems = parsed
-        } catch {}
+  const fetchWithRetry = async <T,>(fn: (signal: AbortSignal) => Promise<T>, outerSignal: AbortSignal, retries = 2, delay = 1000): Promise<T> => {
+    let lastErr: unknown
+    for (let i = 0; i <= retries; i++) {
+      if (outerSignal.aborted) throw new DOMException('Aborted', 'AbortError')
+      const ac = new AbortController()
+      const onOuterAbort = () => { try { ac.abort() } catch {} }
+      outerSignal.addEventListener('abort', onOuterAbort, { once: true })
+      try {
+        return await fn(ac.signal)
+      } catch (err) {
+        lastErr = err
+        outerSignal.removeEventListener('abort', onOuterAbort)
+        if (i < retries && !outerSignal.aborted) {
+          await new Promise(r => setTimeout(r, delay * (i + 1)))
+        }
       }
-      canonicalItemIds.current = new Set()
-      setItems(localItems)
-      setCanonicalReady(false)
-      setLoadError('Canonical calendar storage is unavailable. Browser-only items are shown read-only.')
+    }
+    throw lastErr
+  }
+
+  const fetchItems = useCallback(async (signal?: AbortSignal) => {
+    if (signal?.aborted) return
+    if (!isSupabaseConfigured || !supabase) {
       setLoading(false)
       return
     }
     try {
-      const { data, error } = await supabase
-        .from('calendar_items')
-        .select('*')
-        .order('date', { ascending: true })
+      const { data, error } = await fetchWithRetry(async (s) => {
+        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+        return supabase
+          .from('calendar_items')
+          .select('*')
+          .order('date', { ascending: true })
+          .abortSignal(s)
+      }, signal || new AbortController().signal)
+      if (signal?.aborted) return
       if (error) throw error
       if (data) {
         const canonicalItems = data.map(item => ({ ...item, notes: item.notes || '' })) as CalendarItem[]
@@ -133,9 +148,8 @@ export default function Calendar() {
         setLoadError('')
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('Error fetching calendar items:', err)
-      canonicalItemIds.current = new Set()
-      setItems([])
       setCanonicalReady(false)
       setLoadError('Canonical calendar items could not be loaded. Preserved browser-only records are quarantined until recovery is approved.')
     } finally {
@@ -144,26 +158,36 @@ export default function Calendar() {
   }, [])
 
   useEffect(() => {
-    fetchItems()
+    const ac = new AbortController()
+    fetchAbortRef.current = ac
+    fetchItems(ac.signal)
 
-    // Listen for real-time updates from Supabase
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) return () => ac.abort()
 
     const channel = supabase
       .channel('calendar_items_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items' }, () => {
-        fetchItems()
+        const nextAc = new AbortController()
+        fetchAbortRef.current?.abort()
+        fetchAbortRef.current = nextAc
+        fetchItems(nextAc.signal)
       })
       .subscribe()
 
     return () => {
+      ac.abort()
       try { supabase?.removeChannel(channel) } catch {}
     }
   }, [fetchItems])
 
   // Listen for calendar updates from other pages (e.g. Campaigns)
   useEffect(() => {
-    const handler = () => { fetchItems() }
+    const handler = () => {
+      const nextAc = new AbortController()
+      fetchAbortRef.current?.abort()
+      fetchAbortRef.current = nextAc
+      fetchItems(nextAc.signal)
+    }
     window.addEventListener('calendar-updated', handler)
     return () => window.removeEventListener('calendar-updated', handler)
   }, [fetchItems])

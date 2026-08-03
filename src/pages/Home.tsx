@@ -46,6 +46,27 @@ export default function Home() {
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
   const [campaigns, setCampaigns] = useState<any[]>(() => isSupabaseConfigured ? [] : readBrowserCampaigns())
   const [campaignCountsReady, setCampaignCountsReady] = useState(!isSupabaseConfigured)
+  const homeAbortRef = useRef<AbortController | null>(null)
+
+  const fetchWithRetry = async <T,>(fn: (signal: AbortSignal) => Promise<T>, outerSignal: AbortSignal, retries = 2, delay = 1000): Promise<T> => {
+    let lastErr: unknown
+    for (let i = 0; i <= retries; i++) {
+      if (outerSignal.aborted) throw new DOMException('Aborted', 'AbortError')
+      const ac = new AbortController()
+      const onOuterAbort = () => { try { ac.abort() } catch {} }
+      outerSignal.addEventListener('abort', onOuterAbort, { once: true })
+      try {
+        return await fn(ac.signal)
+      } catch (err) {
+        lastErr = err
+        outerSignal.removeEventListener('abort', onOuterAbort)
+        if (i < retries && !outerSignal.aborted) {
+          await new Promise(r => setTimeout(r, delay * (i + 1)))
+        }
+      }
+    }
+    throw lastErr
+  }
 
   // Refresh activity log on mount and when navigating back to dashboard
   const location = useLocation()
@@ -66,7 +87,8 @@ export default function Home() {
     localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
   }, [readAnnouncementIds])
 
-  const syncCalendarItems = useCallback(async () => {
+  const syncCalendarItems = useCallback(async (signal?: AbortSignal) => {
+    if (signal?.aborted) return
     if (!isSupabaseConfigured || !supabase) {
       remoteCalendarItemIdsRef.current = new Set()
       setCalendarItems(readBrowserCalendarItems())
@@ -75,40 +97,55 @@ export default function Home() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('calendar_items')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const { data, error } = await fetchWithRetry(async (s) => {
+        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+        return supabase
+          .from('calendar_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .abortSignal(s)
+      }, signal || new AbortController().signal)
+      if (signal?.aborted) return
       if (error) throw error
       const remoteItems = data || []
       remoteCalendarItemIdsRef.current = new Set(remoteItems.map(item => item.id))
       setCalendarItems(remoteItems)
-      setSelectedAnnouncement(current => current ? remoteItems.find(item => item.id === current.id) || null : null)
       setCalendarReady(true)
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('Failed to sync calendar items:', err)
-      remoteCalendarItemIdsRef.current = new Set()
-      setCalendarItems([])
-      setSelectedAnnouncement(null)
       setCalendarReady(false)
     }
   }, [])
 
   useEffect(() => {
-    void syncCalendarItems()
-    if (!isSupabaseConfigured || !supabase) return
+    const ac = new AbortController()
+    homeAbortRef.current = ac
+    void syncCalendarItems(ac.signal)
+    if (!isSupabaseConfigured || !supabase) return () => ac.abort()
     const client = supabase
     const calChannel = client
       .channel('calendar-items-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items' }, () => {
-        void syncCalendarItems()
+        const nextAc = new AbortController()
+        homeAbortRef.current?.abort()
+        homeAbortRef.current = nextAc
+        void syncCalendarItems(nextAc.signal)
       })
       .subscribe()
-    return () => { try { client.removeChannel(calChannel) } catch {} }
+    return () => {
+      ac.abort()
+      try { client.removeChannel(calChannel) } catch {}
+    }
   }, [syncCalendarItems])
 
   useEffect(() => {
-    const handler = () => { void syncCalendarItems() }
+    const handler = () => {
+      const nextAc = new AbortController()
+      homeAbortRef.current?.abort()
+      homeAbortRef.current = nextAc
+      void syncCalendarItems(nextAc.signal)
+    }
     window.addEventListener('calendar-updated', handler)
     return () => window.removeEventListener('calendar-updated', handler)
   }, [syncCalendarItems])
@@ -116,24 +153,33 @@ export default function Home() {
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
-    const syncCampaigns = async () => {
-      const [campaignResult, requestResult] = await Promise.all([
-        client.from('campaigns').select('id, status'),
-        client.from('marketing_requests').select('id, status'),
-      ])
-      if (campaignResult.error || requestResult.error) {
-        console.error('Failed to sync dashboard campaign counts:', campaignResult.error || requestResult.error)
-        setCampaigns([])
+    const syncCampaigns = async (signal?: AbortSignal) => {
+      if (signal?.aborted) return
+      try {
+        const [campaignResult, requestResult] = await fetchWithRetry(async (s) => {
+          if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+          return Promise.all([
+            client.from('campaigns').select('id, status').abortSignal(s),
+            client.from('marketing_requests').select('id, status').abortSignal(s),
+          ])
+        }, signal || new AbortController().signal)
+        if (signal?.aborted) return
+        if (campaignResult.error || requestResult.error) {
+          console.error('Failed to sync dashboard campaign counts:', campaignResult.error || requestResult.error)
+          setCampaignCountsReady(false)
+          return
+        }
+        const remoteCampaigns = [
+          ...(campaignResult.data || []).map(row => ({ id: row.id, status: row.status || 'Pending' })),
+          ...(requestResult.data || []).map(row => ({ id: -Number(row.id), status: row.status || 'Pending' })),
+        ]
+        setCampaigns(remoteCampaigns)
+        setCampaignCountsReady(true)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('Failed to sync dashboard campaign counts:', err)
         setCampaignCountsReady(false)
-        return
       }
-
-      const remoteCampaigns = [
-        ...(campaignResult.data || []).map(row => ({ id: row.id, status: row.status || 'Pending' })),
-        ...(requestResult.data || []).map(row => ({ id: -Number(row.id), status: row.status || 'Pending' })),
-      ]
-      setCampaigns(remoteCampaigns)
-      setCampaignCountsReady(true)
     }
 
     void syncCampaigns()
@@ -145,7 +191,7 @@ export default function Home() {
     return () => { try { client.removeChannel(channel) } catch {} }
   }, [])
 
-  const fetchLeadStats = useCallback(async () => {
+  const fetchLeadStats = useCallback(async (signal?: AbortSignal) => {
     // Helper: count total leads from Lead Generation data
     const countTotalLeads = () => {
       if (!isSupabaseConfigured || !supabase) {
@@ -187,9 +233,14 @@ export default function Home() {
     if (isSupabaseConfigured && supabase) {
       setLeadCountReady(false)
       try {
-        const { data: files, error: filesError } = await supabase
-          .from('lead_files')
-          .select('id, name, columns')
+        const { data: files, error: filesError } = await fetchWithRetry(async (s) => {
+          if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+          return supabase
+            .from('lead_files')
+            .select('id, name, columns')
+            .abortSignal(s)
+        }, signal || new AbortController().signal)
+        if (signal?.aborted) return
         if (filesError) throw filesError
 
         const nonDuplicateFiles = (files || []).filter(f => f.name !== 'Duplicate Leads')
@@ -197,10 +248,15 @@ export default function Home() {
         totalLeads = 0
 
         if (nonDuplicateFileIds.length > 0) {
-          const { data: allRows, error: rowsError } = await supabase
-            .from('lead_rows')
-            .select('file_id, data')
-            .in('file_id', nonDuplicateFileIds)
+          const { data: allRows, error: rowsError } = await fetchWithRetry(async (s) => {
+            if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+            return supabase
+              .from('lead_rows')
+              .select('file_id, data')
+              .in('file_id', nonDuplicateFileIds)
+              .abortSignal(s)
+          }, signal || new AbortController().signal)
+          if (signal?.aborted) return
           if (rowsError) throw rowsError
 
           for (const row of allRows || []) {
@@ -214,6 +270,7 @@ export default function Home() {
         }
         setLeadCountReady(true)
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('Error fetching lead stats:', err)
         setLeadCountReady(false)
       }
@@ -224,8 +281,9 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    fetchLeadStats()
-    if (!isSupabaseConfigured || !supabase) return
+    const ac = new AbortController()
+    fetchLeadStats(ac.signal)
+    if (!isSupabaseConfigured || !supabase) return () => ac.abort()
 
     const filesChannel = supabase
       .channel('lead_files_dashboard')
@@ -238,6 +296,7 @@ export default function Home() {
       .subscribe()
 
     return () => {
+      ac.abort()
       try { supabase?.removeChannel(filesChannel) } catch {}
       try { supabase?.removeChannel(rowsChannel) } catch {}
     }
