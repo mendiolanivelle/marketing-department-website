@@ -48,7 +48,11 @@ const resilientFetch: typeof fetch = async (input, init) => {
 
   if (url && url.includes('.supabase.co')) {
     const proxied = url.replace(/^https?:\/\/[^/]+/, '/api/supabase')
-    input = typeof input === 'string' ? proxied : new Request(proxied, input)
+    if (input instanceof Request) {
+      input = new Request(proxied, input as RequestInit)
+    } else {
+      input = new Request(proxied, init)
+    }
   }
 
   const isReadOnly = method === 'GET' || method === 'HEAD'
