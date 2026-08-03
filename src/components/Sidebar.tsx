@@ -182,7 +182,7 @@ export default function Sidebar() {
     window.addEventListener('lead-data-changed', handleChange)
     const interval = setInterval(() => fetchUnreadRef.current(), 60000)
 
-    let channel: ReturnType<typeof supabase!.channel> | null = null
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null
     if (isSupabaseConfigured && supabase) {
       channel = supabase.channel('sidebar-badges')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => debouncedFetch())
