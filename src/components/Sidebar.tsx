@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
@@ -45,18 +45,48 @@ export default function Sidebar() {
   const location = useLocation()
   const { user, signOut } = useAuth()
 
+  const fetchWithRetry = async <T,>(fn: (signal: AbortSignal) => Promise<T>, outerSignal: AbortSignal | undefined, retries = 2, delay = 1000): Promise<T> => {
+    let lastErr: unknown
+    for (let i = 0; i <= retries; i++) {
+      if (outerSignal?.aborted) throw new DOMException('Aborted', 'AbortError')
+      const ac = new AbortController()
+      const onOuterAbort = () => { try { ac.abort() } catch {} }
+      outerSignal?.addEventListener('abort', onOuterAbort, { once: true })
+      try {
+        return await fn(ac.signal)
+      } catch (err) {
+        lastErr = err
+        outerSignal?.removeEventListener('abort', onOuterAbort)
+        if (i < retries && !outerSignal?.aborted) {
+          await new Promise(r => setTimeout(r, delay * (i + 1)))
+        }
+      }
+    }
+    throw lastErr
+  }
+
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !user?.id) return
-    const client = supabase
+    const ac = new AbortController()
     const fetchAvatar = async () => {
-      const { data: { user: authUser }, error } = await client.auth.getUser()
-      if (error) {
-        console.error('Failed to load profile photo:', error)
-        return
+      try {
+        const { data: { user: authUser }, error } = await fetchWithRetry(async (s) => {
+          if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+          return supabase.auth.getUser()
+        }, ac.signal)
+        if (ac.signal.aborted) return
+        if (error) {
+          console.error('Failed to load profile photo:', error)
+          return
+        }
+        setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('Failed to load profile photo:', err)
       }
-      setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
     }
     void fetchAvatar()
+    return () => ac.abort()
   }, [user?.id])
 
   const isActive = (path: string) => location.pathname === path
@@ -87,7 +117,8 @@ export default function Sidebar() {
   }
 
   // Fetch unread counts
-  const fetchUnread = async () => {
+  const fetchUnread = useCallback(async (signal?: AbortSignal) => {
+    if (signal?.aborted) return
     if (!isSupabaseConfigured || !supabase) {
       try {
         const parsedReadIds = JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]')
@@ -101,43 +132,73 @@ export default function Sidebar() {
     }
 
     try {
-      const [marketingResult, acceptanceResult, seenResult] = await Promise.all([
-        supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false),
-        supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false),
-        supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1),
-      ])
+      const [marketingResult, acceptanceResult, seenResult] = await fetchWithRetry(async (s) => {
+        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+        return Promise.all([
+          supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
+          supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
+          supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(s),
+        ])
+      }, signal)
+      if (signal?.aborted) return
       if (marketingResult.error || acceptanceResult.error || seenResult.error) {
         throw marketingResult.error || acceptanceResult.error || seenResult.error
       }
       const seenAt = seenResult.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
-      const websiteResult = await supabase
-        .from('website_requests')
-        .select('id', { count: 'exact', head: true })
-        .gt('created_at', seenAt)
+      const websiteResult = await fetchWithRetry(async (s) => {
+        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
+        return supabase
+          .from('website_requests')
+          .select('id', { count: 'exact', head: true })
+          .gt('created_at', seenAt)
+          .abortSignal(s)
+      }, signal)
+      if (signal?.aborted) return
       if (websiteResult.error) throw websiteResult.error
       setUnreadCount(marketingResult.count ?? 0)
       setAcUnreadCount(acceptanceResult.count ?? 0)
       setWebsiteRequestCount(websiteResult.count ?? 0)
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
       console.error('Failed to load sidebar notification counts:', error)
     }
-  }
+  }, [])
+
+  const fetchUnreadRef = useRef(fetchUnread)
+  fetchUnreadRef.current = fetchUnread
 
   useEffect(() => {
-    fetchUnread()
-    const handleChange = () => fetchUnread()
+    const ac = new AbortController()
+    fetchUnreadRef.current(ac.signal)
+
+    let debounceTimer: ReturnType<typeof setTimeout>
+    const debouncedFetch = () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => fetchUnreadRef.current(), 2000)
+    }
+
+    const handleChange = () => debouncedFetch()
     window.addEventListener('acceptance-forms-changed', handleChange)
     window.addEventListener('lead-data-changed', handleChange)
-    const interval = setInterval(fetchUnread, 30000)
+    const interval = setInterval(() => fetchUnreadRef.current(), 60000)
+
+    let channel: ReturnType<typeof supabase!.channel> | null = null
     if (isSupabaseConfigured && supabase) {
-      const channel = supabase.channel('sidebar-badges')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { fetchUnread() })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { fetchUnread() })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { fetchUnread() })
+      channel = supabase.channel('sidebar-badges')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => debouncedFetch())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => debouncedFetch())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => debouncedFetch())
         .subscribe()
-      return () => { supabase?.removeChannel(channel); clearInterval(interval); window.removeEventListener('acceptance-forms-changed', handleChange); window.removeEventListener('lead-data-changed', handleChange) }
     }
-    return () => { clearInterval(interval); window.removeEventListener('acceptance-forms-changed', handleChange); window.removeEventListener('lead-data-changed', handleChange) }
+
+    return () => {
+      ac.abort()
+      clearTimeout(debounceTimer)
+      clearInterval(interval)
+      window.removeEventListener('acceptance-forms-changed', handleChange)
+      window.removeEventListener('lead-data-changed', handleChange)
+      if (channel) supabase?.removeChannel(channel)
+    }
   }, [])
 
   const getDisplayName = () => {
