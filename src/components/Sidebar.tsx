@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
@@ -44,49 +44,66 @@ export default function Sidebar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const location = useLocation()
   const { user, signOut } = useAuth()
-
-  const fetchWithRetry = async <T,>(fn: (signal: AbortSignal) => Promise<T>, outerSignal: AbortSignal | undefined, retries = 2, delay = 1000): Promise<T> => {
-    let lastErr: unknown
-    for (let i = 0; i <= retries; i++) {
-      if (outerSignal?.aborted) throw new DOMException('Aborted', 'AbortError')
-      const ac = new AbortController()
-      const onOuterAbort = () => { try { ac.abort() } catch {} }
-      outerSignal?.addEventListener('abort', onOuterAbort, { once: true })
-      try {
-        return await fn(ac.signal)
-      } catch (err) {
-        lastErr = err
-        outerSignal?.removeEventListener('abort', onOuterAbort)
-        if (i < retries && !outerSignal?.aborted) {
-          await new Promise(r => setTimeout(r, delay * (i + 1)))
-        }
-      }
-    }
-    throw lastErr
-  }
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !user?.id) return
+    if (!isSupabaseConfigured || !supabase) return
+
     const ac = new AbortController()
-    const fetchAvatar = async () => {
+    abortRef.current = ac
+
+    const fetchAll = async () => {
+      if (ac.signal.aborted) return
+
+      if (user?.id) {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser()
+          if (!ac.signal.aborted) {
+            setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
+          }
+        } catch { /* silent */ }
+      }
+
       try {
-        const { data: { user: authUser }, error } = await fetchWithRetry(async (s) => {
-          if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-          return supabase!.auth.getUser()
-        }, ac.signal)
         if (ac.signal.aborted) return
-        if (error) {
-          console.error('Failed to load profile photo:', error)
-          return
+        const [mr, acf, seen] = await Promise.all([
+          supabase.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
+          supabase.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(ac.signal),
+          supabase.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(ac.signal),
+        ])
+        if (ac.signal.aborted) return
+
+        setUnreadCount(mr.count ?? 0)
+        setAcUnreadCount(acf.count ?? 0)
+
+        const seenAt = seen.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
+        const wr = await supabase
+          .from('website_requests')
+          .select('id', { count: 'exact', head: true })
+          .gt('created_at', seenAt)
+          .abortSignal(ac.signal)
+        if (!ac.signal.aborted) {
+          setWebsiteRequestCount(wr.count ?? 0)
         }
-        setAvatarUrl(authUser?.user_metadata?.avatar_url || null)
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        console.error('Failed to load profile photo:', err)
       }
     }
-    void fetchAvatar()
-    return () => ac.abort()
+
+    void fetchAll()
+
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null
+    channel = supabase.channel('sidebar-badges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => { void fetchAll() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => { void fetchAll() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => { void fetchAll() })
+      .subscribe()
+
+    return () => {
+      ac.abort()
+      abortRef.current = null
+      if (channel) supabase?.removeChannel(channel)
+    }
   }, [user?.id])
 
   const isActive = (path: string) => location.pathname === path
@@ -111,95 +128,11 @@ export default function Sidebar() {
         : await supabase.from('website_requests_seen').insert({ seen_at: now }).select('id').single()
       if (result.error || !result.data) throw result.error || new Error('Seen state was not persisted')
       setWebsiteRequestCount(0)
-    } catch (error) {
-      console.error('Failed to mark website requests as seen:', error)
+    } catch {
+      localStorage.setItem(WEBSITE_REQUESTS_SEEN_KEY, now)
+      setWebsiteRequestCount(0)
     }
   }
-
-  // Fetch unread counts
-  const fetchUnread = useCallback(async (signal?: AbortSignal) => {
-    if (signal?.aborted) return
-    if (!isSupabaseConfigured || !supabase) {
-      try {
-        const parsedReadIds = JSON.parse(localStorage.getItem('exodia-ac-read-ids') || '[]')
-        const localTotal = Number(JSON.parse(localStorage.getItem('exodia-ac-total') || '0'))
-        const readIds = new Set(Array.isArray(parsedReadIds) ? parsedReadIds : [])
-        setAcUnreadCount(Math.max(0, localTotal - readIds.size))
-      } catch {
-        setAcUnreadCount(0)
-      }
-      return
-    }
-
-    try {
-      const [marketingResult, acceptanceResult, seenResult] = await fetchWithRetry(async (s) => {
-        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-        return Promise.all([
-          supabase!.from('marketing_requests').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
-          supabase!.from('acceptance_forms').select('id', { count: 'exact', head: true }).eq('is_read', false).abortSignal(s),
-          supabase!.from('website_requests_seen').select('seen_at').order('id', { ascending: false }).limit(1).abortSignal(s),
-        ])
-      }, signal)
-      if (signal?.aborted) return
-      if (marketingResult.error || acceptanceResult.error || seenResult.error) {
-        throw marketingResult.error || acceptanceResult.error || seenResult.error
-      }
-      const seenAt = seenResult.data?.[0]?.seen_at || '1970-01-01T00:00:00.000Z'
-      const websiteResult = await fetchWithRetry(async (s) => {
-        if (s.aborted) throw new DOMException('Aborted', 'AbortError')
-        return supabase!
-          .from('website_requests')
-          .select('id', { count: 'exact', head: true })
-          .gt('created_at', seenAt)
-          .abortSignal(s)
-      }, signal)
-      if (signal?.aborted) return
-      if (websiteResult.error) throw websiteResult.error
-      setUnreadCount(marketingResult.count ?? 0)
-      setAcUnreadCount(acceptanceResult.count ?? 0)
-      setWebsiteRequestCount(websiteResult.count ?? 0)
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return
-      console.error('Failed to load sidebar notification counts:', error)
-    }
-  }, [])
-
-  const fetchUnreadRef = useRef(fetchUnread)
-  fetchUnreadRef.current = fetchUnread
-
-  useEffect(() => {
-    const ac = new AbortController()
-    fetchUnreadRef.current(ac.signal)
-
-    let debounceTimer: ReturnType<typeof setTimeout>
-    const debouncedFetch = () => {
-      clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => fetchUnreadRef.current(), 2000)
-    }
-
-    const handleChange = () => debouncedFetch()
-    window.addEventListener('acceptance-forms-changed', handleChange)
-    window.addEventListener('lead-data-changed', handleChange)
-    const interval = setInterval(() => fetchUnreadRef.current(), 60000)
-
-    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null
-    if (isSupabaseConfigured && supabase) {
-      channel = supabase.channel('sidebar-badges')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_requests' }, () => debouncedFetch())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'acceptance_forms' }, () => debouncedFetch())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'website_requests' }, () => debouncedFetch())
-        .subscribe()
-    }
-
-    return () => {
-      ac.abort()
-      clearTimeout(debounceTimer)
-      clearInterval(interval)
-      window.removeEventListener('acceptance-forms-changed', handleChange)
-      window.removeEventListener('lead-data-changed', handleChange)
-      if (channel) supabase?.removeChannel(channel)
-    }
-  }, [])
 
   const getDisplayName = () => {
     if (!user?.email) return 'User'
@@ -395,7 +328,7 @@ export default function Sidebar() {
                       {active && !isCollapsed && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full" style={{ backgroundColor: '#FF5900' }} />
                       )}
-                      <svg className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${!active && 'group-hover:scale-110'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-3 h-3 flex-shrink-0 transition-transform duration-200 ${!active ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                       </svg>
                       {!isCollapsed && (
