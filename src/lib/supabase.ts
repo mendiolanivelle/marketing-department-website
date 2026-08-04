@@ -42,7 +42,16 @@ if (!isSupabaseConfigured) {
   )
 }
 
+function rewriteUrl(input: RequestInfo | URL): RequestInfo | URL {
+  if (typeof input !== 'string' || !supabaseUrl) return input
+  if (input.startsWith(supabaseUrl)) {
+    return input.replace(supabaseUrl, '/api/supabase')
+  }
+  return input
+}
+
 const resilientFetch: typeof fetch = async (input, init) => {
+  const rewrittenInput = rewriteUrl(input)
   const method = (init?.method || 'GET').toUpperCase()
   const isReadOnly = method === 'GET' || method === 'HEAD'
   const maxRetries = isReadOnly ? 2 : 0
@@ -50,7 +59,7 @@ const resilientFetch: typeof fetch = async (input, init) => {
 
   for (let i = 0; i <= maxRetries; i++) {
     try {
-      return await fetch(input, init)
+      return await fetch(rewrittenInput, init)
     } catch (err) {
       lastErr = err
       if (i < maxRetries) {
