@@ -50,6 +50,16 @@ const resilientFetch: typeof fetch = async (input, init) => {
 
   for (let i = 0; i <= maxRetries; i++) {
     try {
+      const url = input instanceof Request ? input.url : String(input)
+      if (url.includes('.supabase.co')) {
+        const proxyUrl = url.replace(/^https?:\/\/[^/]+/, '/api/supabase')
+        const proxyInit = init ? { ...init } : {}
+        if (input instanceof Request) {
+          const proxyReq = new Request(proxyUrl, { ...init, method: input.method, headers: input.headers })
+          return await fetch(proxyReq)
+        }
+        return await fetch(proxyUrl, proxyInit)
+      }
       return await fetch(input, init)
     } catch (err) {
       lastErr = err

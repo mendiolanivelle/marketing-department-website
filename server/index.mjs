@@ -382,6 +382,56 @@ function serveStatic(req, res, pathname) {
   createReadStream(safeFilePath).pipe(res)
 }
 
+async function proxySupabase(req, res) {
+  const supabaseUrl = normalizePublicUrl(getEnv('SUPABASE_URL', 'VITE_SUPABASE_URL'))
+  const apikey = getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
+
+  if (!isSecureHttpEndpoint(supabaseUrl) || !apikey) {
+    return sendJson(res, 503, { error: 'Supabase proxy is not configured' })
+  }
+
+  const url = new URL(req.url, 'http://localhost')
+  const targetPath = url.pathname.replace(/^\/api\/supabase/, '')
+  const targetUrl = `${supabaseUrl}${targetPath}${url.search}`
+
+  const headers = {}
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (key && value && !['host', 'connection'].includes(key.toLowerCase())) {
+      headers[key] = value
+    }
+  }
+  if (!headers.apikey) headers.apikey = apikey
+
+  let body = null
+  if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    try { body = await readBodyBuffer(req, 10_000_000) } catch (err) {
+      return sendJson(res, err?.statusCode || 413, { error: err?.message || 'Body too large' })
+    }
+  }
+
+  try {
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers,
+      body,
+      redirect: 'manual',
+    })
+
+    const responseHeaders = {}
+    for (const [key, value] of response.headers) {
+      if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
+        responseHeaders[key] = value
+      }
+    }
+
+    res.writeHead(response.status, responseHeaders)
+    const responseBody = Buffer.from(await response.arrayBuffer())
+    res.end(responseBody)
+  } catch {
+    sendJson(res, 502, { error: 'Supabase proxy request failed' })
+  }
+}
+
 async function handleRequest(req, res) {
   const pathname = new URL(req.url || '/', 'http://localhost').pathname
 
@@ -399,6 +449,10 @@ async function handleRequest(req, res) {
     const auth = await requireAuthentication(req, res)
     if (!auth) return
     return extractCallingCard(req, res, auth.userId)
+  }
+
+  if (pathname.startsWith('/api/supabase/')) {
+    return proxySupabase(req, res)
   }
 
   if (pathname === '/api' || pathname.startsWith('/api/')) {
