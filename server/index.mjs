@@ -406,6 +406,33 @@ function serveStatic(req, res, pathname) {
   createReadStream(safeFilePath).pipe(res)
 }
 
+const SUPABASE_PROXY_MAX_CONCURRENCY = 3
+let activeSupabaseProxyRequests = 0
+const pendingSupabaseProxyRequests = []
+
+function runSupabaseProxyRequest(operation) {
+  return new Promise((resolve, reject) => {
+    const run = async () => {
+      activeSupabaseProxyRequests += 1
+      try {
+        resolve(await operation())
+      } catch (error) {
+        reject(error)
+      } finally {
+        activeSupabaseProxyRequests -= 1
+        const next = pendingSupabaseProxyRequests.shift()
+        if (next) next()
+      }
+    }
+
+    if (activeSupabaseProxyRequests < SUPABASE_PROXY_MAX_CONCURRENCY) {
+      void run()
+    } else {
+      pendingSupabaseProxyRequests.push(run)
+    }
+  })
+}
+
 async function proxySupabase(req, res) {
   const supabaseUrl = normalizePublicUrl(getEnv('SUPABASE_URL', 'VITE_SUPABASE_URL'))
   const apikey = getEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
@@ -434,14 +461,15 @@ async function proxySupabase(req, res) {
   }
 
   try {
-    const response = await fetch(targetUrl, {
-      method: req.method,
-      headers,
-      body,
-      redirect: 'manual',
+    const { response, responseBody } = await runSupabaseProxyRequest(async () => {
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body,
+        redirect: 'manual',
+      })
+      return { response, responseBody: Buffer.from(await response.arrayBuffer()) }
     })
-
-    const responseBody = Buffer.from(await response.arrayBuffer())
     const responseHeaders = {}
     for (const [key, value] of response.headers) {
       if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(key.toLowerCase())) {

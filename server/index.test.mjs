@@ -84,7 +84,13 @@ async function readJson(req) {
 }
 
 function startMockBackend() {
-  const state = { fetchedImages: 0, imageUrls: [], providerFails: false }
+  const state = {
+    fetchedImages: 0,
+    imageUrls: [],
+    providerFails: false,
+    activeSupabaseRequests: 0,
+    maxActiveSupabaseRequests: 0,
+  }
   const users = new Map([
     ['Bearer valid-token', { id: 'test-user', app_metadata: { staff: true } }],
     ['Bearer second-token', { id: 'second-user', app_metadata: { staff: true } }],
@@ -112,16 +118,23 @@ function startMockBackend() {
     }
 
     if (req.url?.startsWith('/rest/v1/marketing_requests')) {
-      const responseBody = Buffer.from(JSON.stringify({
-        requests: Array.from({ length: 100 }, (_, index) => ({ id: index + 1, status: 'Complete' })),
-      }))
-      const compressedBody = gzipSync(responseBody)
-      res.writeHead(200, {
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'gzip',
-        'Content-Length': compressedBody.length,
-      })
-      return res.end(compressedBody)
+      state.activeSupabaseRequests += 1
+      state.maxActiveSupabaseRequests = Math.max(state.maxActiveSupabaseRequests, state.activeSupabaseRequests)
+      try {
+        await new Promise(resolve => setTimeout(resolve, 50))
+        const responseBody = Buffer.from(JSON.stringify({
+          requests: Array.from({ length: 100 }, (_, index) => ({ id: index + 1, status: 'Complete' })),
+        }))
+        const compressedBody = gzipSync(responseBody)
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Encoding': 'gzip',
+          'Content-Length': compressedBody.length,
+        })
+        return res.end(compressedBody)
+      } finally {
+        state.activeSupabaseRequests -= 1
+      }
     }
 
     return sendJson(res, 404, {})
@@ -161,6 +174,30 @@ test('Supabase proxy keeps decompressed response framing coherent', async () => 
     const responseText = await response.text()
     assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(responseText))
     assert.equal(JSON.parse(responseText).requests.length, 100)
+  } finally {
+    await stopApp(app.child)
+    await backend.stop()
+  }
+})
+
+test('Supabase proxy limits simultaneous upstream requests', async () => {
+  const backend = await startMockBackend()
+  const app = await startApp({
+    PUBLIC_SITE_URL: 'https://portal.example',
+    SUPABASE_ANON_KEY: 'test-key',
+    SUPABASE_URL: backend.origin,
+  })
+  try {
+    const responses = await Promise.all(Array.from({ length: 6 }, () => fetch(
+      `${app.origin}/api/supabase/rest/v1/marketing_requests?select=id`,
+      { headers: { 'Accept-Encoding': 'gzip' } },
+    )))
+    assert.deepEqual(responses.map(response => response.status), [200, 200, 200, 200, 200, 200])
+    await Promise.all(responses.map(response => response.text()))
+    assert.ok(
+      backend.state.maxActiveSupabaseRequests <= 3,
+      `expected at most 3 active upstream requests, received ${backend.state.maxActiveSupabaseRequests}`,
+    )
   } finally {
     await stopApp(app.child)
     await backend.stop()
