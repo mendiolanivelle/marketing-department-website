@@ -29,7 +29,7 @@ const securityHeaders = {
     'frame-src https://accounts.google.com https://challenges.cloudflare.com',
     "img-src 'self' data: blob: https:",
     "object-src 'none'",
-    "script-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
+    "script-src 'self' 'unsafe-eval' https://accounts.google.com https://challenges.cloudflare.com https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   ].join('; '),
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
