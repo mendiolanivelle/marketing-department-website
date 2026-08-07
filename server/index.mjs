@@ -441,15 +441,16 @@ async function proxySupabase(req, res) {
       redirect: 'manual',
     })
 
+    const responseBody = Buffer.from(await response.arrayBuffer())
     const responseHeaders = {}
     for (const [key, value] of response.headers) {
-      if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
+      if (!['content-encoding', 'content-length', 'transfer-encoding'].includes(key.toLowerCase())) {
         responseHeaders[key] = value
       }
     }
+    responseHeaders['content-length'] = String(responseBody.length)
 
     res.writeHead(response.status, responseHeaders)
-    const responseBody = Buffer.from(await response.arrayBuffer())
     res.end(responseBody)
   } catch {
     sendJson(res, 502, { error: 'Supabase proxy request failed' })

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
 import test from 'node:test'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
@@ -110,6 +111,19 @@ function startMockBackend() {
       })
     }
 
+    if (req.url?.startsWith('/rest/v1/marketing_requests')) {
+      const responseBody = Buffer.from(JSON.stringify({
+        requests: Array.from({ length: 100 }, (_, index) => ({ id: index + 1, status: 'Complete' })),
+      }))
+      const compressedBody = gzipSync(responseBody)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Content-Encoding': 'gzip',
+        'Content-Length': compressedBody.length,
+      })
+      return res.end(compressedBody)
+    }
+
     return sendJson(res, 404, {})
   })
 
@@ -129,6 +143,29 @@ function startMockBackend() {
 
 const authorization = { Authorization: 'Bearer valid-token', 'Content-Type': 'application/json' }
 const imageBody = JSON.stringify({ image: 'data:image/png;base64,iVBORw0KGgo=' })
+
+test('Supabase proxy keeps decompressed response framing coherent', async () => {
+  const backend = await startMockBackend()
+  const app = await startApp({
+    PUBLIC_SITE_URL: 'https://portal.example',
+    SUPABASE_ANON_KEY: 'test-key',
+    SUPABASE_URL: backend.origin,
+  })
+  try {
+    const response = await fetch(`${app.origin}/api/supabase/rest/v1/marketing_requests?select=id%2Cstatus`, {
+      headers: { 'Accept-Encoding': 'gzip' },
+    })
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('content-encoding'), null)
+
+    const responseText = await response.text()
+    assert.equal(Number(response.headers.get('content-length')), Buffer.byteLength(responseText))
+    assert.equal(JSON.parse(responseText).requests.length, 100)
+  } finally {
+    await stopApp(app.child)
+    await backend.stop()
+  }
+})
 
 test('production server fails closed and protects calling-card API access', async () => {
   const unconfigured = await startApp()
