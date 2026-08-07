@@ -231,6 +231,30 @@ function readBody(req, limit) {
   })
 }
 
+function readBodyBuffer(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    let rejected = false
+
+    req.on('data', chunk => {
+      if (rejected) return
+      size += chunk.length
+      if (size > limit) {
+        rejected = true
+        chunks.length = 0
+        reject(Object.assign(new Error('Request body is too large'), { statusCode: 413 }))
+        return
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => {
+      if (!rejected) resolve(Buffer.concat(chunks))
+    })
+    req.on('error', reject)
+  })
+}
+
 async function readJsonBody(req, limit) {
   const body = await readBody(req, limit)
   try {
