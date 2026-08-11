@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { sha256Hex } from '../lib/fileIntegrity'
+import { runPrivateStorageMaintenance } from '../lib/privateStorageFeature.js'
 import {
   acknowledgePrivateStorageReview,
   cleanupUnreferencedPrivateObjects,
@@ -121,7 +122,10 @@ export default function WebsiteRequests() {
     }
 
     const client = supabase
-    await drainPrivateStorageCleanup(client, ATTACHMENT_BUCKET)
+    await runPrivateStorageMaintenance(
+      PRIVATE_STORAGE_ENABLED,
+      () => drainPrivateStorageCleanup(client, ATTACHMENT_BUCKET),
+    )
     const { data, error } = await client
       .from('website_requests')
       .select('*')
@@ -403,7 +407,10 @@ export default function WebsiteRequests() {
       ?.map(attachment => attachment.path)
       .filter((path): path is string => typeof path === 'string' && path.length > 0) || []
     if (attachmentPaths.length > 0) {
-      const cleanupComplete = await drainPrivateStorageCleanup(supabase, ATTACHMENT_BUCKET)
+      const cleanupComplete = await runPrivateStorageMaintenance(
+        PRIVATE_STORAGE_ENABLED,
+        () => drainPrivateStorageCleanup(supabase!, ATTACHMENT_BUCKET),
+      )
       if (!cleanupComplete) {
         setMessage('The request was deleted. Its private attachments remain tracked for automatic cleanup.')
       }

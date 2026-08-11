@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { isDefiniteDatabaseRejection } from '../src/lib/databaseOutcome.js'
+import { runPrivateStorageMaintenance } from '../src/lib/privateStorageFeature.js'
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8')
 
@@ -80,4 +81,26 @@ test('only guaranteed database rejections permit compensating cleanup', () => {
   }
   assert.equal(isDefiniteDatabaseRejection(new TypeError('network failed')), false)
   assert.equal(isDefiniteDatabaseRejection(null), false)
+})
+
+test('disabled private Storage skips maintenance requests', async () => {
+  let calls = 0
+  const result = await runPrivateStorageMaintenance(false, async () => {
+    calls += 1
+    return false
+  })
+
+  assert.equal(result, true)
+  assert.equal(calls, 0)
+})
+
+test('enabled private Storage runs maintenance once', async () => {
+  let calls = 0
+  const result = await runPrivateStorageMaintenance(true, async () => {
+    calls += 1
+    return false
+  })
+
+  assert.equal(result, false)
+  assert.equal(calls, 1)
 })

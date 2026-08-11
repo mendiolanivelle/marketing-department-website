@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
 import { sha256Hex } from '../lib/fileIntegrity'
+import { runPrivateStorageMaintenance } from '../lib/privateStorageFeature.js'
 import {
   acknowledgePrivateStorageReview,
   cleanupUnreferencedPrivateObjects,
@@ -153,7 +154,10 @@ export default function FileTracker() {
     const sync = async () => {
       try {
         setSyncError('')
-        await drainPrivateStorageCleanup(client, ASSET_BUCKET)
+        await runPrivateStorageMaintenance(
+          PRIVATE_STORAGE_ENABLED,
+          () => drainPrivateStorageCleanup(client, ASSET_BUCKET),
+        )
         const { data, error } = await client
           .from('file_tracker_assets')
           .select('*')
@@ -487,7 +491,10 @@ export default function FileTracker() {
     }
     const cleanupComplete = !asset.storagePath || !supabase
       ? true
-      : await drainPrivateStorageCleanup(supabase, ASSET_BUCKET)
+      : await runPrivateStorageMaintenance(
+        PRIVATE_STORAGE_ENABLED,
+        () => drainPrivateStorageCleanup(supabase!, ASSET_BUCKET),
+      )
     setSyncError(cleanupComplete
       ? ''
       : 'The asset record was deleted. Its private object remains tracked for automatic cleanup.')
