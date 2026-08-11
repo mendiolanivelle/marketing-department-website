@@ -5,3 +5,4 @@ dist/
 !.env.example
 .npmrc
 reports/private-storage-backfill/
+/.debug-console-errors.txt
