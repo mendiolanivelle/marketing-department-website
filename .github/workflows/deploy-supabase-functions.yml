@@ -66,5 +66,10 @@ jobs:
       - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
         with:
           version: 2.110.0
-      - name: Deploy reviewed functions
-        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Deploy reviewed recovery functions
+        run: |
+          set -euo pipefail
+          supabase functions deploy send-edit-link --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy public-marketing-request --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy public-acceptance-form --project-ref "$SUPABASE_PROJECT_REF"
+          supabase functions deploy send-ticket-email --project-ref "$SUPABASE_PROJECT_REF"

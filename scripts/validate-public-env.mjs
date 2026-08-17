@@ -34,8 +34,8 @@ export function validatePublicBuildEnv(env = process.env) {
     invalid('VITE_PRIVATE_STORAGE_ENABLED must be true or false')
   }
   if (!urlValue && !keyValue && !turnstileSiteKey) return
-  if (!urlValue || !keyValue) {
-    invalid('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required')
+  if (!urlValue || !keyValue || !turnstileSiteKey) {
+    invalid('VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_TURNSTILE_SITE_KEY are required together')
   }
 
   let url

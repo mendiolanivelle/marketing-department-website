@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { logActivity, getActivityLog } from '../lib/activityLogger'
+import { logActivity, getActivityLog, loadActivityLog } from '../lib/activityLogger'
 import type { ActivityEntry } from '../lib/activityLogger'
+import { selectUnsyncedBrowserTasks } from '../lib/dashboardData'
+import type { DashboardTask } from '../lib/dashboardData'
 
 const readBrowserArray = (key: string): any[] => {
   const saved = localStorage.getItem(key)
@@ -17,6 +19,18 @@ const readBrowserArray = (key: string): any[] => {
 
 const readBrowserCalendarItems = () => readBrowserArray('exodia-calendar-items')
 const readBrowserCampaigns = () => readBrowserArray('exodia-campaigns')
+
+const formatActivityTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return timestamp
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 export default function Home() {
   const [leadStats, setLeadStats] = useState({
@@ -39,7 +53,9 @@ export default function Home() {
   const [showAddAnnouncement, setShowAddAnnouncement] = useState(false)
   const [showReadAnnouncements, setShowReadAnnouncements] = useState(false)
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', date: new Date().toISOString().split('T')[0], tag: 'Event', content: '' })
-  const [tasks, setTasks] = useState(() => isSupabaseConfigured ? [] : readBrowserArray('exodia-tasks'))
+  const [tasks, setTasks] = useState<DashboardTask[]>(() => (
+    isSupabaseConfigured ? [] : readBrowserArray('exodia-tasks') as DashboardTask[]
+  ))
   const [newTaskText, setNewTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
@@ -68,20 +84,73 @@ export default function Home() {
     throw lastErr
   }
 
-  // Refresh activity log on mount and when navigating back to dashboard
+  // Refresh persisted activity on mount and when navigating back to dashboard.
   const location = useLocation()
   useEffect(() => {
     setActivityLog(getActivityLog())
-    const refresh = () => setActivityLog(getActivityLog())
-    window.addEventListener('focus', refresh)
-    return () => window.removeEventListener('focus', refresh)
+    const refreshFromCache = () => setActivityLog(getActivityLog())
+    const refreshFromRemote = () => { void loadActivityLog().then(setActivityLog) }
+    void loadActivityLog().then(setActivityLog)
+    window.addEventListener('focus', refreshFromRemote)
+    window.addEventListener('activity-updated', refreshFromCache)
+    return () => {
+      window.removeEventListener('focus', refreshFromRemote)
+      window.removeEventListener('activity-updated', refreshFromCache)
+    }
   }, [location.key])
 
-  // Browser-only tasks remain device-local until their migration is defined.
   useEffect(() => {
     if (isSupabaseConfigured) return
     localStorage.setItem('exodia-tasks', JSON.stringify(tasks))
   }, [tasks])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+    const client = supabase
+    let cancelled = false
+
+    const syncTasks = async () => {
+      const { data, error } = await client
+        .from('tasks')
+        .select('id, text, done')
+        .order('created_at', { ascending: false })
+      if (cancelled) return
+      if (error) {
+        console.error('Failed to load tasks:', error)
+        return
+      }
+
+      let canonicalTasks = (data || []) as DashboardTask[]
+      const browserTasks = readBrowserArray('exodia-tasks')
+      const unsyncedTasks = selectUnsyncedBrowserTasks(canonicalTasks, browserTasks)
+      if (unsyncedTasks.length > 0) {
+        const { data: migrated, error: migrationError } = await client
+          .from('tasks')
+          .insert(unsyncedTasks)
+          .select('id, text, done')
+        if (cancelled) return
+        if (migrationError) {
+          console.error('Failed to migrate browser tasks:', migrationError)
+        } else {
+          canonicalTasks = [...((migrated || []) as DashboardTask[]), ...canonicalTasks]
+          localStorage.removeItem('exodia-tasks')
+        }
+      } else if (browserTasks.length > 0) {
+        localStorage.removeItem('exodia-tasks')
+      }
+      setTasks(canonicalTasks)
+    }
+
+    void syncTasks()
+    const channel = client
+      .channel('dashboard-tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void syncTasks() })
+      .subscribe()
+    return () => {
+      cancelled = true
+      try { client.removeChannel(channel) } catch {}
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('exodia-read-announcements', JSON.stringify(readAnnouncementIds))
@@ -311,26 +380,60 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [fetchLeadStats])
 
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  const toggleTask = async (id: number) => {
     const task = tasks.find(t => t.id === id)
-    if (task) logActivity('Task', task.done ? `Unchecked "${task.text}"` : `Completed "${task.text}"`)
+    if (!task) return
+    const nextDone = !task.done
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('tasks').update({ done: nextDone }).eq('id', id)
+      if (error) {
+        console.error('Failed to update task:', error)
+        window.alert('The task could not be updated. No changes were saved.')
+        return
+      }
+    }
+    setTasks(current => current.map(item => item.id === id ? { ...item, done: nextDone } : item))
+    logActivity('Task', nextDone ? `Completed "${task.text}"` : `Unchecked "${task.text}"`)
     setActivityLog(getActivityLog())
   }
 
-  const addTask = () => {
-    if (!newTaskText.trim()) return
-    const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1
-    setTasks([{ id: newId, text: newTaskText.trim(), done: false }, ...tasks])
+  const addTask = async () => {
+    const text = newTaskText.trim()
+    if (!text) return
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert({ text, done: false })
+        .select('id, text, done')
+        .single()
+      if (error || !data) {
+        console.error('Failed to add task:', error)
+        window.alert('The task could not be added. No changes were saved.')
+        return
+      }
+      setTasks(current => [data as DashboardTask, ...current])
+    } else {
+      const newId = tasks.length > 0 ? Math.max(...tasks.map(task => task.id)) + 1 : 1
+      setTasks(current => [{ id: newId, text, done: false }, ...current])
+    }
     setNewTaskText('')
-    logActivity('Task', `Added "${newTaskText.trim()}"`)
+    logActivity('Task', `Added "${text}"`)
     setActivityLog(getActivityLog())
   }
 
-  const deleteTask = (id: number) => {
+  const deleteTask = async (id: number) => {
     if (!window.confirm('Delete this task?')) return
     const task = tasks.find(t => t.id === id)
-    setTasks(tasks.filter(t => t.id !== id))
+    if (!task) return
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('tasks').delete().eq('id', id)
+      if (error) {
+        console.error('Failed to delete task:', error)
+        window.alert('The task could not be deleted. No changes were saved.')
+        return
+      }
+    }
+    setTasks(current => current.filter(item => item.id !== id))
     if (task) logActivity('Task', `Deleted "${task.text}"`)
     setActivityLog(getActivityLog())
   }
@@ -340,12 +443,22 @@ export default function Home() {
     setEditingTaskText(task.text)
   }
 
-  const saveTaskEdit = () => {
+  const saveTaskEdit = async () => {
     if (editingTaskId === null) return
-    if (!editingTaskText.trim()) {
-      deleteTask(editingTaskId)
+    const text = editingTaskText.trim()
+    if (!text) {
+      await deleteTask(editingTaskId)
     } else {
-      setTasks(tasks.map(t => t.id === editingTaskId ? { ...t, text: editingTaskText.trim() } : t))
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase.from('tasks').update({ text }).eq('id', editingTaskId)
+        if (error) {
+          console.error('Failed to edit task:', error)
+          window.alert('The task could not be edited. No changes were saved.')
+          return
+        }
+      }
+      setTasks(current => current.map(task => task.id === editingTaskId ? { ...task, text } : task))
+      logActivity('Task', `Updated "${text}"`)
     }
     setEditingTaskId(null)
     setEditingTaskText('')
@@ -699,9 +812,8 @@ export default function Home() {
           </div>
 
           {/* Bottom row */}
-          <div className={isSupabaseConfigured ? 'grid grid-cols-1 gap-4 sm:gap-6' : 'grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6'}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* My Tasks */}
-            {!isSupabaseConfigured && (
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--accent), #FF8C33)' }}></div>
               <div className="p-5 sm:p-7">
@@ -781,7 +893,6 @@ export default function Home() {
                 </ul>
               </div>
             </div>
-            )}
 
             {/* This Session */}
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
@@ -807,7 +918,7 @@ export default function Home() {
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                             {entry.action}
                           </span>
-                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{entry.timestamp}</span>
+                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatActivityTimestamp(entry.timestamp)}</span>
                         </div>
                         <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{entry.detail}</p>
                       </li>

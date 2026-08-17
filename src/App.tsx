@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { HashRouter, Navigate, Routes, Route } from 'react-router-dom'
+import { HashRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { logActivity } from './lib/activityLogger'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
@@ -85,11 +86,38 @@ function UploadStatusPopup() {
   )
 }
 
+const activityRouteNames: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/timeline': 'Timeline',
+  '/templates': 'Messaging & Templates',
+  '/calendar': 'Calendar',
+  '/files': 'File Tracker',
+  '/leads': 'Lead Generation',
+  '/campaigns': 'Campaigns',
+  '/acceptance-criteria': 'Acceptance Criteria',
+  '/marketing-project-list': 'Marketing Project List',
+  '/marketing-projects': 'Marketing Projects',
+  '/requests': 'Marketing Requests',
+  '/website-requests': 'Website Requests',
+}
+
+function ActivityRouteTracker() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const pageName = activityRouteNames[location.pathname]
+    if (pageName) logActivity('Navigation', `Opened ${pageName}`)
+  }, [location.pathname])
+
+  return null
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <HashRouter>
+          <ActivityRouteTracker />
           <Routes>
             <Route
               path="/"

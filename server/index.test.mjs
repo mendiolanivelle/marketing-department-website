@@ -210,6 +210,9 @@ test('production server fails closed and protects calling-card API access', asyn
     const liveness = await fetch(`${unconfigured.origin}/livez`)
     assert.equal(liveness.status, 200)
     assert.deepEqual(await liveness.json(), { status: 'ok' })
+    assert.match(liveness.headers.get('permissions-policy') || '', /camera=\(self\)/)
+    assert.match(liveness.headers.get('permissions-policy') || '', /geolocation=\(\)/)
+    assert.match(liveness.headers.get('permissions-policy') || '', /microphone=\(\)/)
 
     const health = await fetch(`${unconfigured.origin}/healthz`)
     assert.equal(health.status, 503)

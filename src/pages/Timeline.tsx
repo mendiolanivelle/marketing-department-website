@@ -252,10 +252,6 @@ export default function Timeline() {
   }
 
   const updateTimelineTableRecord = async (tableId: string, changes: Partial<TimelineTable>) => {
-    if (changes.columns && !isSales) {
-      alert('Only sales@exodiagamedev.com can change timeline stages. No changes were made.')
-      return false
-    }
     const client = getWritableTableClient(tableId)
     if (!client) return false
     const { data, error } = await client

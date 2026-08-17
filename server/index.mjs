@@ -33,7 +33,7 @@ const securityHeaders = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   ].join('; '),
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-  'Permissions-Policy': 'camera=(), geolocation=(), microphone=()',
+  'Permissions-Policy': 'camera=(self), geolocation=(), microphone=()',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'X-Content-Type-Options': 'nosniff',

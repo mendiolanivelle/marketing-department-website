@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "npm run typecheck && vite build",
     "lint": "eslint .",
-    "test": "node --test server/index.test.mjs scripts/validate-public-env.test.mjs scripts/staff-boundary.test.mjs scripts/notification-safety.test.mjs scripts/private-storage-safety.test.mjs tools/backfill-legacy-private-storage.test.mjs",
+    "test": "node --test server/index.test.mjs scripts/validate-public-env.test.mjs scripts/staff-boundary.test.mjs scripts/notification-safety.test.mjs scripts/private-storage-safety.test.mjs scripts/timeline-authorization.test.mjs scripts/dashboard-persistence.test.mjs scripts/edge-deployment-allowlist.test.mjs tools/backfill-legacy-private-storage.test.mjs",
     "test:migrations": "psql -v ON_ERROR_STOP=1 -f scripts/migrations-048-051.test.sql",
     "typecheck": "tsc --noEmit",
     "storage:backfill": "node tools/backfill-legacy-private-storage.mjs",
