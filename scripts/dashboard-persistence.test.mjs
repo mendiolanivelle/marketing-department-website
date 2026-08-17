@@ -1,11 +1,28 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
 
-import {
+import { build } from 'esbuild'
+
+const dashboardDataBundle = await build({
+  bundle: true,
+  entryPoints: [
+    fileURLToPath(new URL('../src/lib/dashboardData.ts', import.meta.url)),
+  ],
+  format: 'esm',
+  logLevel: 'silent',
+  platform: 'node',
+  target: 'node22',
+  write: false,
+})
+const dashboardDataUrl = `data:text/javascript;base64,${Buffer.from(
+  dashboardDataBundle.outputFiles[0].contents,
+).toString('base64')}`
+const {
   createActivityInsert,
   selectUnsyncedBrowserTasks,
-} from '../src/lib/dashboardData.ts'
+} = await import(dashboardDataUrl)
 
 test('browser tasks are migrated once without duplicating canonical tasks', () => {
   const canonical = [
