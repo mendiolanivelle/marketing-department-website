@@ -281,6 +281,10 @@ function extractJson(content = '') {
   return source
 }
 
+function providerError(statusCode, publicMessage, diagnosticCode) {
+  return Object.assign(new Error(publicMessage), { statusCode, publicMessage, diagnosticCode })
+}
+
 async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseUrl, image }) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), openRouterTimeoutMs)
@@ -288,6 +292,7 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
     model,
     temperature: 0,
     max_tokens: 700,
+    response_format: { type: 'json_object' },
     messages: [
       {
         role: 'system',
@@ -315,13 +320,20 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
       body: JSON.stringify(requestBody),
       signal: controller.signal,
     })
-    const payload = await response.json()
+    const responseText = await response.text()
+    let payload
+    try {
+      payload = responseText ? JSON.parse(responseText) : null
+    } catch {
+      throw providerError(502, 'Calling-card extraction provider returned an invalid response', 'provider-invalid-json')
+    }
     return { response, payload }
   } catch (err) {
     if (err?.name === 'AbortError') {
-      throw new Error(`OpenRouter extraction timed out after ${Math.round(openRouterTimeoutMs / 1000)} seconds`)
+      throw providerError(504, 'Calling-card extraction provider timed out', 'provider-timeout')
     }
-    throw err
+    if (err?.statusCode) throw err
+    throw providerError(502, 'Calling-card extraction provider could not be reached', 'provider-network')
   } finally {
     clearTimeout(timeout)
   }
@@ -362,18 +374,30 @@ async function extractCallingCard(req, res, userId) {
 
     if (!response.ok) {
       const status = response.status === 429 ? 429 : 502
+      console.warn(`Calling-card extraction provider returned HTTP ${response.status}`)
       return sendJson(res, status, { error: 'Calling-card extraction provider failed' })
     }
 
-    const content = payload.choices?.[0]?.message?.content || ''
-    const lead = validateLead(JSON.parse(extractJson(content)))
+    const content = payload?.choices?.[0]?.message?.content
+    if (typeof content !== 'string') {
+      throw providerError(502, 'Calling-card extraction provider returned an invalid response', 'provider-missing-content')
+    }
+    let parsedLead
+    try {
+      parsedLead = JSON.parse(extractJson(content))
+    } catch {
+      throw providerError(502, 'Calling-card extraction provider returned an invalid response', 'provider-invalid-lead-json')
+    }
+    const lead = validateLead(parsedLead)
     if (!['name', 'company', 'role', 'email', 'contact_number', 'address'].some(field => lead[field].trim())) {
       return sendJson(res, 422, { error: 'AI could not read usable lead details from this calling card. Please try a clearer, closer photo.', model })
     }
     return sendJson(res, 200, { lead, model })
   } catch (err) {
-    const status = err?.statusCode === 400 || err?.statusCode === 413 ? err.statusCode : 500
-    return sendJson(res, status, { error: status === 500 ? 'Failed to extract calling card' : err.message })
+    const safeStatuses = new Set([400, 413, 502, 504])
+    const status = safeStatuses.has(err?.statusCode) ? err.statusCode : 500
+    if (status >= 500) console.error(`Calling-card extraction failed (${err?.diagnosticCode || 'unexpected'})`)
+    return sendJson(res, status, { error: err?.publicMessage || (status === 500 ? 'Failed to extract calling card' : err.message) })
   }
 }
 

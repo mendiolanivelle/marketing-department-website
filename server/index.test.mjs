@@ -87,13 +87,18 @@ function startMockBackend() {
   const state = {
     fetchedImages: 0,
     imageUrls: [],
+    requestBodies: [],
     providerFails: false,
+    providerReturnsInvalidJson: false,
+    providerReturnsMalformedLead: false,
     activeSupabaseRequests: 0,
     maxActiveSupabaseRequests: 0,
   }
   const users = new Map([
     ['Bearer valid-token', { id: 'test-user', app_metadata: { staff: true } }],
     ['Bearer second-token', { id: 'second-user', app_metadata: { staff: true } }],
+    ['Bearer third-token', { id: 'third-user', app_metadata: { staff: true } }],
+    ['Bearer fourth-token', { id: 'fourth-user', app_metadata: { staff: true } }],
     ['Bearer ordinary-token', { id: 'ordinary-user', app_metadata: {} }],
   ])
   const server = createServer(async (req, res) => {
@@ -104,14 +109,24 @@ function startMockBackend() {
     }
 
     if (req.url === '/chat/completions' && req.method === 'POST') {
+      if (state.providerReturnsInvalidJson) {
+        res.writeHead(502, { 'Content-Type': 'text/html' })
+        return res.end('secret upstream proxy failure')
+      }
       if (state.providerFails) return sendJson(res, 400, { error: { message: 'secret upstream failure detail' } })
       const body = await readJson(req)
+      state.requestBodies.push(body)
       const imageUrl = body.messages?.[1]?.content
         ?.find(part => part.type === 'image_url')
         ?.image_url?.url
       state.imageUrls.push(imageUrl)
       assert.match(imageUrl || '', /^data:image\/png;base64,/)
       state.fetchedImages += 1
+      if (state.providerReturnsMalformedLead) {
+        return sendJson(res, 200, {
+          choices: [{ message: { content: 'not valid JSON' } }],
+        })
+      }
       return sendJson(res, 200, {
         choices: [{ message: { content: '{"name":"Ada","company":"Example","role":"","email":"","contact_number":"","address":"","notes":"","raw_text":"Ada Example"}' } }],
       })
@@ -312,6 +327,7 @@ test('production server fails closed and protects calling-card API access', asyn
     }
     assert.equal(backend.state.fetchedImages, 5)
     assert.ok(backend.state.imageUrls.every(url => url === 'data:image/png;base64,iVBORw0KGgo='))
+    assert.ok(backend.state.requestBodies.every(body => body.response_format?.type === 'json_object'))
 
     const limited = await fetch(`${app.origin}/api/extract-calling-card`, {
       method: 'POST',
@@ -330,6 +346,26 @@ test('production server fails closed and protects calling-card API access', asyn
     })
     assert.equal(providerFailure.status, 502)
     assert.deepEqual(await providerFailure.json(), { error: 'Calling-card extraction provider failed' })
+
+    backend.state.providerFails = false
+    backend.state.providerReturnsInvalidJson = true
+    const invalidProviderJson = await fetch(`${app.origin}/api/extract-calling-card`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer third-token', 'Content-Type': 'application/json' },
+      body: imageBody,
+    })
+    assert.equal(invalidProviderJson.status, 502)
+    assert.deepEqual(await invalidProviderJson.json(), { error: 'Calling-card extraction provider returned an invalid response' })
+
+    backend.state.providerReturnsInvalidJson = false
+    backend.state.providerReturnsMalformedLead = true
+    const malformedLead = await fetch(`${app.origin}/api/extract-calling-card`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fourth-token', 'Content-Type': 'application/json' },
+      body: imageBody,
+    })
+    assert.equal(malformedLead.status, 502)
+    assert.deepEqual(await malformedLead.json(), { error: 'Calling-card extraction provider returned an invalid response' })
   } finally {
     await stopApp(app.child)
     await backend.stop()
