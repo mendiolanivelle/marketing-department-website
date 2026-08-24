@@ -116,6 +116,11 @@ function startMockBackend() {
       if (state.providerFails) return sendJson(res, 400, { error: { message: 'secret upstream failure detail' } })
       const body = await readJson(req)
       state.requestBodies.push(body)
+      if (body.reasoning?.effort !== 'none') {
+        return sendJson(res, 200, {
+          choices: [{ finish_reason: 'length', message: { content: null, reasoning: 'Reasoning used the available output budget.' } }],
+        })
+      }
       const imageUrl = body.messages?.[1]?.content
         ?.find(part => part.type === 'image_url')
         ?.image_url?.url
@@ -328,6 +333,7 @@ test('production server fails closed and protects calling-card API access', asyn
     assert.equal(backend.state.fetchedImages, 5)
     assert.ok(backend.state.imageUrls.every(url => url === 'data:image/png;base64,iVBORw0KGgo='))
     assert.ok(backend.state.requestBodies.every(body => body.response_format?.type === 'json_object'))
+    assert.ok(backend.state.requestBodies.every(body => body.reasoning?.effort === 'none'))
 
     const limited = await fetch(`${app.origin}/api/extract-calling-card`, {
       method: 'POST',

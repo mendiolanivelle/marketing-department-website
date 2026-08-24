@@ -292,6 +292,7 @@ async function callOpenRouter({ apiKey, model, siteUrl, appName, openRouterBaseU
     model,
     temperature: 0,
     max_tokens: 700,
+    reasoning: { effort: 'none' },
     response_format: { type: 'json_object' },
     messages: [
       {
