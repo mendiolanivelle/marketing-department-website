@@ -6,3 +6,6 @@ dist/
 .npmrc
 reports/private-storage-backfill/
 /.debug-console-errors.txt
+
+# Local agent debugging artifacts are archived outside the repository.
+/.planning/debug/
