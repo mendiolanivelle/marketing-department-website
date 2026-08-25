@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
+import { templateFailureDetail } from '../lib/activityDetails'
 
 interface EmailHistoryItem {
   id: string
@@ -625,6 +626,7 @@ export default function Messaging() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error saving template:', err)
+      logActivity('Template', templateFailureDetail(editingId ? 'update' : 'create', data.title))
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save template. Please try again.')
     }
   }
@@ -679,6 +681,7 @@ export default function Messaging() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error deleting template:', err)
+      logActivity('Template', templateFailureDetail('delete', template?.title || 'template'))
       setErrorMessage(err instanceof Error ? err.message : 'Failed to delete template. Please try again.')
     }
     setDeleteConfirmId(null)

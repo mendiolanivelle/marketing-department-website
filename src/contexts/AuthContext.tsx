@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react'
 import { supabase, isSupabaseConfigured, setRememberMe } from '../lib/supabase'
 import { isStaffUser } from '../lib/staff.js'
-import { clearActivityLog, logActivity } from '../lib/activityLogger'
+import { logActivity, setActivityUser } from '../lib/activityLogger'
+import { signOutWithActivity } from '../lib/authActivity'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     : null
   const applySession = useCallback((nextSession: Session | null) => {
     const authorized = Boolean(nextSession && isStaffUser(nextSession.user))
+    setActivityUser(authorized ? nextSession!.user.id : null)
     setSession(authorized ? nextSession : null)
     setUser(authorized ? nextSession!.user : null)
     return authorized
@@ -61,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        clearActivityLog()
         applySession(null)
       } else if (session) {
         const authorized = applySession(session)
@@ -91,14 +92,24 @@ return () => {
       return { error: new Error('This account is not authorized for the staff portal.') }
     }
     applySession(data.session)
-    await logActivity('Authentication', 'Signed in')
+    void logActivity('Authentication', 'Signed in')
     return { error: null }
   }
 
   const signOut = async () => {
     if (!supabase) return
-    await logActivity('Authentication', 'Signed out')
-    await supabase?.auth.signOut()
+    const client = supabase
+    const result = await signOutWithActivity(
+      async () => {
+        const { error } = await client.auth.signOut()
+        return { error: error as Error | null }
+      },
+      detail => { void logActivity('Authentication', detail) },
+    )
+    if (result.error) {
+      console.error('Failed to sign out:', result.error)
+      return
+    }
     applySession(null)
   }
 

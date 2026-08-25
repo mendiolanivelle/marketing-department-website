@@ -1,9 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { HashRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { logActivity } from './lib/activityLogger'
-import { getActivityRouteName } from './lib/activityRoutes'
+import { getAuthenticatedActivityRouteName } from './lib/activityRoutes'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
@@ -89,11 +89,23 @@ function UploadStatusPopup() {
 
 function ActivityRouteTracker() {
   const location = useLocation()
+  const { user, isStaff, loading } = useAuth()
+  const lastTrackedRoute = useRef<string | null>(null)
 
   useEffect(() => {
-    const pageName = getActivityRouteName(location.pathname)
-    if (pageName) void logActivity('Navigation', `Opened ${pageName}`)
-  }, [location.pathname])
+    const pageName = getAuthenticatedActivityRouteName(
+      location.pathname,
+      !loading && Boolean(user) && isStaff,
+    )
+    if (!pageName || !user) {
+      lastTrackedRoute.current = null
+      return
+    }
+    const routeKey = `${user.id}:${location.pathname}`
+    if (lastTrackedRoute.current === routeKey) return
+    lastTrackedRoute.current = routeKey
+    void logActivity('Navigation', `Opened ${pageName}`)
+  }, [isStaff, loading, location.pathname, user])
 
   return null
 }

@@ -18,6 +18,17 @@ export interface CanonicalActivityEntry {
 const MAX_ACTIVITIES = 100
 const COLLAPSED_ACTIVITIES = 8
 
+export function createActivityId(): number {
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const words = new Uint32Array(2)
+    globalThis.crypto.getRandomValues(words)
+    const id = (words[0] & 0x1fffff) * 0x100000000 + words[1]
+    return id || 1
+  }
+
+  return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) || 1
+}
+
 export function createPendingActivity(
   id: number,
   action: string,
@@ -41,6 +52,16 @@ export function setActivityDeliveryStatus(
   return entries.map(entry => entry.id === id ? { ...entry, deliveryStatus } : entry)
 }
 
+export function isSameCanonicalActivity(
+  canonical: CanonicalActivityEntry,
+  pending: ActivityStateEntry,
+): boolean {
+  return canonical.id === pending.id
+    && canonical.action === pending.action
+    && canonical.detail === pending.detail
+    && canonical.timestamp === pending.timestamp
+}
+
 export function mergeActivityEntries(
   currentEntries: ActivityStateEntry[],
   remoteEntries: CanonicalActivityEntry[],
@@ -56,7 +77,9 @@ export function mergeActivityEntries(
     deliveryStatus: 'saved' as const,
   }))
 
-  return [...localEntries, ...savedEntries].slice(0, MAX_ACTIVITIES)
+  return [...localEntries, ...savedEntries]
+    .sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp))
+    .slice(0, MAX_ACTIVITIES)
 }
 
 export function visibleActivityEntries(

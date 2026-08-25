@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { logActivity } from '../lib/activityLogger'
+import { timelineNoteDetail } from '../lib/activityDetails'
 
 interface TimelineColumn {
   key: string
@@ -630,10 +631,9 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
-      logActivity('Timeline', `Deleted a note from "${selectedLead.company}"`)
       setShowAddPopup(null)
       setAddPopupValue('')
-      logActivity('Timeline', `Added note to "${selectedLead.company}"`)
+      logActivity('Timeline', timelineNoteDetail('added', selectedLead.company))
     } catch (error) {
       showTimelineWriteError('add the note', error)
     }
@@ -649,6 +649,7 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      logActivity('Timeline', timelineNoteDetail('deleted', selectedLead.company))
     } catch (error) {
       showTimelineWriteError('delete the note', error)
     }

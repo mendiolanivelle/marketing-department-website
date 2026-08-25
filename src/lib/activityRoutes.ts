@@ -19,3 +19,10 @@ export function getActivityRouteName(pathname: string): string | null {
   if (/^\/view-acceptance\/[^/]+$/.test(pathname)) return 'Shared Acceptance View'
   return null
 }
+
+export function getAuthenticatedActivityRouteName(
+  pathname: string,
+  isAuthenticatedStaff: boolean,
+): string | null {
+  return isAuthenticatedStaff ? getActivityRouteName(pathname) : null
+}

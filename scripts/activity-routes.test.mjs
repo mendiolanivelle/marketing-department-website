@@ -18,7 +18,7 @@ const routeBundle = await build({
 const routeUrl = `data:text/javascript;base64,${Buffer.from(
   routeBundle.outputFiles[0].contents,
 ).toString('base64')}`
-const { getActivityRouteName } = await import(routeUrl)
+const { getActivityRouteName, getAuthenticatedActivityRouteName } = await import(routeUrl)
 
 test('protected exact and dynamic routes receive activity names', () => {
   assert.equal(getActivityRouteName('/dashboard'), 'Dashboard')
@@ -32,4 +32,9 @@ test('anonymous and public routes are excluded from a personal staff feed', () =
   assert.equal(getActivityRouteName('/acceptance-form'), null)
   assert.equal(getActivityRouteName('/submit-request'), null)
   assert.equal(getActivityRouteName('/edit-request/token-123'), null)
+})
+
+test('protected routes are logged only for an authenticated staff user', () => {
+  assert.equal(getAuthenticatedActivityRouteName('/dashboard', false), null)
+  assert.equal(getAuthenticatedActivityRouteName('/dashboard', true), 'Dashboard')
 })

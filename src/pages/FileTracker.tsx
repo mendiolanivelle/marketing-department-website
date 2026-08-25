@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
+import { fileLinkAddedDetail } from '../lib/activityDetails'
 import { sha256Hex } from '../lib/fileIntegrity'
 import { runPrivateStorageMaintenance } from '../lib/privateStorageFeature.js'
 import {
@@ -481,7 +482,7 @@ export default function FileTracker() {
       setLinkUrl('')
       setUploadError('')
       setShowUpload(false)
-      logActivity('Files', `Added link "${name}" (${url})`)
+      logActivity('Files', fileLinkAddedDetail(name))
     }
   }
 
