@@ -346,11 +346,12 @@ export default function WebsiteRequests() {
           'The save outcome is unknown. Private objects were preserved for administrator '
           + 'reconciliation; refresh and verify before retrying.',
         )
+        logActivity('Website Requests', 'Request submission outcome needs verification')
       } else {
         const detail = error instanceof Error ? error.message : 'unknown error'
         setMessage(`Could not submit request: ${detail}`)
+        logActivity('Website Requests', 'Request submission failed')
       }
-      logActivity('Website Requests', 'Request submission failed')
     } finally {
       setSaving(false)
     }

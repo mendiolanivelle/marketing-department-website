@@ -409,7 +409,7 @@ export default function LeadGeneration() {
       }
       if (fileInputRef.current) fileInputRef.current.value = ''
       emitUploadStatus(uploadId, `Uploaded ${file.name}`, 'done', 100)
-      logActivity('LeadGen', `Uploaded "${fileName}" (${parsedRows.length} rows)`)
+      logActivity('Lead Generation', `Uploaded "${fileName}" (${parsedRows.length} rows)`)
     } catch (err) {
       console.error('Error uploading CSV:', err)
       logActivity('Lead Generation', `CSV import failed for "${file.name}"`)
@@ -462,7 +462,7 @@ export default function LeadGeneration() {
     setSelectedFile(targetFile)
     await fetchRows(targetFile.id)
     setEditingCell(null)
-    logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
+    logActivity('Lead Generation', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
   }
 
   const processCallingCardQueue = async () => {
@@ -532,7 +532,7 @@ export default function LeadGeneration() {
       await fetchFiles()
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
-      logActivity('LeadGen', `Created spreadsheet "${name}"`)
+      logActivity('Lead Generation', `Created spreadsheet "${name}"`)
     } catch (err) {
       console.error('Error creating spreadsheet:', err)
       logActivity('Lead Generation', `Spreadsheet creation failed for "${name}"`)
@@ -674,7 +674,7 @@ export default function LeadGeneration() {
 
       setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData, updated_at: now } : r))
       setEditingCell(null)
-      logActivity('LeadGen', `Edited cell in "${selectedFile.name}"`)
+      logActivity('Lead Generation', `Edited cell in "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error saving cell:', err)
       logActivity('Lead Generation', `Cell update failed in "${selectedFile.name}"`)
@@ -813,7 +813,7 @@ export default function LeadGeneration() {
       remoteFileIdsRef.current.delete(fileId)
       setFiles(prev => prev.filter(f => f.id !== fileId))
       if (selectedFile?.id === fileId) closeFile()
-      if (file) logActivity('LeadGen', `Deleted "${file.name}"`)
+      if (file) logActivity('Lead Generation', `Deleted "${file.name}"`)
       window.dispatchEvent(new CustomEvent('lead-file-deleted', { detail: fileId }))
     } catch (err) {
       console.error('Error deleting file:', err)

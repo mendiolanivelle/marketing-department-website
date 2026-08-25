@@ -266,7 +266,7 @@ export default function AcceptanceCriteria() {
       if (error) throw error
       setRemoteOpsEmails(prev => [...new Set([...prev, data.email])])
       setOpsEmailError(null)
-      logActivity('Acceptance Criteria', `Added Operations recipient "${data.email}"`)
+      logActivity('Acceptance Criteria', 'Added an Operations recipient')
       return true
     } catch (error) {
       console.error('Failed to add ops email:', error)
@@ -298,7 +298,7 @@ export default function AcceptanceCriteria() {
       if (insertError) throw insertError
     } catch (error) {
       console.error('Failed to insert replacement ops email:', error)
-      logActivity('Acceptance Criteria', `Operations recipient update failed for "${oldEmail}"`)
+      logActivity('Acceptance Criteria', 'Operations recipient update failed')
       const message = 'Could not save the new recipient. The existing recipient was not changed.'
       setOpsEmailError(message)
       window.alert(message)
@@ -315,11 +315,11 @@ export default function AcceptanceCriteria() {
       if (deleteError) throw deleteError
       setRemoteOpsEmails(prev => [...new Set(prev.map(email => email === oldEmail ? newEmail : email))])
       setOpsEmailError(null)
-      logActivity('Acceptance Criteria', `Changed Operations recipient from "${oldEmail}" to "${newEmail}"`)
+      logActivity('Acceptance Criteria', 'Changed an Operations recipient')
       return true
     } catch (error) {
       console.error('Replacement recipient saved, but old recipient removal was not confirmed:', error)
-      logActivity('Acceptance Criteria', `Operations recipient update needs verification for "${oldEmail}"`)
+      logActivity('Acceptance Criteria', 'Operations recipient update needs verification')
       setRemoteOpsEmails(prev => [...new Set([...prev, newEmail])])
       const refreshed = await refreshOpsEmails()
       const message = refreshed
@@ -350,11 +350,11 @@ export default function AcceptanceCriteria() {
       if (error) throw error
       setRemoteOpsEmails(prev => prev.filter(item => item !== email))
       setOpsEmailError(null)
-      logActivity('Acceptance Criteria', `Removed Operations recipient "${email}"`)
+      logActivity('Acceptance Criteria', 'Removed an Operations recipient')
       return true
     } catch (error) {
       console.error('Failed to delete ops email:', error)
-      logActivity('Acceptance Criteria', `Removing Operations recipient "${email}" failed`)
+      logActivity('Acceptance Criteria', 'Removing an Operations recipient failed')
       const message = 'Could not remove the recipient. No recipient changes were saved.'
       setOpsEmailError(message)
       window.alert(message)

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -48,5 +49,22 @@ test('template failures distinguish save and deletion outcomes', () => {
   assert.equal(
     templateFailureDetail('delete', 'Follow-up'),
     'Deletion failed for "Follow-up"',
+  )
+})
+
+test('activity details omit lead and Operations recipient email addresses', async () => {
+  const messaging = await readFile(
+    new URL('../src/pages/Messaging.tsx', import.meta.url),
+    'utf8',
+  )
+  const acceptanceCriteria = await readFile(
+    new URL('../src/pages/AcceptanceCriteria.tsx', import.meta.url),
+    'utf8',
+  )
+
+  assert.doesNotMatch(messaging, /logActivity\([^\n]*\$\{[^}]*\.email[^}]*\}/i)
+  assert.doesNotMatch(
+    acceptanceCriteria,
+    /logActivity\([^\n]*\$\{(?:data\.email|oldEmail|newEmail|email)\}/,
   )
 })

@@ -64,7 +64,9 @@ const importActivityLogger = async (supabase, storage = new Map()) => {
   globalThis.window = {
     dispatchEvent() {},
     localStorage: {
+      get length() { return storage.size },
       getItem: key => storage.get(key) ?? null,
+      key: index => [...storage.keys()][index] ?? null,
       setItem: (key, value) => storage.set(key, value),
       removeItem: key => storage.delete(key),
     },
@@ -79,14 +81,19 @@ const deferred = () => {
   return { promise, resolve }
 }
 
-const makeActivityClient = ({ insertResult, loadResult, existingResult }) => ({
+const makeActivityClient = ({ insertResult, loadResult, existingResult }) => {
+  let lastInsert = null
+  return ({
   from() {
     return {
-      insert() {
+      insert(insert) {
+        lastInsert = insert
         return {
           select() {
             return {
-              single: async () => insertResult ?? {
+              single: async () => (
+                typeof insertResult === 'function' ? insertResult(insert) : insertResult
+              ) ?? {
                 data: null,
                 error: new Error('No insert result configured'),
               },
@@ -95,22 +102,25 @@ const makeActivityClient = ({ insertResult, loadResult, existingResult }) => ({
         }
       },
       select() {
-        return {
-          eq(_column, id) {
-            return {
-              maybeSingle: async () => existingResult?.(id) ?? ({ data: null, error: null }),
-            }
+        let selectedId = null
+        const query = {
+          eq(column, value) {
+            if (column === 'id') selectedId = value
+            return query
           },
+          maybeSingle: async () => existingResult?.(selectedId, lastInsert) ?? ({ data: null, error: null }),
           order() {
             return {
               limit: () => loadResult ?? Promise.resolve({ data: [], error: null }),
             }
           },
         }
+        return query
       },
     }
   },
-})
+  })
+}
 
 test('a failed activity remains visible and can return to pending before retry', () => {
   const entry = createPendingActivity(
@@ -269,6 +279,71 @@ test('a primary-key collision cannot replace a pending event with different cano
   assert.equal(result?.detail, 'Added note to "Acme"')
 })
 
+test('a successful activity is canonicalized and removed from pending browser storage', async () => {
+  const storage = new Map()
+  const client = makeActivityClient({
+    insertResult: insert => ({
+      data: {
+        id: insert.id,
+        action: insert.action,
+        detail: insert.detail,
+        timestamp: insert.timestamp,
+        user_id: insert.user_id,
+      },
+      error: null,
+    }),
+  })
+  const logger = await importActivityLogger(client, storage)
+  logger.setActivityUser('user-a')
+
+  const result = await logger.logActivity('Files', 'Uploaded "brief.pdf"')
+
+  assert.equal(result?.deliveryStatus, 'saved')
+  assert.equal(storage.has('exodia-activity-pending:user-a'), false)
+})
+
+test('an idempotent retry accepts the same canonical row and keeps the original activity ID', async () => {
+  let insertAttempt = 0
+  const storage = new Map()
+  const client = makeActivityClient({
+    insertResult: () => {
+      insertAttempt += 1
+      return insertAttempt === 1
+        ? { data: null, error: new Error('response lost') }
+        : { data: null, error: { code: '23505' } }
+    },
+    existingResult: (_id, insert) => ({
+      data: {
+        id: insert.id,
+        action: insert.action,
+        detail: insert.detail,
+        timestamp: insert.timestamp,
+        user_id: insert.user_id,
+      },
+      error: null,
+    }),
+  })
+  const logger = await importActivityLogger(client, storage)
+  logger.setActivityUser('user-a')
+
+  const originalConsoleError = console.error
+  console.error = () => {}
+  let failed
+  try {
+    failed = await logger.logActivity('Timeline', 'Added note to "Acme"')
+  } finally {
+    console.error = originalConsoleError
+  }
+  assert.equal(failed?.deliveryStatus, 'failed')
+
+  const retried = await logger.retryActivity(failed.id)
+
+  assert.equal(retried?.id, failed.id)
+  assert.equal(retried?.deliveryStatus, 'saved')
+  assert.equal(logger.getActivityLog().length, 1)
+  assert.equal(storage.has('exodia-activity-pending:user-a'), false)
+})
+
 test('anonymous activity is discarded instead of entering the next user feed', async () => {
   const client = makeActivityClient({})
   const logger = await importActivityLogger(client)
@@ -302,7 +377,62 @@ test('an in-flight load from one user cannot merge into another user feed', asyn
   assert.deepEqual(logger.getActivityLog(), [])
 })
 
-test('database-unavailable activity remains failed and is restored only for its owner', async () => {
+test('a response owned by a different authenticated identity is never merged', async () => {
+  const client = makeActivityClient({
+    loadResult: Promise.resolve({
+      data: [{
+        id: 41,
+        action: 'Files',
+        detail: 'User A private activity',
+        timestamp: '2026-08-25T04:30:00.000Z',
+        user_id: 'user-a',
+      }],
+      error: null,
+    }),
+  })
+  const logger = await importActivityLogger(client)
+  logger.setActivityUser('user-b')
+
+  const originalConsoleError = console.error
+  console.error = () => {}
+  try {
+    await logger.loadActivityLog()
+  } finally {
+    console.error = originalConsoleError
+  }
+
+  assert.deepEqual(logger.getActivityLog(), [])
+})
+
+test('an insert response owned by a different identity is never marked saved', async () => {
+  const client = makeActivityClient({
+    insertResult: insert => ({
+      data: {
+        id: insert.id,
+        action: insert.action,
+        detail: insert.detail,
+        timestamp: insert.timestamp,
+        user_id: 'user-a',
+      },
+      error: null,
+    }),
+  })
+  const logger = await importActivityLogger(client)
+  logger.setActivityUser('user-b')
+
+  const originalConsoleError = console.error
+  console.error = () => {}
+  let result
+  try {
+    result = await logger.logActivity('Files', 'User B activity')
+  } finally {
+    console.error = originalConsoleError
+  }
+
+  assert.equal(result?.deliveryStatus, 'failed')
+})
+
+test('database-unavailable activity survives reload for its owner but is purged on account switch', async () => {
   const storage = new Map()
   const firstLogger = await importActivityLogger(null, storage)
   firstLogger.setActivityUser('user-a')
@@ -311,11 +441,49 @@ test('database-unavailable activity remains failed and is restored only for its 
   assert.equal(failed?.deliveryStatus, 'failed')
 
   const reloadedLogger = await importActivityLogger(null, storage)
-  reloadedLogger.setActivityUser('user-b')
-  assert.deepEqual(reloadedLogger.getActivityLog(), [])
   reloadedLogger.setActivityUser('user-a')
   assert.deepEqual(
     reloadedLogger.getActivityLog().map(entry => ({ action: entry.action, status: entry.deliveryStatus })),
     [{ action: 'Files', status: 'failed' }],
   )
+
+  reloadedLogger.setActivityUser('user-b')
+  assert.deepEqual(reloadedLogger.getActivityLog(), [])
+  assert.equal(storage.has('exodia-activity-pending:user-a'), false)
+
+  const userAReturn = await importActivityLogger(null, storage)
+  userAReturn.setActivityUser('user-a')
+  assert.deepEqual(userAReturn.getActivityLog(), [])
+})
+
+test('a fresh browser module purges another users pending queue before first login', async () => {
+  const storage = new Map([
+    ['unrelated-setting', 'keep-me'],
+    ['exodia-activity-pending:user-a', JSON.stringify([{
+      id: 111,
+      action: 'Files',
+      detail: 'User A private filename',
+      timestamp: '2026-08-25T04:30:00.000Z',
+      deliveryStatus: 'failed',
+    }])],
+  ])
+  const logger = await importActivityLogger(null, storage)
+
+  logger.setActivityUser('user-b')
+
+  assert.deepEqual(logger.getActivityLog(), [])
+  assert.equal(storage.has('exodia-activity-pending:user-a'), false)
+  assert.equal(storage.get('unrelated-setting'), 'keep-me')
+})
+
+test('confirmed anonymous startup purges every pending activity queue', async () => {
+  const storage = new Map([
+    ['exodia-activity-pending:user-a', '[]'],
+    ['exodia-activity-pending:user-b', '[]'],
+  ])
+  const logger = await importActivityLogger(null, storage)
+
+  logger.setActivityUser(null)
+
+  assert.equal(storage.size, 0)
 })

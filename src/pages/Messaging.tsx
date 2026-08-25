@@ -335,7 +335,7 @@ export default function Messaging() {
     setLeads(sortLeads([{ ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '', emailHistory: [] }, ...leads]))
     setNewLead({ name: '', email: '', company: '', role: '' })
     setShowAdd(false)
-    logActivity('Lead', `Added "${newLead.name.trim()}" (${newLead.email.trim()})`)
+    logActivity('Lead', `Added "${newLead.name.trim()}"`)
   }
 
   const triggerReSync = () => {
@@ -460,7 +460,7 @@ export default function Messaging() {
       if (error) throw error
     } catch (err) {
       console.error('Email send failed:', err)
-      logActivity('Email', `Send failed for "${selectedLead.name}" (${selectedLead.email})`)
+      logActivity('Email', `Send failed for "${selectedLead.name}"`)
       addNotification('Email could not be sent. Please try again.', 'error')
       return
     }
@@ -477,7 +477,7 @@ export default function Messaging() {
     setSelectedLead(null)
     setReplyingTo(null)
     setShowEmailSuccess(true)
-    logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
+    logActivity('Email', `Sent to "${selectedLead.name}"`)
   }
 
   // === Message Templates State ===

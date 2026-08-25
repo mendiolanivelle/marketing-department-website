@@ -69,3 +69,20 @@ test('dashboard reconciliation grants table and sequence access to authenticated
   assert.match(migration, /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE[\s\S]*TO authenticated/)
   assert.match(migration, /GRANT USAGE, SELECT ON SEQUENCE[\s\S]*tasks_id_seq[\s\S]*activity_log_id_seq[\s\S]*TO authenticated/)
 })
+
+test('activity RLS restricts reads and inserts to auth.uid and grants no anonymous access', async () => {
+  const migration = await readFile(
+    new URL('../supabase/migrations/056_reconcile_dashboard_tasks_activity.sql', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(
+    migration,
+    /CREATE POLICY "Users can view their activity log"[\s\S]*FOR SELECT TO authenticated[\s\S]*USING \(user_id = auth\.uid\(\)\);/,
+  )
+  assert.match(
+    migration,
+    /CREATE POLICY "Users can insert their activity log"[\s\S]*FOR INSERT TO authenticated[\s\S]*WITH CHECK \(user_id = auth\.uid\(\)\);/,
+  )
+  assert.doesNotMatch(migration, /GRANT[^;]*activity_log[^;]*TO anon;/)
+})

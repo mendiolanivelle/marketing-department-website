@@ -540,7 +540,7 @@ export default function FileTracker() {
   const openLink = (asset: Asset) => {
     if (asset.url) {
       window.open(asset.url, '_blank', 'noopener,noreferrer')
-      logActivity('Files', `Opened link "${asset.name}"`)
+      logActivity('Files', `Requested opening link "${asset.name}"`)
     }
   }
 

@@ -62,6 +62,7 @@ export default function Home() {
   const [editingTaskText, setEditingTaskText] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
   const [showAllActivity, setShowAllActivity] = useState(false)
+  const [activityAnnouncement, setActivityAnnouncement] = useState({ sequence: 0, message: '' })
   const [campaigns, setCampaigns] = useState<any[]>(() => isSupabaseConfigured ? [] : readBrowserCampaigns())
   const [campaignCountsReady, setCampaignCountsReady] = useState(!isSupabaseConfigured)
   const homeAbortRef = useRef<AbortController | null>(null)
@@ -100,6 +101,20 @@ export default function Home() {
       window.removeEventListener('activity-updated', refreshFromCache)
     }
   }, [location.key])
+
+  const retryActivityEntry = async (entry: ActivityEntry) => {
+    setActivityAnnouncement(current => ({
+      sequence: current.sequence + 1,
+      message: `Saving ${entry.action} activity`,
+    }))
+    const result = await retryActivity(entry.id)
+    setActivityAnnouncement(current => ({
+      sequence: current.sequence + 1,
+      message: result?.deliveryStatus === 'saved'
+        ? `${entry.action} activity saved`
+        : `${entry.action} activity was not saved`,
+    }))
+  }
 
   useEffect(() => {
     if (isSupabaseConfigured) return
@@ -900,6 +915,7 @@ export default function Home() {
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF8C33, var(--accent))' }}></div>
               <div className="p-5 sm:p-7">
+                <p key={activityAnnouncement.sequence} className="sr-only" role="status" aria-live="polite" aria-atomic="true">{activityAnnouncement.message}</p>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
@@ -909,7 +925,7 @@ export default function Home() {
                   </div>
                     <div>
                       <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
-                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Saved to your account across sign-ins</p>
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Saved activity is available across sign-ins</p>
                     </div>
                   </div>
                   {activityLog.length > 8 && (
@@ -937,14 +953,15 @@ export default function Home() {
                           </span>
                           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatActivityTimestamp(entry.timestamp)}</span>
                           {entry.deliveryStatus === 'pending' && (
-                            <span className="text-[10px] font-medium" style={{ color: '#B45309' }}>Saving…</span>
+                            <span className="text-[10px] font-medium" style={{ color: 'var(--status-warning)' }}>Saving…</span>
                           )}
                           {entry.deliveryStatus === 'failed' && (
                             <>
-                              <span className="text-[10px] font-medium" style={{ color: '#B91C1C' }}>Not saved</span>
+                              <span className="text-[10px] font-medium" style={{ color: 'var(--status-error)' }}>Not saved</span>
                               <button
                                 type="button"
-                                onClick={() => retryActivity(entry.id)}
+                                onClick={() => { void retryActivityEntry(entry) }}
+                                aria-label={`Retry saving ${entry.action} activity`}
                                 className="text-[10px] font-semibold hover:underline"
                                 style={{ color: 'var(--accent)' }}
                               >
