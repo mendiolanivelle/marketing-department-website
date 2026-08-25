@@ -340,6 +340,7 @@ export default function Messaging() {
   const triggerReSync = () => {
     localStorage.removeItem('exodia-synced-lead-files')
     reSyncAll.current = true
+    logActivity('Lead', 'Requested a full Lead Generation re-sync')
     addNotification('Re-syncing all leads from Lead Generation...', 'success')
     setTimeout(() => window.location.reload(), 800)
   }
@@ -458,6 +459,7 @@ export default function Messaging() {
       if (error) throw error
     } catch (err) {
       console.error('Email send failed:', err)
+      logActivity('Email', `Send failed for "${selectedLead.name}" (${selectedLead.email})`)
       addNotification('Email could not be sent. Please try again.', 'error')
       return
     }
@@ -711,8 +713,10 @@ export default function Messaging() {
       setTemplates(current => current.filter(template => !deletedIds.has(template.id)))
       if (selectedCategory === category) setSelectedCategory('All')
       addNotification(`Category "${category}" was deleted.`)
+      logActivity('Template', `Deleted category "${category}" and ${deletedIds.size} template${deletedIds.size === 1 ? '' : 's'}`)
     } catch (error) {
       console.error('Failed to delete template category:', error)
+      logActivity('Template', `Category deletion failed for "${category}"`)
       addNotification('Category could not be deleted. No local templates were changed.', 'error')
     }
   }

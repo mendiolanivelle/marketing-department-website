@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { logActivity } from '../lib/activityLogger'
 import { sha256Hex } from '../lib/fileIntegrity'
 import { runPrivateStorageMaintenance } from '../lib/privateStorageFeature.js'
 import {
@@ -327,6 +328,10 @@ export default function WebsiteRequests() {
       })
       setForm(emptyForm(user?.email))
       void loadRequests()
+      logActivity(
+        'Website Requests',
+        `Submitted "${requestRow.title}" with ${storedAttachments.length} attachment${storedAttachments.length === 1 ? '' : 's'}`,
+      )
     } catch (error) {
       if (cleanupAllowed && uploadedPaths.length > 0) {
         await cleanupUnreferencedPrivateObjects(
@@ -345,12 +350,14 @@ export default function WebsiteRequests() {
         const detail = error instanceof Error ? error.message : 'unknown error'
         setMessage(`Could not submit request: ${detail}`)
       }
+      logActivity('Website Requests', 'Request submission failed')
     } finally {
       setSaving(false)
     }
   }
 
   const updateStatus = async (id: string, status: RequestStatus) => {
+    const request = requests.find(item => item.id === id)
     if (!isSupabaseConfigured || !supabase) {
       setMessage('Database is not configured, so the status was not updated.')
       return
@@ -362,13 +369,16 @@ export default function WebsiteRequests() {
       .select('id')
       .single()
     if (error || !data) {
+      logActivity('Website Requests', `Status update failed${request ? ` for "${request.title}"` : ''}`)
       setMessage(`Could not update status: ${error?.message || 'request was not found'}`)
       return
     }
     setRequests(current => current.map(request => request.id === id ? { ...request, status } : request))
+    logActivity('Website Requests', `Changed "${request?.title || 'request'}" status to ${status}`)
   }
 
   const updatePriority = async (id: string, priority: RequestPriority) => {
+    const request = requests.find(item => item.id === id)
     if (!isSupabaseConfigured || !supabase) {
       setMessage('Database is not configured, so the priority was not updated.')
       return
@@ -380,10 +390,12 @@ export default function WebsiteRequests() {
       .select('id')
       .single()
     if (error || !data) {
+      logActivity('Website Requests', `Priority update failed${request ? ` for "${request.title}"` : ''}`)
       setMessage(`Could not update priority: ${error?.message || 'request was not found'}`)
       return
     }
     setRequests(current => current.map(request => request.id === id ? { ...request, priority } : request))
+    logActivity('Website Requests', `Changed "${request?.title || 'request'}" priority to ${priority}`)
   }
 
   const deleteRequest = async (id: string) => {
@@ -400,6 +412,7 @@ export default function WebsiteRequests() {
       .select('id')
       .single()
     if (error || !data) {
+      logActivity('Website Requests', `Deletion failed${request ? ` for "${request.title}"` : ''}`)
       setMessage(`Could not delete request: ${error?.message || 'request was not found'}`)
       return
     }
@@ -416,6 +429,7 @@ export default function WebsiteRequests() {
       }
     }
     setRequests(current => current.filter(request => request.id !== id))
+    logActivity('Website Requests', `Deleted "${request?.title || 'request'}"`)
   }
 
   return (

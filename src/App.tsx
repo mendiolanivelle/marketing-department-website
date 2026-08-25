@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Routes, Route, useLocation } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { logActivity } from './lib/activityLogger'
+import { getActivityRouteName } from './lib/activityRoutes'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
@@ -86,27 +87,12 @@ function UploadStatusPopup() {
   )
 }
 
-const activityRouteNames: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/timeline': 'Timeline',
-  '/templates': 'Messaging & Templates',
-  '/calendar': 'Calendar',
-  '/files': 'File Tracker',
-  '/leads': 'Lead Generation',
-  '/campaigns': 'Campaigns',
-  '/acceptance-criteria': 'Acceptance Criteria',
-  '/marketing-project-list': 'Marketing Project List',
-  '/marketing-projects': 'Marketing Projects',
-  '/requests': 'Marketing Requests',
-  '/website-requests': 'Website Requests',
-}
-
 function ActivityRouteTracker() {
   const location = useLocation()
 
   useEffect(() => {
-    const pageName = activityRouteNames[location.pathname]
-    if (pageName) logActivity('Navigation', `Opened ${pageName}`)
+    const pageName = getActivityRouteName(location.pathname)
+    if (pageName) void logActivity('Navigation', `Opened ${pageName}`)
   }, [location.pathname])
 
   return null

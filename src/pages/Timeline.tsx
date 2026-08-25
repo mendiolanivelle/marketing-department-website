@@ -279,6 +279,7 @@ export default function Timeline() {
 
   const showTimelineWriteError = (action: string, error: unknown) => {
     console.error(`Could not ${action}:`, error)
+    logActivity('Timeline', `Failed to ${action}`)
     alert(`Could not ${action}. No changes were saved. Please try again.`)
   }
 
@@ -293,6 +294,7 @@ export default function Timeline() {
       })
       if (!saved) return
       setLeads(prev => prev.map(item => item.id === lead.id ? movedLead : item))
+      logActivity('Timeline', `Moved lead "${lead.company}" to "${column.label}"`)
     } catch (error) {
       showTimelineWriteError('move the lead', error)
     }
@@ -392,6 +394,7 @@ export default function Timeline() {
     try {
       if (!await updateTimelineTableRecord(tableId, { columns })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns } : t))
+      logActivity('Timeline', `Reordered columns in "${table.title}"`)
     } catch (error) {
       showTimelineWriteError('reorder the columns', error)
     } finally {
@@ -469,6 +472,7 @@ export default function Timeline() {
     try {
       if (!await updateTimelineTableRecord(tableId, { columns: newColumns })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
+      logActivity('Timeline', `Renamed a column in "${table.title}" to "${editingColumnValue.trim()}"`)
       setEditingColumnLabel(null)
     } catch (error) {
       showTimelineWriteError('rename the column', error)
@@ -487,6 +491,12 @@ export default function Timeline() {
     try {
       if (!await updateTimelineTableRecord(tableId, { columns: newColumns })) return
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, columns: newColumns } : t))
+      logActivity(
+        'Timeline',
+        selectedTemplateId
+          ? `Assigned an email template to "${table.title}" column`
+          : `Cleared an email template from "${table.title}" column`,
+      )
     } catch (error) {
       showTimelineWriteError('save the column template', error)
     }
@@ -510,6 +520,7 @@ export default function Timeline() {
       setTables(prev => prev.map(t => t.id === table.id ? { ...t, columns: newColumns } : t))
       setShowAddColumn(false)
       setNewColumnName('')
+      logActivity('Timeline', `Added column "${label}" to "${table.title}"`)
     } catch (error) {
       showTimelineWriteError('add the column', error)
     }
@@ -584,6 +595,7 @@ export default function Timeline() {
       setLeads(prev => prev.map(lead => lead.id === data.id ? data : lead))
       setSelectedLead(current => current?.id === data.id ? data : current)
       setEditingLead(null)
+      logActivity('Timeline', `Updated lead "${data.company}"`)
     } catch (error) {
       showTimelineWriteError('update the lead', error)
     }
@@ -618,6 +630,7 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { notes: updatedNotes })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      logActivity('Timeline', `Deleted a note from "${selectedLead.company}"`)
       setShowAddPopup(null)
       setAddPopupValue('')
       logActivity('Timeline', `Added note to "${selectedLead.company}"`)
@@ -653,6 +666,7 @@ export default function Timeline() {
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
       setEditingNoteIndex(null)
       setEditingNoteValue('')
+      logActivity('Timeline', `Updated a note for "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('update the note', error)
     }
@@ -668,6 +682,7 @@ export default function Timeline() {
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
       setShowAddPopup(null)
       setAddPopupValue('')
+      logActivity('Timeline', `Added an attachment to "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('add the attachment', error)
     }
@@ -681,6 +696,7 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { attachments: updatedAttachments })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      logActivity('Timeline', `Deleted an attachment from "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('delete the attachment', error)
     }
@@ -692,6 +708,7 @@ export default function Timeline() {
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(selectedLead.email)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(fixUrl(emailBody))}`
     const popup = window.open(gmailUrl, '_blank', 'noopener,noreferrer')
     if (!popup) {
+      logActivity('Timeline', `Gmail draft was blocked for "${selectedLead.company}"`)
       alert('The Gmail draft was blocked by the browser. No delivery history was changed.')
       return
     }
@@ -709,6 +726,7 @@ export default function Timeline() {
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
       setEditingLastEmail(false)
+      logActivity('Timeline', `Updated the email date for "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('save the email date', error)
     }
@@ -724,6 +742,7 @@ export default function Timeline() {
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
       setShowAddPopup(null)
       setAddPopupValue('')
+      logActivity('Timeline', `Added a checklist item for "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('add the checklist item', error)
     }
@@ -738,6 +757,7 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { checklist })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      logActivity('Timeline', `${checklist[idx].done ? 'Completed' : 'Reopened'} a checklist item for "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('update the checklist item', error)
     }
@@ -751,6 +771,7 @@ export default function Timeline() {
       if (!await updateTimelineLeadRecord(selectedLead.id, { checklist })) return
       setSelectedLead(updated)
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
+      logActivity('Timeline', `Deleted a checklist item from "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('delete the checklist item', error)
     }
@@ -767,6 +788,7 @@ export default function Timeline() {
       setLeads(prev => prev.map(l => l.id === selectedLead.id ? updated : l))
       setEditingChecklistIdx(null)
       setEditingChecklistValue('')
+      logActivity('Timeline', `Updated a checklist item for "${selectedLead.company}"`)
     } catch (error) {
       showTimelineWriteError('update the checklist item', error)
     }

@@ -344,8 +344,10 @@ export default function Calendar() {
       setEditingNotes(updatedItem.notes)
       notesBaselineUpdatedAt.current = updatedItem.updated_at
       setItems(prev => prev.map(item => item.id === viewItem.id ? updatedItem : item))
+      logActivity('Calendar', `Updated notes for "${updatedItem.title}"`)
     } catch (err) {
       console.error('Error saving notes:', err)
+      logActivity('Calendar', `Notes update failed for "${viewItem.title}"`)
       alert('Failed to save notes')
     } finally {
       setSavingNotes(false)
@@ -424,6 +426,7 @@ export default function Calendar() {
       logActivity('Calendar', editingItem ? `Updated "${payload.title}" (${payload.type})` : `Created "${payload.title}" (${payload.type})`)
     } catch (err) {
       console.error('Error saving calendar item:', err)
+      logActivity('Calendar', `${editingItem ? 'Update' : 'Creation'} failed for "${payload.title}"`)
       alert('Failed to save item')
     } finally {
       setSubmitting(false)
@@ -457,6 +460,7 @@ export default function Calendar() {
       if (item) logActivity('Calendar', `Deleted "${item.title}"`)
     } catch (err) {
       console.error('Error deleting calendar item:', err)
+      logActivity('Calendar', `Deletion failed for "${item.title}"`)
       alert('Failed to delete item')
     }
   }

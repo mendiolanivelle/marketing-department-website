@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 import { queueCampaignFormPatch } from '../lib/campaignFormState'
 
 interface AccessibleDialogProps {
@@ -288,10 +289,17 @@ export default function Campaigns() {
           : `Campaign "${campaign.name}" was created, but Calendar sync failed.`,
         !calendarSynced,
       )
+      logActivity(
+        'Campaigns',
+        calendarSynced
+          ? `Created campaign "${campaign.name}" and added it to Calendar`
+          : `Created campaign "${campaign.name}"; Calendar sync failed`,
+      )
       setShowAdd(false)
       setForm({ name: '', dept: '', status: 'Pending', due: todayISO(), requesterName: '', requesterEmail: '', priority: '', requestType: [], description: '' })
     } catch (error) {
       console.error('Failed to create campaign:', error)
+      logActivity('Campaigns', 'Campaign creation failed')
       showNote('Campaign could not be created. No local record was added.', true)
     } finally {
       setBusy(false)
@@ -326,9 +334,11 @@ export default function Campaigns() {
         setCampaigns(current => current.map(item => item.id === campaign.id ? { ...item, status } : item))
       }
       setViewingCampaign(current => current?.id === campaign.id ? { ...current, status } : current)
+      logActivity('Campaigns', `Changed "${campaign.name}" status to ${status}`)
       showNote('Status updated. Existing Calendar entries were left unchanged.')
     } catch (error) {
       console.error('Failed to update campaign status:', error)
+      logActivity('Campaigns', `Status update failed for "${campaign.name}"`)
       showNote('Status could not be updated. The displayed record was left unchanged.', true)
     } finally {
       setBusy(false)
@@ -363,9 +373,11 @@ export default function Campaigns() {
       if (id < 0) setRequests(current => current.filter(item => item.id !== id))
       else setCampaigns(current => current.filter(item => item.id !== id))
       setViewingCampaign(current => current?.id === id ? null : current)
+      logActivity('Campaigns', `Deleted "${campaign.name}"`)
       showNote(`"${campaign.name}" was deleted. Existing Calendar entries were left unchanged.`)
     } catch (error) {
       console.error('Failed to delete campaign:', error)
+      logActivity('Campaigns', `Deletion failed for "${campaign.name}"`)
       showNote('The record could not be deleted. The displayed record was left unchanged.', true)
     } finally {
       setBusy(false)
@@ -403,8 +415,10 @@ export default function Campaigns() {
       setNotifyId(null)
       setViewingCampaign(null)
       setShowNotifySuccess(true)
+      logActivity('Campaigns', `Sent completion notice for "${campaign.name}"`)
     } catch (error) {
       console.error('Failed to send completion notice:', error)
+      logActivity('Campaigns', `Completion notice failed for "${campaign.name}"`)
       showNote('The completion notice was not sent. The preview remains open.', true)
     } finally {
       setBusy(false)

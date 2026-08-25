@@ -113,18 +113,20 @@ export default function MarketingRequests() {
       }
     } catch (err) {
       console.error('Delete failed:', err)
+      logActivity('Marketing Requests', `Deletion failed for "${req.title}"`)
       window.alert('The request was not deleted. Please refresh and try again.')
       setDeleting(null)
       return
     }
     setSubmitted(prev => prev.filter((_, i) => i !== index))
     setDeleting(null)
-    logActivity('MarketingRequests', `Deleted request "${req.title}"`)
+    logActivity('Marketing Requests', `Deleted request "${req.title}"`)
     loadSubmissions()
   }
 
   const openRequest = (req: SubmittedRequest) => {
     setViewingRequest(req)
+    logActivity('Marketing Requests', `Opened request "${req.title}"`)
     if (!isSupabaseConfigured || !supabase || !req.id) return
     void supabase
       .from('marketing_requests')
@@ -135,6 +137,7 @@ export default function MarketingRequests() {
       .then(({ data, error }) => {
         if (error || !data) {
           console.error('Failed to mark marketing request as read:', error || new Error('Request was not found'))
+          logActivity('Marketing Requests', `Read marker failed for "${req.title}"`)
           return
         }
         window.dispatchEvent(new CustomEvent('lead-data-changed'))

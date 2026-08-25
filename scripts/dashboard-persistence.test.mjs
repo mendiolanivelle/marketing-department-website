@@ -44,12 +44,14 @@ test('browser tasks are migrated once without duplicating canonical tasks', () =
 test('persisted activity is tied to the signed-in user and uses a stable timestamp', () => {
   assert.deepEqual(
     createActivityInsert(
+      1_728_250_000_321,
       'Timeline',
       'Created table "Launch Plan"',
       'ad1056ba-f961-4e2a-af90-c369b17f433e',
       new Date('2026-08-17T06:30:00.000Z'),
     ),
     {
+      id: 1_728_250_000_321,
       action: 'Timeline',
       detail: 'Created table "Launch Plan"',
       timestamp: '2026-08-17T06:30:00.000Z',

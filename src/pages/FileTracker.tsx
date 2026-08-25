@@ -301,12 +301,19 @@ export default function FileTracker() {
       return false
     }
     if (!await supabaseUpdate(asset.id, fields)) {
+      logActivity('Files', `Update failed for "${asset.name}"`)
       setSyncError('Could not save the asset change. The displayed record was not changed.')
       return false
     }
     setSyncError('')
     setRemoteAssets(prev => prev.map(item => item.id === asset.id ? { ...item, ...fields } : item))
     setPreviewAsset(prev => prev?.id === asset.id ? { ...prev, ...fields } : prev)
+    logActivity(
+      'Files',
+      fields.name
+        ? `Renamed "${asset.name}" to "${fields.name}"`
+        : `Updated metadata for "${asset.name}"`,
+    )
     return true
   }
 
@@ -426,6 +433,7 @@ export default function FileTracker() {
       }
       setPendingFiles(failedFiles)
       if (unknownCount > 0) {
+        logActivity('Files', `${unknownCount} file upload outcome${unknownCount === 1 ? '' : 's'} need verification`)
         setReconciliationRequired(true)
         setUploadError(
           `${unknownCount} file save outcome${unknownCount === 1 ? ' is' : 's are'} unknown. `
@@ -435,6 +443,7 @@ export default function FileTracker() {
         return
       }
       if (failedFiles.length > 0) {
+        logActivity('Files', `${failedFiles.length} file upload${failedFiles.length === 1 ? '' : 's'} failed`)
         setUploadError(`${failedFiles.length} file${failedFiles.length === 1 ? '' : 's'} could not be saved. Please retry.`)
         return
       }
@@ -455,6 +464,7 @@ export default function FileTracker() {
       }
       const insertOutcome = await supabaseInsert(asset)
       if (insertOutcome === 'unknown') {
+        logActivity('Files', `Link save needs verification for "${name}"`)
         setReconciliationRequired(true)
         setLinkName('')
         setLinkUrl('')
@@ -462,6 +472,7 @@ export default function FileTracker() {
         return
       }
       if (insertOutcome === 'not_saved') {
+        logActivity('Files', `Link save failed for "${name}"`)
         setUploadError('Could not save the link. Please retry.')
         return
       }
@@ -486,6 +497,7 @@ export default function FileTracker() {
     }
     if (!window.confirm('Delete this file?')) return
     if (!await supabaseDelete(id)) {
+      logActivity('Files', `Deletion failed for "${asset.name}"`)
       setSyncError('Could not delete the asset. The displayed record was not removed.')
       return
     }
@@ -521,10 +533,14 @@ export default function FileTracker() {
     a.href = downloadUrl
     a.download = asset.name
     document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    logActivity('Files', `Downloaded "${asset.name}"`)
   }
 
   const openLink = (asset: Asset) => {
-    if (asset.url) window.open(asset.url, '_blank', 'noopener,noreferrer')
+    if (asset.url) {
+      window.open(asset.url, '_blank', 'noopener,noreferrer')
+      logActivity('Files', `Opened link "${asset.name}"`)
+    }
   }
 
   const startEditing = (asset: Asset) => {

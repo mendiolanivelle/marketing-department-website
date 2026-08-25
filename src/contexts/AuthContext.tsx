@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react'
 import { supabase, isSupabaseConfigured, setRememberMe } from '../lib/supabase'
 import { isStaffUser } from '../lib/staff.js'
+import { clearActivityLog, logActivity } from '../lib/activityLogger'
 import type { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        clearActivityLog()
         applySession(null)
       } else if (session) {
         const authorized = applySession(session)
@@ -89,11 +91,13 @@ return () => {
       return { error: new Error('This account is not authorized for the staff portal.') }
     }
     applySession(data.session)
+    await logActivity('Authentication', 'Signed in')
     return { error: null }
   }
 
   const signOut = async () => {
     if (!supabase) return
+    await logActivity('Authentication', 'Signed out')
     await supabase?.auth.signOut()
     applySession(null)
   }
