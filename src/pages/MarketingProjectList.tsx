@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 
 declare const google: any
 
@@ -74,6 +75,7 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
       scope: 'https://www.googleapis.com/auth/calendar.events',
       callback: async (response: any) => {
         if (response.error) {
+          logActivity('Project List', `Calendar authorization failed for "${project.project_name || 'Untitled'}"`)
           setError('Access denied — please allow Calendar access')
           setSending(false)
           return
@@ -111,6 +113,7 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
 
           if (!res.ok) {
             const err = await res.json()
+            logActivity('Project List', `Meeting creation failed for "${project.project_name || 'Untitled'}"`)
             setError(err.error?.message || 'Failed to create event')
             setSending(false)
             return
@@ -127,9 +130,11 @@ function ScheduleMeetingModal({ project, onClose, onScheduled }: { project: Proj
             setError(cleanup.ok
               ? 'The meeting could not be linked to the project, so the Calendar event was cancelled. Please retry.'
               : 'The meeting could not be linked to the project. Verify Google Calendar before retrying to avoid duplicate invitations.')
+            logActivity('Project List', `Meeting link failed for "${project.project_name || 'Untitled'}"`)
             setSending(false)
           }
         } catch {
+          logActivity('Project List', `Meeting creation failed for "${project.project_name || 'Untitled'}"`)
           setError('Could not create meeting')
           setSending(false)
         }
@@ -305,6 +310,7 @@ export default function MarketingProjectList() {
     await fetchProjects()
     setSelectedProject(null)
     setSuccessProject({ ...selectedProject, meetLink: event.hangoutLink })
+    logActivity('Project List', `Scheduled discovery meeting for "${selectedProject?.project_name || 'Untitled'}"`)
   }
 
   if (loading) {

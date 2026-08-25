@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { logActivity } from '../lib/activityLogger'
+import { templateFailureDetail } from '../lib/activityDetails'
 
 interface EmailHistoryItem {
   id: string
@@ -334,12 +335,13 @@ export default function Messaging() {
     setLeads(sortLeads([{ ...newLead, id, status: 'pending' as const, lastContacted: '', notes: '', emailHistory: [] }, ...leads]))
     setNewLead({ name: '', email: '', company: '', role: '' })
     setShowAdd(false)
-    logActivity('Lead', `Added "${newLead.name.trim()}" (${newLead.email.trim()})`)
+    logActivity('Lead', `Added "${newLead.name.trim()}"`)
   }
 
   const triggerReSync = () => {
     localStorage.removeItem('exodia-synced-lead-files')
     reSyncAll.current = true
+    logActivity('Lead', 'Requested a full Lead Generation re-sync')
     addNotification('Re-syncing all leads from Lead Generation...', 'success')
     setTimeout(() => window.location.reload(), 800)
   }
@@ -458,6 +460,7 @@ export default function Messaging() {
       if (error) throw error
     } catch (err) {
       console.error('Email send failed:', err)
+      logActivity('Email', `Send failed for "${selectedLead.name}"`)
       addNotification('Email could not be sent. Please try again.', 'error')
       return
     }
@@ -474,7 +477,7 @@ export default function Messaging() {
     setSelectedLead(null)
     setReplyingTo(null)
     setShowEmailSuccess(true)
-    logActivity('Email', `Sent to "${selectedLead.name}" (${selectedLead.email})`)
+    logActivity('Email', `Sent to "${selectedLead.name}"`)
   }
 
   // === Message Templates State ===
@@ -623,6 +626,7 @@ export default function Messaging() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error saving template:', err)
+      logActivity('Template', templateFailureDetail(editingId ? 'update' : 'create', data.title))
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save template. Please try again.')
     }
   }
@@ -677,6 +681,7 @@ export default function Messaging() {
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error deleting template:', err)
+      logActivity('Template', templateFailureDetail('delete', template?.title || 'template'))
       setErrorMessage(err instanceof Error ? err.message : 'Failed to delete template. Please try again.')
     }
     setDeleteConfirmId(null)
@@ -711,8 +716,10 @@ export default function Messaging() {
       setTemplates(current => current.filter(template => !deletedIds.has(template.id)))
       if (selectedCategory === category) setSelectedCategory('All')
       addNotification(`Category "${category}" was deleted.`)
+      logActivity('Template', `Deleted category "${category}" and ${deletedIds.size} template${deletedIds.size === 1 ? '' : 's'}`)
     } catch (error) {
       console.error('Failed to delete template category:', error)
+      logActivity('Template', `Category deletion failed for "${category}"`)
       addNotification('Category could not be deleted. No local templates were changed.', 'error')
     }
   }

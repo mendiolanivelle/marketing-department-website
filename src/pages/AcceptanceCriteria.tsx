@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { logActivity } from '../lib/activityLogger'
 
 interface AccessibleDialogProps {
   children: ReactNode
@@ -265,9 +266,11 @@ export default function AcceptanceCriteria() {
       if (error) throw error
       setRemoteOpsEmails(prev => [...new Set([...prev, data.email])])
       setOpsEmailError(null)
+      logActivity('Acceptance Criteria', 'Added an Operations recipient')
       return true
     } catch (error) {
       console.error('Failed to add ops email:', error)
+      logActivity('Acceptance Criteria', 'Adding an Operations recipient failed')
       const message = 'Could not add the recipient. No recipient changes were saved.'
       setOpsEmailError(message)
       window.alert(message)
@@ -295,6 +298,7 @@ export default function AcceptanceCriteria() {
       if (insertError) throw insertError
     } catch (error) {
       console.error('Failed to insert replacement ops email:', error)
+      logActivity('Acceptance Criteria', 'Operations recipient update failed')
       const message = 'Could not save the new recipient. The existing recipient was not changed.'
       setOpsEmailError(message)
       window.alert(message)
@@ -311,9 +315,11 @@ export default function AcceptanceCriteria() {
       if (deleteError) throw deleteError
       setRemoteOpsEmails(prev => [...new Set(prev.map(email => email === oldEmail ? newEmail : email))])
       setOpsEmailError(null)
+      logActivity('Acceptance Criteria', 'Changed an Operations recipient')
       return true
     } catch (error) {
       console.error('Replacement recipient saved, but old recipient removal was not confirmed:', error)
+      logActivity('Acceptance Criteria', 'Operations recipient update needs verification')
       setRemoteOpsEmails(prev => [...new Set([...prev, newEmail])])
       const refreshed = await refreshOpsEmails()
       const message = refreshed
@@ -344,9 +350,11 @@ export default function AcceptanceCriteria() {
       if (error) throw error
       setRemoteOpsEmails(prev => prev.filter(item => item !== email))
       setOpsEmailError(null)
+      logActivity('Acceptance Criteria', 'Removed an Operations recipient')
       return true
     } catch (error) {
       console.error('Failed to delete ops email:', error)
+      logActivity('Acceptance Criteria', 'Removing an Operations recipient failed')
       const message = 'Could not remove the recipient. No recipient changes were saved.'
       setOpsEmailError(message)
       window.alert(message)
@@ -383,8 +391,10 @@ export default function AcceptanceCriteria() {
       })
       setSubmissions(prev => prev.filter(item => String(item.id) !== String(submission.id)))
       await fetchSubmissions()
+      logActivity('Acceptance Criteria', `Deleted submission "${submission.project_name || formatId(submission)}"`)
     } catch (error) {
       console.error('Failed to delete acceptance submission:', error)
+      logActivity('Acceptance Criteria', `Deleting submission "${submission.project_name || formatId(submission)}" failed`)
       window.alert('Could not delete the submission. No submission records were changed.')
     }
   }
@@ -393,6 +403,7 @@ export default function AcceptanceCriteria() {
     trigger.focus()
     lastSubmissionTriggerRef.current = trigger
     setSelectedSubmission(submission)
+    logActivity('Acceptance Criteria', `Opened submission "${submission.project_name || formatId(submission)}"`)
 
     if (!submission.id) return
     if (!isSupabaseConfigured || !supabase) {
@@ -416,6 +427,7 @@ export default function AcceptanceCriteria() {
       window.dispatchEvent(new CustomEvent('acceptance-forms-changed'))
     } catch (error) {
       console.error('Failed to mark acceptance submission as read:', error)
+      logActivity('Acceptance Criteria', `Read marker failed for "${submission.project_name || formatId(submission)}"`)
       window.alert('The submission opened, but its read status could not be saved.')
     }
   }
@@ -944,6 +956,7 @@ export default function AcceptanceCriteria() {
                         body: `Dear Operations Team,\n\nThe Marketing Department has forwarded the Acceptance Criteria for review. Please find the details and resource links below.\n\n📋 Project Overview\nTracking ID: ${formatId(selectedSubmission)}\nProject Name: ${selectedSubmission.project_name || 'Untitled'}\nDate Forwarded: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}\n\n📎 Resource Links\nAcceptance Criteria Form Link: ${window.location.origin}/#/view-acceptance/${selectedSubmission.id}\n\nIf you have questions or clarifications, kindly contact the Marketing Department. Thank you!`,
                         additionalAttachments: [],
                       })
+                    logActivity('Acceptance Criteria', `Prepared "${selectedSubmission.project_name || formatId(selectedSubmission)}" to send to Operations`)
                     setShowSendModal(true)
                   }}
                   className="px-6 py-2.5 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5"
@@ -1223,12 +1236,14 @@ export default function AcceptanceCriteria() {
                         console.error('Failed to send ticket:', err)
                       }
                       if (!sent) {
+                        logActivity('Acceptance Criteria', `Send to Operations failed for "${submission.project_name || formatId(submission)}"`)
                         window.alert('The ticket delivery could not be confirmed. Check its delivery status before retrying to avoid a duplicate email.')
                         return
                       }
                       setShowSendModal(false)
                       setSentTicketLink(ticketLink)
                       setShowSentModal(true)
+                      logActivity('Acceptance Criteria', `Sent "${submission.project_name || formatId(submission)}" to Operations`)
                     }}
                     disabled={!submissionsReady || !remoteSubmissionIds.has(String(selectedSubmission.id))}
                     className="w-full px-6 py-3 rounded-xl text-white text-sm font-medium transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"

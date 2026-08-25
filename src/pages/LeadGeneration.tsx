@@ -386,6 +386,7 @@ export default function LeadGeneration() {
       const { headers, rows: parsedRows } = parseCSV(text)
       if (headers.length === 0) {
         emitUploadStatus(uploadId, `Uploading ${file.name}`, 'error', 100)
+        logActivity('Lead Generation', `CSV import failed for "${file.name}"`)
         alert('CSV file is empty or invalid')
         return
       }
@@ -408,9 +409,10 @@ export default function LeadGeneration() {
       }
       if (fileInputRef.current) fileInputRef.current.value = ''
       emitUploadStatus(uploadId, `Uploaded ${file.name}`, 'done', 100)
-      logActivity('LeadGen', `Uploaded "${fileName}" (${parsedRows.length} rows)`)
+      logActivity('Lead Generation', `Uploaded "${fileName}" (${parsedRows.length} rows)`)
     } catch (err) {
       console.error('Error uploading CSV:', err)
+      logActivity('Lead Generation', `CSV import failed for "${file.name}"`)
       emitUploadStatus(uploadId, `Upload failed: ${file.name}`, 'error', 100)
       alert('Failed to upload CSV file')
     }
@@ -460,7 +462,7 @@ export default function LeadGeneration() {
     setSelectedFile(targetFile)
     await fetchRows(targetFile.id)
     setEditingCell(null)
-    logActivity('LeadGen', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
+    logActivity('Lead Generation', `${sourceLabel === 'camera' ? 'Captured' : 'Uploaded'} calling card lead`)
   }
 
   const processCallingCardQueue = async () => {
@@ -480,6 +482,7 @@ export default function LeadGeneration() {
       callingCardTotalRef.current = 0
     } catch (err) {
       console.error('Error adding calling card photo:', err)
+      logActivity('Lead Generation', 'Calling card extraction failed')
       emitUploadStatus(callingCardUploadIdRef.current, 'Calling card upload failed', 'error', 100)
       callingCardDoneRef.current = 0
       callingCardTotalRef.current = 0
@@ -529,9 +532,10 @@ export default function LeadGeneration() {
       await fetchFiles()
       setShowNewSpreadsheetModal(false)
       setNewSpreadsheetName('')
-      logActivity('LeadGen', `Created spreadsheet "${name}"`)
+      logActivity('Lead Generation', `Created spreadsheet "${name}"`)
     } catch (err) {
       console.error('Error creating spreadsheet:', err)
+      logActivity('Lead Generation', `Spreadsheet creation failed for "${name}"`)
       alert('Failed to create spreadsheet')
     } finally { setCreatingSpreadsheet(false) }
   }
@@ -670,9 +674,10 @@ export default function LeadGeneration() {
 
       setRows(prev => prev.map(r => r.id === editingCell.rowId ? { ...r, data: newData, updated_at: now } : r))
       setEditingCell(null)
-      logActivity('LeadGen', `Edited cell in "${selectedFile.name}"`)
+      logActivity('Lead Generation', `Edited cell in "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error saving cell:', err)
+      logActivity('Lead Generation', `Cell update failed in "${selectedFile.name}"`)
       alert('The cell could not be saved to canonical storage. Your visible data was not changed.')
     }
   }
@@ -698,8 +703,10 @@ export default function LeadGeneration() {
       if (!data) throw new Error('The canonical row was not returned after creation.')
       remoteRowIdsRef.current.add(data.id)
       setRows(prev => [...prev, data])
+      logActivity('Lead Generation', `Added a row to "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error adding row:', err)
+      logActivity('Lead Generation', `Adding a row failed in "${selectedFile.name}"`)
       alert('The row could not be created in canonical storage. Your visible data was not changed.')
     }
   }
@@ -719,8 +726,10 @@ export default function LeadGeneration() {
       if (!data) throw new Error('The canonical row no longer exists.')
       remoteRowIdsRef.current.delete(rowId)
       setRows(prev => prev.filter(r => r.id !== rowId))
+      logActivity('Lead Generation', `Deleted a row from "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error deleting row:', err)
+      logActivity('Lead Generation', `Deleting a row failed in "${selectedFile.name}"`)
       alert('The row could not be deleted from canonical storage. Your visible data was not changed.')
     }
   }
@@ -746,8 +755,10 @@ export default function LeadGeneration() {
       setSelectedFile({ ...selectedFile, columns: newColumns })
       setFiles(prev => prev.map(file => file.id === selectedFile.id ? { ...file, columns: newColumns } : file))
       setRows(prev => prev.map(row => ({ ...row, data: { ...row.data, [newName]: '' } })))
+      logActivity('Lead Generation', `Added column "${newName}" to "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error adding column:', err)
+      logActivity('Lead Generation', `Adding a column failed in "${selectedFile.name}"`)
       alert('The column could not be added to canonical storage. Your visible data was not changed.')
     }
   }
@@ -777,8 +788,10 @@ export default function LeadGeneration() {
         delete data[colName]
         return { ...row, data }
       }))
+      logActivity('Lead Generation', `Deleted column "${colName}" from "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error deleting column:', err)
+      logActivity('Lead Generation', `Deleting column "${colName}" failed in "${selectedFile.name}"`)
       alert('The column could not be deleted from canonical storage. Your visible data was not changed.')
     }
   }
@@ -800,10 +813,11 @@ export default function LeadGeneration() {
       remoteFileIdsRef.current.delete(fileId)
       setFiles(prev => prev.filter(f => f.id !== fileId))
       if (selectedFile?.id === fileId) closeFile()
-      if (file) logActivity('LeadGen', `Deleted "${file.name}"`)
+      if (file) logActivity('Lead Generation', `Deleted "${file.name}"`)
       window.dispatchEvent(new CustomEvent('lead-file-deleted', { detail: fileId }))
     } catch (err) {
       console.error('Error deleting file:', err)
+      logActivity('Lead Generation', `Deleting "${file?.name || 'spreadsheet'}" failed`)
       alert('The spreadsheet could not be deleted from canonical storage. No browser data was removed.')
     }
   }
@@ -825,8 +839,10 @@ export default function LeadGeneration() {
       await routeDuplicateRows(rowsToRemove.map(row => row.id))
       await fetchRows(activeFile.id)
       setDuplicateModal(null)
+      logActivity('Lead Generation', `Removed ${rowsToRemove.length} duplicate row${rowsToRemove.length === 1 ? '' : 's'} from "${activeFile.name}"`)
     } catch (err) {
       console.error('Error removing duplicate rows:', err)
+      logActivity('Lead Generation', `Duplicate removal failed in "${activeFile.name}"`)
       await fetchRows(activeFile.id)
       alert('Duplicate removal stopped at the first server error. The current canonical rows have been reloaded.')
     }
@@ -841,8 +857,10 @@ export default function LeadGeneration() {
       await routeDuplicateRows([row.id])
       await fetchRows(duplicateModal.fileId)
       setDuplicateModal(null)
+      logActivity('Lead Generation', `Removed a duplicate row from "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error removing duplicate row:', err)
+      logActivity('Lead Generation', `Duplicate removal failed in "${selectedFile.name}"`)
       await fetchRows(duplicateModal.fileId)
       alert('The duplicate row could not be removed completely. The current canonical rows have been reloaded.')
     }
@@ -866,6 +884,7 @@ export default function LeadGeneration() {
     a.download = `${selectedFile.name}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    logActivity('Lead Generation', `Exported "${selectedFile.name}" as CSV`)
   }
 
   const handleColumnDragStart = (colIdx: number) => {
@@ -903,8 +922,10 @@ export default function LeadGeneration() {
       if (!data) throw new Error('The canonical spreadsheet no longer exists.')
       setSelectedFile({ ...selectedFile, columns: newColumns })
       setFiles(prev => prev.map(file => file.id === selectedFile.id ? { ...file, columns: newColumns } : file))
+      logActivity('Lead Generation', `Reordered columns in "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error reordering columns:', err)
+      logActivity('Lead Generation', `Column reorder failed in "${selectedFile.name}"`)
       await fetchFiles()
       alert('The columns could not be reordered. The previous canonical order was retained.')
     } finally {
@@ -950,8 +971,10 @@ export default function LeadGeneration() {
         if (!data) throw new Error(`Canonical row ${row.id} no longer exists.`)
       }
       setRows(orderedRows)
+      logActivity('Lead Generation', `Reordered rows in "${selectedFile.name}"`)
     } catch (err) {
       console.error('Error reordering rows:', err)
+      logActivity('Lead Generation', `Row reorder failed in "${selectedFile.name}"`)
       await fetchRows(selectedFile.id)
       alert('The row reorder stopped at the first server error. The current canonical order has been reloaded.')
     } finally {

@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { HashRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { logActivity } from './lib/activityLogger'
+import { getAuthenticatedActivityRouteName } from './lib/activityRoutes'
 import ProtectedRoute from './components/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import Sidebar from './components/Sidebar'
@@ -86,28 +87,25 @@ function UploadStatusPopup() {
   )
 }
 
-const activityRouteNames: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/timeline': 'Timeline',
-  '/templates': 'Messaging & Templates',
-  '/calendar': 'Calendar',
-  '/files': 'File Tracker',
-  '/leads': 'Lead Generation',
-  '/campaigns': 'Campaigns',
-  '/acceptance-criteria': 'Acceptance Criteria',
-  '/marketing-project-list': 'Marketing Project List',
-  '/marketing-projects': 'Marketing Projects',
-  '/requests': 'Marketing Requests',
-  '/website-requests': 'Website Requests',
-}
-
 function ActivityRouteTracker() {
   const location = useLocation()
+  const { user, isStaff, loading } = useAuth()
+  const lastTrackedRoute = useRef<string | null>(null)
 
   useEffect(() => {
-    const pageName = activityRouteNames[location.pathname]
-    if (pageName) logActivity('Navigation', `Opened ${pageName}`)
-  }, [location.pathname])
+    const pageName = getAuthenticatedActivityRouteName(
+      location.pathname,
+      !loading && Boolean(user) && isStaff,
+    )
+    if (!pageName || !user) {
+      lastTrackedRoute.current = null
+      return
+    }
+    const routeKey = `${user.id}:${location.pathname}`
+    if (lastTrackedRoute.current === routeKey) return
+    lastTrackedRoute.current = routeKey
+    void logActivity('Navigation', `Opened ${pageName}`)
+  }, [isStaff, loading, location.pathname, user])
 
   return null
 }

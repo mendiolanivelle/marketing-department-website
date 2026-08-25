@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import { logActivity, getActivityLog, loadActivityLog } from '../lib/activityLogger'
+import { logActivity, getActivityLog, loadActivityLog, retryActivity } from '../lib/activityLogger'
 import type { ActivityEntry } from '../lib/activityLogger'
+import { visibleActivityEntries } from '../lib/activityState'
 import { selectUnsyncedBrowserTasks } from '../lib/dashboardData'
 import type { DashboardTask } from '../lib/dashboardData'
 
@@ -60,6 +61,8 @@ export default function Home() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editingTaskText, setEditingTaskText] = useState('')
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([])
+  const [showAllActivity, setShowAllActivity] = useState(false)
+  const [activityAnnouncement, setActivityAnnouncement] = useState({ sequence: 0, message: '' })
   const [campaigns, setCampaigns] = useState<any[]>(() => isSupabaseConfigured ? [] : readBrowserCampaigns())
   const [campaignCountsReady, setCampaignCountsReady] = useState(!isSupabaseConfigured)
   const homeAbortRef = useRef<AbortController | null>(null)
@@ -98,6 +101,20 @@ export default function Home() {
       window.removeEventListener('activity-updated', refreshFromCache)
     }
   }, [location.key])
+
+  const retryActivityEntry = async (entry: ActivityEntry) => {
+    setActivityAnnouncement(current => ({
+      sequence: current.sequence + 1,
+      message: `Saving ${entry.action} activity`,
+    }))
+    const result = await retryActivity(entry.id)
+    setActivityAnnouncement(current => ({
+      sequence: current.sequence + 1,
+      message: result?.deliveryStatus === 'saved'
+        ? `${entry.action} activity saved`
+        : `${entry.action} activity was not saved`,
+    }))
+  }
 
   useEffect(() => {
     if (isSupabaseConfigured) return
@@ -894,17 +911,33 @@ export default function Home() {
               </div>
             </div>
 
-            {/* This Session */}
+            {/* Recent Activity */}
             <div className="rounded-2xl overflow-hidden theme-transition" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 4px 20px rgba(27,26,28,0.08)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg, #FF8C33, var(--accent))' }}></div>
               <div className="p-5 sm:p-7">
-                <div className="flex items-center gap-3 mb-4">
+                <p key={activityAnnouncement.sequence} className="sr-only" role="status" aria-live="polite" aria-atomic="true">{activityAnnouncement.message}</p>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent-light)' }}>
                     <svg className="w-5 h-5" style={{ color: 'var(--accent)' }} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>This Session</h2>
+                    <div>
+                      <h2 className="text-lg sm:text-xl" style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Recent Activity</h2>
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Saved activity is available across sign-ins</p>
+                    </div>
+                  </div>
+                  {activityLog.length > 8 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllActivity(current => !current)}
+                      className="text-xs font-medium hover:underline"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      {showAllActivity ? 'Show latest 8' : `View all ${activityLog.length}`}
+                    </button>
+                  )}
                 </div>
                 {activityLog.length === 0 ? (
                   <div className="text-center py-10" style={{ color: 'var(--text-muted)' }}>
@@ -912,13 +945,30 @@ export default function Home() {
                   </div>
                 ) : (
                   <ul className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-                    {activityLog.slice(0, 8).map((entry) => (
+                    {visibleActivityEntries(activityLog, showAllActivity).map((entry) => (
                       <li key={entry.id} className="p-3 rounded-xl theme-transition" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                        <div className="flex items-center gap-2 mb-0.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-0.5">
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
                             {entry.action}
                           </span>
                           <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatActivityTimestamp(entry.timestamp)}</span>
+                          {entry.deliveryStatus === 'pending' && (
+                            <span className="text-[10px] font-medium" style={{ color: 'var(--status-warning)' }}>Saving…</span>
+                          )}
+                          {entry.deliveryStatus === 'failed' && (
+                            <>
+                              <span className="text-[10px] font-medium" style={{ color: 'var(--status-error)' }}>Not saved</span>
+                              <button
+                                type="button"
+                                onClick={() => { void retryActivityEntry(entry) }}
+                                aria-label={`Retry saving ${entry.action} activity`}
+                                className="text-[10px] font-semibold hover:underline"
+                                style={{ color: 'var(--accent)' }}
+                              >
+                                Retry
+                              </button>
+                            </>
+                          )}
                         </div>
                         <p className="text-sm" style={{ color: 'var(--text-secondary)', fontWeight: 300 }}>{entry.detail}</p>
                       </li>

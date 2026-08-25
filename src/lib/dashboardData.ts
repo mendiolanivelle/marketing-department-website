@@ -33,12 +33,14 @@ export function selectUnsyncedBrowserTasks(
 }
 
 export function createActivityInsert(
+  id: number,
   action: string,
   detail: string,
   userId: string,
   occurredAt = new Date(),
 ) {
   return {
+    id,
     action,
     detail,
     timestamp: occurredAt.toISOString(),
