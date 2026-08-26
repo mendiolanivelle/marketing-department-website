@@ -149,6 +149,46 @@ test('legacy reader preserves valid rows, reports malformed payloads, and never 
   assert.deepEqual(storage.calls, [LEGACY_TEMPLATES_KEY, LEGACY_ACTIVE_MEETINGS_KEY, LEGACY_SCRIPTS_KEY])
 })
 
+test('legacy reader accepts local-mode blank editable fields but rejects blank stable ids', () => {
+  const {
+    LEGACY_ACTIVE_MEETINGS_KEY,
+    LEGACY_SCRIPTS_KEY,
+    LEGACY_TEMPLATES_KEY,
+    readLegacyMeetingPlaybook,
+  } = requireModule()
+  const localTemplate = {
+    ...template,
+    description: '',
+    goal: '',
+    kpis: [''],
+    proTips: [''],
+    flowSteps: [{ id: 'step-local', text: '', time: '', description: '' }],
+  }
+  const localMeeting = {
+    ...activeMeeting,
+    links: [{ id: 'link-local', label: '', url: '' }],
+    checklist: [{ id: 'check-local', text: '', checked: false }],
+  }
+  const localScript = { ...script, name: '', category: '', text: '' }
+  const storage = createStorage({
+    [LEGACY_TEMPLATES_KEY]: JSON.stringify([localTemplate, { ...localTemplate, id: '   ' }]),
+    [LEGACY_ACTIVE_MEETINGS_KEY]: JSON.stringify([localMeeting, { ...localMeeting, links: [{ id: '', label: '', url: '' }] }]),
+    [LEGACY_SCRIPTS_KEY]: JSON.stringify([localScript, { ...localScript, id: '' }]),
+  })
+
+  const result = readLegacyMeetingPlaybook(storage)
+
+  assert.deepEqual(result.records, {
+    templates: [localTemplate],
+    activeMeetings: [localMeeting],
+    scripts: [localScript],
+  })
+  assert.deepEqual(result.counts, { templates: 1, activeMeetings: 1, scripts: 1 })
+  assert.deepEqual(result.issues[LEGACY_TEMPLATES_KEY], ['1 invalid record'])
+  assert.deepEqual(result.issues[LEGACY_ACTIVE_MEETINGS_KEY], ['1 invalid record'])
+  assert.deepEqual(result.issues[LEGACY_SCRIPTS_KEY], ['1 invalid record'])
+})
+
 test('backup serializes only the supplied timestamp and the three stable payload groups', () => {
   const { serializeMeetingPlaybookBackup } = requireModule()
 
@@ -219,6 +259,45 @@ test('canonical fetch succeeds only when all three table queries succeed', async
   assert.deepEqual(await fetchCanonicalMeetingPlaybook(client), records)
   client.database.responses.meeting_scripts = { select: () => ({ data: null, error: { message: 'denied' } }) }
   await assert.rejects(fetchCanonicalMeetingPlaybook(client), /canonical meeting playbook could not load/i)
+})
+
+test('canonical fetch rejects malformed rows and nested JSON fields instead of mapping them into UI state', async () => {
+  const { fetchCanonicalMeetingPlaybook, meetingTemplateToRow, activeMeetingToRow } = requireModule()
+  const validRows = {
+    meeting_templates: [meetingTemplateToRow(template)],
+    active_meetings: [activeMeetingToRow(activeMeeting)],
+    meeting_scripts: [script],
+  }
+  const malformedCases = [
+    {
+      name: 'object-valued template kpis',
+      rows: { ...validRows, meeting_templates: [{ ...validRows.meeting_templates[0], kpis: { unexpected: true } }] },
+    },
+    {
+      name: 'object-valued active meeting links',
+      rows: { ...validRows, active_meetings: [{ ...validRows.active_meetings[0], links: { unexpected: true } }] },
+    },
+    {
+      name: 'object-valued active meeting checklist',
+      rows: { ...validRows, active_meetings: [{ ...validRows.active_meetings[0], checklist: { unexpected: true } }] },
+    },
+    {
+      name: 'malformed nested link',
+      rows: { ...validRows, active_meetings: [{ ...validRows.active_meetings[0], links: [{ id: 'link-1', label: 42, url: '' }] }] },
+    },
+    {
+      name: 'malformed script row',
+      rows: { ...validRows, meeting_scripts: [{ ...script, category: null }] },
+    },
+  ]
+
+  for (const scenario of malformedCases) {
+    await assert.rejects(
+      fetchCanonicalMeetingPlaybook(createClient(scenario.rows)),
+      /canonical meeting playbook could not load/i,
+      scenario.name,
+    )
+  }
 })
 
 test('create, update, and delete return success only after a matching canonical ID is confirmed', async () => {

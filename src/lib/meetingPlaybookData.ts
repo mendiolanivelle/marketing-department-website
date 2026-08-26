@@ -120,38 +120,54 @@ interface QueryBuilder extends PromiseLike<QueryResult> {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const isText = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
+const isString = (value: unknown): value is string => typeof value === 'string'
 
-const isTextArray = (value: unknown): value is string[] => Array.isArray(value) && value.every(isText)
+const isStableId = (value: unknown): value is string => isString(value) && value.trim().length > 0
+
+const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every(isString)
 
 const isFlowStep = (value: unknown): value is FlowStep =>
-  isObject(value) && isText(value.id) && isText(value.text) && isText(value.time) && isText(value.description)
+  isObject(value) && isStableId(value.id) && isString(value.text) && isString(value.time) && isString(value.description)
 
 const isMeetingLink = (value: unknown): value is MeetingLink =>
-  isObject(value) && isText(value.id) && isText(value.label) && isText(value.url)
+  isObject(value) && isStableId(value.id) && isString(value.label) && isString(value.url)
 
 const isChecklistItem = (value: unknown): value is ChecklistItem =>
-  isObject(value) && isText(value.id) && isText(value.text) && typeof value.checked === 'boolean'
+  isObject(value) && isStableId(value.id) && isString(value.text) && typeof value.checked === 'boolean'
 
 const isMeetingTemplate = (value: unknown): value is MeetingTemplate =>
   isObject(value) &&
-  isText(value.id) &&
-  isText(value.name) &&
-  isText(value.description) &&
-  isText(value.goal) &&
-  isTextArray(value.kpis) &&
-  isTextArray(value.proTips) &&
+  isStableId(value.id) &&
+  isString(value.name) &&
+  isString(value.description) &&
+  isString(value.goal) &&
+  isStringArray(value.kpis) &&
+  isStringArray(value.proTips) &&
   Array.isArray(value.flowSteps) && value.flowSteps.every(isFlowStep)
 
 const isActiveMeeting = (value: unknown): value is ActiveMeeting =>
   isObject(value) &&
-  isText(value.id) &&
-  isText(value.name) &&
+  isStableId(value.id) &&
+  isString(value.name) &&
   Array.isArray(value.links) && value.links.every(isMeetingLink) &&
   Array.isArray(value.checklist) && value.checklist.every(isChecklistItem)
 
 const isScriptCard = (value: unknown): value is ScriptCard =>
-  isObject(value) && isText(value.id) && isText(value.name) && isText(value.category) && isText(value.text)
+  isObject(value) && isStableId(value.id) && isString(value.name) && isString(value.category) && isString(value.text)
+
+const isMeetingTemplateRow = (value: unknown): value is MeetingTemplateRow =>
+  isObject(value) &&
+  isStableId(value.id) &&
+  isString(value.name) &&
+  isString(value.description) &&
+  isString(value.goal) &&
+  isStringArray(value.kpis) &&
+  isStringArray(value.pro_tips) &&
+  Array.isArray(value.flow_steps) && value.flow_steps.every(isFlowStep)
+
+const isActiveMeetingRow = (value: unknown): value is ActiveMeetingRow => isActiveMeeting(value)
+
+const isMeetingScriptRow = (value: unknown): value is MeetingScriptRow => isScriptCard(value)
 
 function readLegacyArray<T extends { id: string }>(
   storage: StorageReader,
@@ -338,12 +354,14 @@ export async function fetchCanonicalMeetingPlaybook(client: MeetingPlaybookClien
     query(client, 'active_meetings').select('*'),
     query(client, 'meeting_scripts').select('*'),
   ]) as QueryResult[]
-  const templates = asRows<MeetingTemplateRow>(templatesResult.data)
-  const activeMeetings = asRows<ActiveMeetingRow>(activeMeetingsResult.data)
-  const scripts = asRows<MeetingScriptRow>(scriptsResult.data)
+  const templates = asRows<unknown>(templatesResult.data)
+  const activeMeetings = asRows<unknown>(activeMeetingsResult.data)
+  const scripts = asRows<unknown>(scriptsResult.data)
   if (
     hasError(templatesResult) || hasError(activeMeetingsResult) || hasError(scriptsResult) ||
-    !templates || !activeMeetings || !scripts
+    !templates || !templates.every(isMeetingTemplateRow) ||
+    !activeMeetings || !activeMeetings.every(isActiveMeetingRow) ||
+    !scripts || !scripts.every(isMeetingScriptRow)
   ) {
     throw new Error('Canonical Meeting Playbook could not load.')
   }
@@ -434,7 +452,7 @@ async function importMissingGroup<T extends { id: string }, R extends { id: stri
   }
   const returned = asRows<unknown>(result.data)
   const returnedIds = returned !== null && returned.every(
-    (row): row is { id: string } => isObject(row) && isText(row.id),
+    (row): row is { id: string } => isObject(row) && isStableId(row.id),
   )
     ? returned.map(row => row.id)
     : null

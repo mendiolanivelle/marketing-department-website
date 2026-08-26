@@ -120,9 +120,23 @@ const defaultRecords: MeetingPlaybookRecords = {
   scripts: defaultScripts,
 }
 
-type PersistenceState = 'idle' | 'saving' | 'saved' | 'failed'
+type PersistenceState = 'idle' | 'saving' | 'saved' | 'failed' | 'blocked'
 
-const sameRecord = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right)
+export const areMeetingPlaybookRecordsEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => areMeetingPlaybookRecordsEqual(value, right[index]))
+  }
+  if (typeof left !== 'object' || left === null || typeof right !== 'object' || right === null) return false
+  const leftRecord = left as Record<string, unknown>
+  const rightRecord = right as Record<string, unknown>
+  const leftKeys = Object.keys(leftRecord)
+  const rightKeys = Object.keys(rightRecord)
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every(key => Object.prototype.hasOwnProperty.call(rightRecord, key) && areMeetingPlaybookRecordsEqual(leftRecord[key], rightRecord[key]))
+}
 
 export const createMeetingPlaybookId = (prefix: string): string => `${prefix}-${crypto.randomUUID()}`
 
@@ -277,9 +291,17 @@ interface DefaultInitializationAttemptFlow {
 }
 
 const containsDefaultPlaybook = (records: MeetingPlaybookRecords, defaults: MeetingPlaybookRecords): boolean =>
-  defaults.templates.every(expected => records.templates.some(record => record.id === expected.id && sameRecord(record, expected))) &&
-  defaults.activeMeetings.every(expected => records.activeMeetings.some(record => record.id === expected.id && sameRecord(record, expected))) &&
-  defaults.scripts.every(expected => records.scripts.some(record => record.id === expected.id && sameRecord(record, expected)))
+  defaults.templates.every(expected => records.templates.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+  defaults.activeMeetings.every(expected => records.activeMeetings.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+  defaults.scripts.every(expected => records.scripts.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected)))
+
+const isPartialDefaultPlaybook = (records: MeetingPlaybookRecords, defaults: MeetingPlaybookRecords): boolean => {
+  const canonicalCount = records.templates.length + records.activeMeetings.length + records.scripts.length
+  if (canonicalCount === 0 || containsDefaultPlaybook(records, defaults)) return false
+  return records.templates.every(record => defaults.templates.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+    records.activeMeetings.every(record => defaults.activeMeetings.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+    records.scripts.every(record => defaults.scripts.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected)))
+}
 
 export async function executeDefaultInitializationAttempt({
   continuation,
@@ -288,8 +310,7 @@ export async function executeDefaultInitializationAttempt({
   fetchCanonical,
   applyCanonical,
   importMissing,
-}: DefaultInitializationAttemptFlow): Promise<{ status: CanonicalActionStatus | 'blocked' }> {
-  const legacy = continuation ? null : readLegacy()
+}: DefaultInitializationAttemptFlow): Promise<{ status: CanonicalActionStatus | 'blocked'; mayContinueMissingOnly?: boolean }> {
   let canonical: MeetingPlaybookRecords
   try {
     canonical = await fetchCanonical()
@@ -298,6 +319,9 @@ export async function executeDefaultInitializationAttempt({
     return { status: 'failed' }
   }
 
+  if (continuation && containsDefaultPlaybook(canonical, defaults)) return { status: 'saved' }
+  const continuingPartialInitialization = continuation && isPartialDefaultPlaybook(canonical, defaults)
+  const legacy = continuingPartialInitialization ? null : readLegacy()
   if (legacy) {
     const legacyCount = legacy.counts.templates + legacy.counts.activeMeetings + legacy.counts.scripts
     const canonicalCount = canonical.templates.length + canonical.activeMeetings.length + canonical.scripts.length
@@ -314,7 +338,8 @@ export async function executeDefaultInitializationAttempt({
   try {
     const refreshed = await fetchCanonical()
     applyCanonical(refreshed)
-    return { status: containsDefaultPlaybook(refreshed, defaults) ? 'saved' : 'failed' }
+    if (containsDefaultPlaybook(refreshed, defaults)) return { status: 'saved' }
+    return { status: 'failed', mayContinueMissingOnly: isPartialDefaultPlaybook(refreshed, defaults) }
   } catch {
     return { status: 'failed' }
   }
@@ -330,16 +355,18 @@ interface DefaultPlaybookInitializationActionFlow extends Omit<DefaultInitializa
 export function createDefaultPlaybookInitializationAction(
   flow: DefaultPlaybookInitializationActionFlow,
 ): (isRetry: boolean) => Promise<CanonicalActionStatus> {
+  let partialContinuationProven = false
   return async isRetry => {
     flow.onSaving()
     const result = await executeDefaultInitializationAttempt({
-      continuation: isRetry,
+      continuation: isRetry && partialContinuationProven,
       defaults: flow.defaults,
       readLegacy: flow.readLegacy,
       fetchCanonical: flow.fetchCanonical,
       applyCanonical: flow.applyCanonical,
       importMissing: flow.importMissing,
     })
+    partialContinuationProven = result.mayContinueMissingOnly === true
     if (result.status === 'saved') {
       flow.onSaved()
       return 'saved'
@@ -395,6 +422,44 @@ export async function executeBulkActionWithRefresh<TRecords>({
   } catch {
     return { status: 'failed' }
   }
+}
+
+export function MeetingPlaybookPersistenceNotice({
+  state,
+  isRefreshing = false,
+  onRetry,
+}: {
+  state: PersistenceState
+  isRefreshing?: boolean
+  onRetry: () => void
+}) {
+  if (state === 'idle' && !isRefreshing) return null
+  const message = state === 'saving'
+    ? 'Saving canonical Meeting Playbook…'
+    : state === 'saved'
+      ? 'Saved to canonical Meeting Playbook.'
+      : state === 'failed'
+        ? 'Canonical save failed. The last confirmed state is shown.'
+        : state === 'blocked'
+          ? 'Default initialization was blocked because canonical or preserved browser data appeared. Review the current records before initializing.'
+          : 'Refreshing canonical Meeting Playbook…'
+  return (
+    <div
+      className="rounded-xl border px-4 py-3 text-xs flex items-center justify-between gap-3"
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        borderColor: 'var(--border-primary)',
+        color: state === 'failed' || state === 'blocked' ? '#B91C1C' : 'var(--text-secondary)',
+      }}
+      role="status"
+      aria-live="polite"
+    >
+      <span>{message}</span>
+      {state === 'failed' && (
+        <button className="font-medium" style={{ color: 'var(--accent)' }} onClick={onRetry}>Retry</button>
+      )}
+    </div>
+  )
 }
 
 export default function MeetingPlaybook() {
@@ -579,7 +644,7 @@ export default function MeetingPlaybook() {
         ...records,
         templates: records.templates.map(item => item.id === confirmed.id ? confirmed : item),
       })),
-      records => intended !== null && records.templates.some(item => item.id === id && sameRecord(item, intended)),
+      records => intended !== null && records.templates.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
       activity,
       'Meeting template update failed',
       records => records.templates.some(item => item.id === id),
@@ -608,7 +673,7 @@ export default function MeetingPlaybook() {
         ...records,
         activeMeetings: records.activeMeetings.map(item => item.id === confirmed.id ? confirmed : item),
       })),
-      records => intended !== null && records.activeMeetings.some(item => item.id === id && sameRecord(item, intended)),
+      records => intended !== null && records.activeMeetings.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
       activity,
       'Active meeting update failed',
       records => records.activeMeetings.some(item => item.id === id),
@@ -637,7 +702,7 @@ export default function MeetingPlaybook() {
         ...records,
         scripts: records.scripts.map(item => item.id === confirmed.id ? confirmed : item),
       })),
-      records => intended !== null && records.scripts.some(item => item.id === id && sameRecord(item, intended)),
+      records => intended !== null && records.scripts.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
       activity,
       'Meeting script update failed',
       records => records.scripts.some(item => item.id === id),
@@ -729,7 +794,7 @@ export default function MeetingPlaybook() {
         commitCanonicalRecords(records => ({ ...records, templates: [...records.templates, confirmed] }))
         setSelectedTemplate(confirmed.id)
       },
-      records => records.templates.some(item => item.id === record.id && sameRecord(item, record)),
+      records => records.templates.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
       'Created meeting template',
       'Meeting template creation failed',
       records => !records.templates.some(item => item.id === record.id),
@@ -785,7 +850,7 @@ export default function MeetingPlaybook() {
     void runCanonicalMutation(
       () => createMeetingScript(canonicalClient!, record),
       confirmed => commitCanonicalRecords(records => ({ ...records, scripts: [...records.scripts, confirmed] })),
-      records => records.scripts.some(item => item.id === record.id && sameRecord(item, record)),
+      records => records.scripts.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
       'Created meeting script',
       'Meeting script creation failed',
       records => !records.scripts.some(item => item.id === record.id),
@@ -818,7 +883,7 @@ export default function MeetingPlaybook() {
         commitCanonicalRecords(records => ({ ...records, activeMeetings: [...records.activeMeetings, confirmed] }))
         setSelectedMeeting(confirmed.id)
       },
-      records => records.activeMeetings.some(item => item.id === record.id && sameRecord(item, record)),
+      records => records.activeMeetings.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
       'Created active meeting',
       'Active meeting creation failed',
       records => !records.activeMeetings.some(item => item.id === record.id),
@@ -909,7 +974,7 @@ export default function MeetingPlaybook() {
       },
       onBlocked: () => {
         retryRef.current = null
-        setPersistenceState('failed')
+        setPersistenceState('blocked')
         void logActivity('Meeting Playbook', 'Default playbook initialization failed')
       },
       onFailed: () => {
@@ -947,22 +1012,11 @@ export default function MeetingPlaybook() {
       {isSupabaseConfigured && (
         <div className="mb-6 space-y-3">
           {(loadState === 'loading' || persistenceState !== 'idle') && (
-            <div
-              className="rounded-xl border px-4 py-3 text-xs flex items-center justify-between gap-3"
-              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', color: persistenceState === 'failed' ? '#B91C1C' : 'var(--text-secondary)' }}
-              role="status"
-              aria-live="polite"
-            >
-              <span>
-                {persistenceState === 'saving' && 'Saving canonical Meeting Playbook…'}
-                {persistenceState === 'saved' && 'Saved to canonical Meeting Playbook.'}
-                {persistenceState === 'failed' && 'Canonical save failed. The last confirmed state is shown.'}
-                {persistenceState === 'idle' && loadState === 'loading' && 'Refreshing canonical Meeting Playbook…'}
-              </span>
-              {persistenceState === 'failed' && (
-                <button className="font-medium" style={{ color: 'var(--accent)' }} onClick={() => retryRef.current?.()}>Retry</button>
-              )}
-            </div>
+            <MeetingPlaybookPersistenceNotice
+              state={persistenceState}
+              isRefreshing={loadState === 'loading'}
+              onRetry={() => retryRef.current?.()}
+            />
           )}
 
           {legacyKeysPresent && (

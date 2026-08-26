@@ -35,6 +35,9 @@ await build({
 
       export const markup = renderToStaticMarkup(createElement(MeetingPlaybook))
       export const controls = MeetingPlaybookModule
+      export const renderPersistenceNotice = state => renderToStaticMarkup(
+        createElement(MeetingPlaybookModule.MeetingPlaybookPersistenceNotice, { state, onRetry() {} })
+      )
     `,
     loader: 'js',
     resolveDir: fileURLToPath(new URL('..', import.meta.url)),
@@ -42,12 +45,23 @@ await build({
   target: 'node22',
 })
 
-const { controls, markup } = createRequire(import.meta.url)(bundlePath)
+const { controls, markup, renderPersistenceNotice } = createRequire(import.meta.url)(bundlePath)
 rmSync(bundleDirectory, { recursive: true })
 
 test('configured mode waits for canonical data before showing playbook records', () => {
   assert.match(markup, /Loading canonical Meeting Playbook/i)
   assert.doesNotMatch(markup, /Discovery Call/)
+})
+
+test('blocked initialization explains the precondition and renders no inert Retry control', () => {
+  const blockedMarkup = renderPersistenceNotice('blocked')
+  assert.match(blockedMarkup, /initialization was blocked/i)
+  assert.match(blockedMarkup, /canonical or preserved browser data appeared/i)
+  assert.doesNotMatch(blockedMarkup, />Retry</)
+
+  const retryableMarkup = renderPersistenceNotice('failed')
+  assert.match(retryableMarkup, /canonical save failed/i)
+  assert.match(retryableMarkup, />Retry</)
 })
 
 test('edit blur followed by delete is serialized without dropping either action', async () => {
@@ -208,6 +222,52 @@ test('ambiguous committed create, update, and delete outcomes reconcile as saved
   }
 })
 
+test('ambiguous committed active-meeting create accepts JSONB-reordered nested keys without replay', async () => {
+  assert.equal(typeof controls.areMeetingPlaybookRecordsEqual, 'function')
+  const coordinator = controls.createCanonicalActionCoordinator()
+  const intended = {
+    id: 'active-1',
+    name: 'Client kickoff',
+    links: [{ id: 'link-1', label: 'Meeting link', url: 'https://example.test/meet' }],
+    checklist: [{ id: 'check-1', text: 'Send agenda', checked: false }],
+  }
+  const remote = []
+  let executeCalls = 0
+  let savedCalls = 0
+
+  await coordinator.enqueueMutation({
+    execute: async () => {
+      executeCalls += 1
+      remote.push({
+        name: intended.name,
+        id: intended.id,
+        links: [{ url: intended.links[0].url, label: intended.links[0].label, id: intended.links[0].id }],
+        checklist: [{ checked: false, text: 'Send agenda', id: 'check-1' }],
+      })
+      throw new Error('confirmation lost after commit')
+    },
+    refresh: async () => structuredClone(remote),
+    isSatisfied: records => records.some(record => controls.areMeetingPlaybookRecordsEqual(record, intended)),
+    applyConfirmed: () => { throw new Error('direct confirmation was not expected') },
+    applyRefreshed: () => {},
+    onSaving: () => {},
+    onSaved: () => { savedCalls += 1 },
+    onFailed: () => {},
+  })
+
+  assert.equal(executeCalls, 1)
+  assert.equal(savedCalls, 1)
+  assert.equal(remote.length, 1)
+  assert.equal(controls.areMeetingPlaybookRecordsEqual(
+    { ...intended, links: [...intended.links].reverse(), checklist: [...intended.checklist].reverse() },
+    intended,
+  ), true)
+  assert.equal(controls.areMeetingPlaybookRecordsEqual(
+    { ...intended, links: [intended.links[0], { id: 'link-2', label: 'Brief', url: '' }] },
+    { ...intended, links: [{ id: 'link-2', label: 'Brief', url: '' }, intended.links[0]] },
+  ), false)
+})
+
 test('production coordinator reconciles committed update and delete without replay', async () => {
   assert.equal(typeof controls.createCanonicalActionCoordinator, 'function')
   const scenarios = [
@@ -366,6 +426,71 @@ test('default initialization re-reads legacy and canonical state and blocks stal
     })
     assert.equal(result.status, 'blocked', scenario.name)
     assert.equal(importCalls, 0, scenario.name)
+  }
+})
+
+test('default initialization retry rechecks eligibility when the failed attempt committed no defaults', async () => {
+  const defaults = {
+    templates: [{ id: 'template-default', name: 'Default template' }],
+    activeMeetings: [],
+    scripts: [{ id: 'script-default', name: 'Default script' }],
+  }
+  const emptyRecords = { templates: [], activeMeetings: [], scripts: [] }
+  const emptyIssues = {
+    'exodia-playbook-templates': [],
+    'exodia-playbook-active': [],
+    'exodia-playbook-scripts': [],
+  }
+  const scenarios = [
+    {
+      name: 'canonical data appeared',
+      afterFailure: () => ({
+        canonical: { ...emptyRecords, templates: [{ id: 'template-external', name: 'External template' }] },
+        legacy: { records: emptyRecords, counts: { templates: 0, activeMeetings: 0, scripts: 0 }, issues: emptyIssues },
+      }),
+    },
+    {
+      name: 'browser data appeared',
+      afterFailure: () => ({
+        canonical: emptyRecords,
+        legacy: {
+          records: { ...emptyRecords, scripts: [{ id: 'script-browser', name: 'Browser script' }] },
+          counts: { templates: 0, activeMeetings: 0, scripts: 1 },
+          issues: emptyIssues,
+        },
+      }),
+    },
+  ]
+
+  for (const scenario of scenarios) {
+    let state = {
+      canonical: structuredClone(emptyRecords),
+      legacy: { records: structuredClone(emptyRecords), counts: { templates: 0, activeMeetings: 0, scripts: 0 }, issues: emptyIssues },
+    }
+    let legacyReads = 0
+    let importCalls = 0
+    let failedCalls = 0
+    let blockedCalls = 0
+
+    const initialize = controls.createDefaultPlaybookInitializationAction({
+      defaults,
+      readLegacy: () => { legacyReads += 1; return structuredClone(state.legacy) },
+      fetchCanonical: async () => structuredClone(state.canonical),
+      applyCanonical: () => {},
+      importMissing: async () => { importCalls += 1; return { complete: false } },
+      onSaving: () => {},
+      onSaved: () => {},
+      onFailed: () => { failedCalls += 1 },
+      onBlocked: () => { blockedCalls += 1 },
+    })
+
+    assert.equal(await initialize(false), 'failed', scenario.name)
+    state = scenario.afterFailure()
+    assert.equal(await initialize(true), 'saved', scenario.name)
+
+    assert.equal(legacyReads, 2, scenario.name)
+    assert.equal(importCalls, 1, scenario.name)
+    assert.equal(blockedCalls, 1, scenario.name)
   }
 })
 
