@@ -90,3 +90,53 @@ Result after the test boundary correction: exit 0; 12 passed, 0 failed. Activity
 ## Concerns
 
 No blocking concerns. Runtime Supabase/RLS behavior remains intentionally limited to the Task 2 adapter and Task 1 local migration tests; production application and UAT are explicitly out of scope.
+
+## Fix Round 1
+
+### Review findings resolved
+
+- Replaced the drop-on-busy guard with a serial action queue. Canonical edits, creates, deletes, import, and initialization now execute in request order, and record edits compute from the latest confirmed record when their queued turn begins. An edit-blur immediately followed by delete is therefore not discarded. UUID-backed browser IDs also prevent same-millisecond rapid creates from colliding.
+- Failed queued actions retain their retry closures even when later queued actions complete. The page remains visibly failed while any retryable action remains, rather than allowing a later success to hide an earlier failure.
+- Canonical mutation failures refresh and reconcile the intended create/update/delete outcome. If refresh proves the intended outcome, the action becomes saved and logs the fixed safe success detail. Retry refreshes before replay; creates and updates execute only when the refreshed target state makes replay safe, so a different record occupying a create ID is not repeatedly collided with.
+- Initialization now reads legacy Storage and fetches/apply canonical records inside its queued execution immediately before evaluating preconditions. It blocks on any valid legacy record, canonical record, or legacy parse/storage issue. Default import plans from that fresh canonical snapshot. Import likewise re-reads legacy and refreshes canonical before planning. Neither path mutates or deletes legacy keys.
+- Import and initialization use one bulk-action control flow that refreshes canonical state after success, partial confirmation, or an ambiguous operation failure. Partial outcomes remain failed/retryable while the refreshed confirmed records are rendered.
+- Configured load applies records only after all canonical fetches succeed and remains retryable after failure.
+- Added clear active-group empty panels for Master Playbook, Active Meetings, and Script Vault independently of records in other groups.
+- Because the repository has React/server-render tooling but no DOM interaction harness, the focused page test bundles the real page and executes exported, minimal control-flow seams from `MeetingPlaybook.tsx`. This avoids source-regex assertions and covers the actual queue, latest-record update, reconciliation, initialization, load, bulk refresh, and empty-group decisions without adding a dependency.
+
+### Strict TDD evidence
+
+The following RED runs were captured before each corresponding production change:
+
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 1 passed, 2 failed. `createSerialActionQueue` was undefined for edit-blur/delete and rapid sequential action coverage.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 3 passed, 2 failed. `executeCanonicalMutationWithReconciliation` was undefined for ambiguous committed outcomes and retry-before-replay.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 5 passed, 1 failed. `createLatestRecordUpdate` was undefined for composing rapid edits from the latest confirmed record.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 6 passed, 1 failed. `initializeDefaultPlaybookWithFreshPreconditions` was undefined for stale legacy/canonical/parse-issue preconditions.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 7 passed, 2 failed. `loadCanonicalMeetingPlaybook` and `executeBulkActionWithRefresh` were undefined for load retry and partial import/initialize refresh coverage.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 9 passed, 2 failed. Collision-safe replay executed once instead of zero times, and `getMeetingPlaybookEmptyMessage` was undefined.
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 1; 12 passed, 1 failed. `createMeetingPlaybookId` was undefined for rapid-create uniqueness.
+
+Focused GREEN progression:
+
+- Queue controls: 3 passed, 0 failed.
+- Ambiguous reconciliation: 5 passed, 0 failed; `npm run typecheck` also exited 0.
+- Latest-record composition: 6 passed, 0 failed; `npm run typecheck` exited 0.
+- Fresh initialization preconditions: 7 passed, 0 failed.
+- Final page behavior: `node --test scripts/meeting-playbook-page.test.mjs` — exit 0; 13 passed, 0 failed.
+- Final focused integration: `node --test scripts/activity-routes.test.mjs scripts/meeting-playbook-page.test.mjs scripts/meeting-playbook-data.test.mjs` — exit 0; 24 passed, 0 failed.
+
+### Fix Round 1 final gates
+
+- `npm test` — exit 0; 81 passed, 0 failed (run once after implementation as required).
+- First `npm run lint` iteration — exit 1 due one new `no-useless-assignment` error in the bulk helper; corrected locally.
+- Final `npm run lint` — exit 0; 0 errors. Only the same two pre-existing Fast Refresh warnings remain in `src/contexts/AuthContext.tsx` and `src/contexts/ThemeContext.tsx`; no warning was added by this round.
+- Final `npm run typecheck` — exit 0.
+- Final `npm run build` — exit 0; 203 modules transformed and the lazy Meeting Playbook chunk emitted.
+- `git diff --check` — clean.
+
+### Fix Round 1 self-review and boundaries
+
+- Activity details remain fixed category/outcome strings only; searches found no record contents, URLs, scripts, payloads, tokens, raw database errors, or console logging.
+- Configured mutations remain confirmed/pessimistic; refresh is authoritative after ambiguity and partial bulk outcomes.
+- No localStorage deletion/overwrite was added in configured mode; unconfigured mode retains the existing local-only effects.
+- No migration, Supabase application, remote database mutation, network mutation, environment/dependency change, Coolify/GitHub action, push, PR, merge, deployment, or production UAT was performed.

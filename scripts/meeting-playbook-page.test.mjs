@@ -31,9 +31,10 @@ await build({
     contents: `
       import { createElement } from 'react'
       import { renderToStaticMarkup } from 'react-dom/server'
-      import MeetingPlaybook from ${JSON.stringify(fileURLToPath(new URL('../src/pages/MeetingPlaybook.tsx', import.meta.url)))}
+      import MeetingPlaybook, * as MeetingPlaybookModule from ${JSON.stringify(fileURLToPath(new URL('../src/pages/MeetingPlaybook.tsx', import.meta.url)))}
 
       export const markup = renderToStaticMarkup(createElement(MeetingPlaybook))
+      export const controls = MeetingPlaybookModule
     `,
     loader: 'js',
     resolveDir: fileURLToPath(new URL('..', import.meta.url)),
@@ -41,10 +42,296 @@ await build({
   target: 'node22',
 })
 
-const { markup } = createRequire(import.meta.url)(bundlePath)
+const { controls, markup } = createRequire(import.meta.url)(bundlePath)
 rmSync(bundleDirectory, { recursive: true })
 
 test('configured mode waits for canonical data before showing playbook records', () => {
   assert.match(markup, /Loading canonical Meeting Playbook/i)
   assert.doesNotMatch(markup, /Discovery Call/)
+})
+
+test('edit blur followed by delete is serialized without dropping either action', async () => {
+  assert.equal(typeof controls.createSerialActionQueue, 'function')
+  const queue = controls.createSerialActionQueue()
+  const events = []
+  let records = [{ id: 'template-1', name: 'Before edit' }]
+  let releaseEdit
+  const editGate = new Promise(resolve => { releaseEdit = resolve })
+
+  const edit = queue.enqueue(async () => {
+    events.push('edit:start')
+    await editGate
+    records = records.map(record => record.id === 'template-1' ? { ...record, name: 'After edit' } : record)
+    events.push('edit:saved')
+  })
+  const remove = queue.enqueue(async () => {
+    events.push(`delete:saw:${records[0]?.name}`)
+    records = records.filter(record => record.id !== 'template-1')
+  })
+
+  releaseEdit()
+  await Promise.all([edit, remove])
+  assert.deepEqual(events, ['edit:start', 'edit:saved', 'delete:saw:After edit'])
+  assert.deepEqual(records, [])
+})
+
+test('rapid sequential mutations execute once each against the latest confirmed state', async () => {
+  assert.equal(typeof controls.createSerialActionQueue, 'function')
+  const queue = controls.createSerialActionQueue()
+  let confirmedCount = 0
+  const calls = [1, 2, 3].map(value => queue.enqueue(async () => {
+    const previous = confirmedCount
+    await Promise.resolve()
+    confirmedCount = previous + 1
+    return value
+  }))
+
+  assert.deepEqual(await Promise.all(calls), [1, 2, 3])
+  assert.equal(confirmedCount, 3)
+})
+
+test('rapid creates receive distinct ids', () => {
+  assert.equal(typeof controls.createMeetingPlaybookId, 'function')
+  const ids = new Set(Array.from({ length: 20 }, () => controls.createMeetingPlaybookId('template')))
+  assert.equal(ids.size, 20)
+  for (const id of ids) assert.match(id, /^template-/)
+})
+
+test('rapid record updates compose from the latest confirmed canonical record', async () => {
+  assert.equal(typeof controls.createLatestRecordUpdate, 'function')
+  const queue = controls.createSerialActionQueue()
+  let records = [{ id: 'template-1', kpis: [] }]
+  const persist = async next => {
+    records = records.map(record => record.id === next.id ? structuredClone(next) : record)
+    return structuredClone(next)
+  }
+  const add = label => controls.createLatestRecordUpdate({
+    getRecords: () => records,
+    id: 'template-1',
+    update: current => ({ ...current, kpis: [...current.kpis, label] }),
+    persist,
+  })
+
+  await Promise.all([
+    queue.enqueue(add('First')),
+    queue.enqueue(add('Second')),
+  ])
+  assert.deepEqual(records[0].kpis, ['First', 'Second'])
+})
+
+test('ambiguous committed create, update, and delete outcomes reconcile as saved', async () => {
+  assert.equal(typeof controls.executeCanonicalMutationWithReconciliation, 'function')
+  const cases = [
+    {
+      name: 'create',
+      initial: [],
+      intended: { id: 'template-1', name: 'Created' },
+      commit(records, intended) { records.push(intended) },
+      satisfied(records, intended) { return records.some(record => record.id === intended.id && record.name === intended.name) },
+    },
+    {
+      name: 'update',
+      initial: [{ id: 'template-1', name: 'Before' }],
+      intended: { id: 'template-1', name: 'After' },
+      commit(records, intended) { records.splice(0, records.length, intended) },
+      satisfied(records, intended) { return records.some(record => record.id === intended.id && record.name === intended.name) },
+    },
+    {
+      name: 'delete',
+      initial: [{ id: 'template-1', name: 'Before' }],
+      intended: { id: 'template-1' },
+      commit(records) { records.splice(0, records.length) },
+      satisfied(records, intended) { return !records.some(record => record.id === intended.id) },
+    },
+  ]
+
+  for (const scenario of cases) {
+    const remote = structuredClone(scenario.initial)
+    let executeCalls = 0
+    let applied = null
+    const result = await controls.executeCanonicalMutationWithReconciliation({
+      execute: async () => {
+        executeCalls += 1
+        scenario.commit(remote, scenario.intended)
+        throw new Error(`lost ${scenario.name} confirmation`)
+      },
+      refresh: async () => structuredClone(remote),
+      isSatisfied: records => scenario.satisfied(records, scenario.intended),
+      applyConfirmed: () => { throw new Error('no direct confirmation expected') },
+      applyRefreshed: records => { applied = records },
+    })
+    assert.equal(result.status, 'saved', scenario.name)
+    assert.equal(result.via, 'refresh', scenario.name)
+    assert.equal(executeCalls, 1, scenario.name)
+    assert.deepEqual(applied, remote, scenario.name)
+  }
+})
+
+test('confirmed create, update, and delete apply direct canonical outcomes without refreshing', async () => {
+  for (const operationName of ['create', 'update', 'delete']) {
+    let refreshCalls = 0
+    let applied = null
+    const confirmed = { operationName, id: 'record-1' }
+    const result = await controls.executeCanonicalMutationWithReconciliation({
+      execute: async () => confirmed,
+      refresh: async () => { refreshCalls += 1; return [] },
+      isSatisfied: () => false,
+      applyConfirmed: value => { applied = value },
+      applyRefreshed: () => {},
+    })
+    assert.deepEqual(result, { status: 'saved', via: 'operation' }, operationName)
+    assert.deepEqual(applied, confirmed, operationName)
+    assert.equal(refreshCalls, 0, operationName)
+  }
+})
+
+test('retry refreshes and reconciles before replaying an ambiguously committed create', async () => {
+  assert.equal(typeof controls.executeCanonicalMutationWithReconciliation, 'function')
+  const intended = { id: 'template-1', name: 'Created' }
+  const remote = []
+  let executeCalls = 0
+  let refreshCalls = 0
+  const flow = {
+    execute: async () => {
+      executeCalls += 1
+      remote.push(intended)
+      throw new Error('confirmation lost')
+    },
+    refresh: async () => {
+      refreshCalls += 1
+      if (refreshCalls === 1) throw new Error('refresh unavailable')
+      return structuredClone(remote)
+    },
+    isSatisfied: records => records.some(record => record.id === intended.id && record.name === intended.name),
+    applyConfirmed: () => {},
+    applyRefreshed: () => {},
+  }
+
+  assert.equal((await controls.executeCanonicalMutationWithReconciliation(flow)).status, 'failed')
+  const retried = await controls.executeCanonicalMutationWithReconciliation({ ...flow, reconcileBeforeExecute: true })
+  assert.equal(retried.status, 'saved')
+  assert.equal(retried.via, 'refresh')
+  assert.equal(executeCalls, 1)
+})
+
+test('retry does not replay a create when the canonical id is now occupied by different data', async () => {
+  let executeCalls = 0
+  const remote = [{ id: 'template-1', name: 'Another confirmed template' }]
+  const result = await controls.executeCanonicalMutationWithReconciliation({
+    execute: async () => {
+      executeCalls += 1
+      throw new Error('duplicate id')
+    },
+    refresh: async () => structuredClone(remote),
+    isSatisfied: records => records.some(record => record.id === 'template-1' && record.name === 'Intended template'),
+    canExecuteAfterRefresh: records => !records.some(record => record.id === 'template-1'),
+    applyConfirmed: () => {},
+    applyRefreshed: () => {},
+    reconcileBeforeExecute: true,
+  })
+
+  assert.equal(result.status, 'failed')
+  assert.equal(executeCalls, 0)
+})
+
+test('default initialization re-reads legacy and canonical state and blocks stale preconditions', async () => {
+  assert.equal(typeof controls.initializeDefaultPlaybookWithFreshPreconditions, 'function')
+  const emptyRecords = { templates: [], activeMeetings: [], scripts: [] }
+  const emptyIssues = {
+    'exodia-playbook-templates': [],
+    'exodia-playbook-active': [],
+    'exodia-playbook-scripts': [],
+  }
+  const scenarios = [
+    {
+      name: 'legacy record appeared',
+      legacy: {
+        records: { ...emptyRecords, scripts: [{ id: 'script-1' }] },
+        counts: { templates: 0, activeMeetings: 0, scripts: 1 },
+        issues: emptyIssues,
+      },
+      canonical: emptyRecords,
+    },
+    {
+      name: 'canonical record appeared',
+      legacy: {
+        records: emptyRecords,
+        counts: { templates: 0, activeMeetings: 0, scripts: 0 },
+        issues: emptyIssues,
+      },
+      canonical: { ...emptyRecords, templates: [{ id: 'template-1' }] },
+    },
+    {
+      name: 'legacy parse issue appeared',
+      legacy: {
+        records: emptyRecords,
+        counts: { templates: 0, activeMeetings: 0, scripts: 0 },
+        issues: { ...emptyIssues, 'exodia-playbook-scripts': ['invalid JSON'] },
+      },
+      canonical: emptyRecords,
+    },
+  ]
+
+  for (const scenario of scenarios) {
+    let importCalls = 0
+    const result = await controls.initializeDefaultPlaybookWithFreshPreconditions({
+      readLegacy: () => structuredClone(scenario.legacy),
+      fetchCanonical: async () => structuredClone(scenario.canonical),
+      importDefaults: async () => { importCalls += 1; return { complete: true } },
+    })
+    assert.equal(result.status, 'blocked', scenario.name)
+    assert.equal(importCalls, 0, scenario.name)
+  }
+})
+
+test('canonical load failure remains retryable and applies records only after success', async () => {
+  assert.equal(typeof controls.loadCanonicalMeetingPlaybook, 'function')
+  const records = { templates: [{ id: 'template-1' }], activeMeetings: [], scripts: [] }
+  let fetchCalls = 0
+  const applied = []
+  const flow = {
+    fetchCanonical: async () => {
+      fetchCalls += 1
+      if (fetchCalls === 1) throw new Error('temporarily unavailable')
+      return structuredClone(records)
+    },
+    applyCanonical: value => applied.push(value),
+  }
+
+  assert.equal((await controls.loadCanonicalMeetingPlaybook(flow)).status, 'failed')
+  assert.deepEqual(applied, [])
+  assert.equal((await controls.loadCanonicalMeetingPlaybook(flow)).status, 'ready')
+  assert.deepEqual(applied, [records])
+})
+
+test('partial import and initialize outcomes refresh confirmed records and remain failed', async () => {
+  assert.equal(typeof controls.executeBulkActionWithRefresh, 'function')
+  for (const actionName of ['import', 'initialize']) {
+    const refreshed = { templates: [{ id: `${actionName}-partial` }], activeMeetings: [], scripts: [] }
+    let refreshCalls = 0
+    let applied = null
+    const result = await controls.executeBulkActionWithRefresh({
+      execute: async () => ({ complete: false }),
+      refresh: async () => { refreshCalls += 1; return structuredClone(refreshed) },
+      applyRefreshed: records => { applied = records },
+    })
+    assert.equal(result.status, 'failed', actionName)
+    assert.equal(refreshCalls, 1, actionName)
+    assert.deepEqual(applied, refreshed, actionName)
+  }
+})
+
+test('each canonical tab reports its own empty state even when another group has records', () => {
+  assert.equal(typeof controls.getMeetingPlaybookEmptyMessage, 'function')
+  const records = {
+    templates: [{ id: 'template-1' }],
+    activeMeetings: [],
+    scripts: [{ id: 'script-1' }],
+  }
+
+  assert.match(controls.getMeetingPlaybookEmptyMessage('active', records), /No active meetings/i)
+  assert.equal(controls.getMeetingPlaybookEmptyMessage('master', records), null)
+  assert.equal(controls.getMeetingPlaybookEmptyMessage('vault', records), null)
+  assert.match(controls.getMeetingPlaybookEmptyMessage('master', { ...records, templates: [] }), /No meeting templates/i)
+  assert.match(controls.getMeetingPlaybookEmptyMessage('vault', { ...records, scripts: [] }), /No scripts/i)
 })
