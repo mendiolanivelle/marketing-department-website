@@ -5,6 +5,7 @@ const protectedRouteNames: Record<string, string> = {
   '/calendar': 'Calendar',
   '/files': 'File Tracker',
   '/leads': 'Lead Generation',
+  '/meeting-playbook': 'Meeting Playbook',
   '/campaigns': 'Campaigns',
   '/acceptance-criteria': 'Acceptance Criteria',
   '/marketing-project-list': 'Project List',

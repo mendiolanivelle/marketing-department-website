@@ -17,6 +17,7 @@ const Messaging = lazy(() => import('./pages/Messaging'))
 const Calendar = lazy(() => import('./pages/Calendar'))
 const FileTracker = lazy(() => import('./pages/FileTracker'))
 const LeadGeneration = lazy(() => import('./pages/LeadGeneration'))
+const MeetingPlaybook = lazy(() => import('./pages/MeetingPlaybook'))
 const Campaigns = lazy(() => import('./pages/Campaigns'))
 const AcceptanceCriteria = lazy(() => import('./pages/AcceptanceCriteria'))
 const MarketingRequests = lazy(() => import('./pages/MarketingRequests'))
@@ -184,6 +185,7 @@ function App() {
                               <Route path="/calendar" element={<Calendar />} />
                               <Route path="/files" element={<FileTracker />} />
                               <Route path="/leads" element={<LeadGeneration />} />
+                              <Route path="/meeting-playbook" element={<MeetingPlaybook />} />
                             <Route path="/campaigns" element={<Campaigns />} />
                             <Route path="/acceptance-criteria" element={<AcceptanceCriteria />} />
                             <Route path="/marketing-project-list" element={<MarketingProjectList />} />

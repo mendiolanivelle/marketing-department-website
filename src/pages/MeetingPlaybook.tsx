@@ -1,48 +1,32 @@
-import { useState, useEffect } from 'react'
-import { isSupabaseConfigured } from '../lib/supabase'
-
-interface FlowStep {
-  id: string
-  text: string
-  time: string
-  description: string
-}
-
-interface MeetingTemplate {
-  id: string
-  name: string
-  description: string
-  goal: string
-  kpis: string[]
-  proTips: string[]
-  flowSteps: FlowStep[]
-}
-
-interface MeetingLink {
-  id: string
-  label: string
-  url: string
-}
-
-interface ChecklistItem {
-  id: string
-  text: string
-  checked: boolean
-}
-
-interface ScriptCard {
-  id: string
-  name: string
-  category: string
-  text: string
-}
-
-interface ActiveMeeting {
-  id: string
-  name: string
-  links: MeetingLink[]
-  checklist: ChecklistItem[]
-}
+/* eslint-disable react-refresh/only-export-components */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { logActivity } from '../lib/activityLogger'
+import {
+  LEGACY_ACTIVE_MEETINGS_KEY,
+  LEGACY_SCRIPTS_KEY,
+  LEGACY_TEMPLATES_KEY,
+  createActiveMeeting as createCanonicalActiveMeeting,
+  createMeetingScript,
+  createMeetingTemplate,
+  deleteActiveMeeting as deleteCanonicalActiveMeeting,
+  deleteMeetingScript,
+  deleteMeetingTemplate,
+  fetchCanonicalMeetingPlaybook,
+  importMissingLegacyMeetingPlaybook,
+  planLegacyMeetingPlaybookImport,
+  readLegacyMeetingPlaybook,
+  serializeMeetingPlaybookBackup,
+  updateActiveMeeting,
+  updateMeetingScript,
+  updateMeetingTemplate,
+  type ActiveMeeting,
+  type LegacyMeetingPlaybookData,
+  type MeetingPlaybookClient,
+  type MeetingPlaybookRecords,
+  type MeetingTemplate,
+  type ScriptCard,
+} from '../lib/meetingPlaybookData'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 type TabKey = 'master' | 'active' | 'vault'
 
@@ -111,44 +95,467 @@ const defaultScripts: ScriptCard[] = [
   { id: 's4', name: 'Handling Tech Failure Gracefully', category: 'General', text: 'Looks like we\'re having a tech hiccup. No worries — I\'ll send you the deck via email right now. Bear with me for one minute while I switch to my backup.' },
 ]
 
-const TEMPLATES_KEY = 'exodia-playbook-templates'
-const ACTIVE_MEETINGS_KEY = 'exodia-playbook-active'
-const SCRIPTS_KEY = 'exodia-playbook-scripts'
+const emptyRecords = (): MeetingPlaybookRecords => ({ templates: [], activeMeetings: [], scripts: [] })
+
+const emptyLegacy = (): LegacyMeetingPlaybookData => ({
+  records: emptyRecords(),
+  counts: { templates: 0, activeMeetings: 0, scripts: 0 },
+  issues: {
+    [LEGACY_TEMPLATES_KEY]: [],
+    [LEGACY_ACTIVE_MEETINGS_KEY]: [],
+    [LEGACY_SCRIPTS_KEY]: [],
+  },
+})
+
+const readLocalArray = <T,>(key: string, fallback: T[]): T[] => {
+  if (typeof window === 'undefined') return fallback
+  const saved = window.localStorage.getItem(key)
+  if (saved) { try { return JSON.parse(saved) as T[] } catch { /* preserve prior fallback behavior */ } }
+  return fallback
+}
+
+const defaultRecords: MeetingPlaybookRecords = {
+  templates: defaultTemplates,
+  activeMeetings: [],
+  scripts: defaultScripts,
+}
+
+type PersistenceState = 'idle' | 'saving' | 'saved' | 'failed' | 'blocked'
+
+export const areMeetingPlaybookRecordsEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) return true
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => areMeetingPlaybookRecordsEqual(value, right[index]))
+  }
+  if (typeof left !== 'object' || left === null || typeof right !== 'object' || right === null) return false
+  const leftRecord = left as Record<string, unknown>
+  const rightRecord = right as Record<string, unknown>
+  const leftKeys = Object.keys(leftRecord)
+  const rightKeys = Object.keys(rightRecord)
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every(key => Object.prototype.hasOwnProperty.call(rightRecord, key) && areMeetingPlaybookRecordsEqual(leftRecord[key], rightRecord[key]))
+}
+
+export const createMeetingPlaybookId = (prefix: string): string => `${prefix}-${crypto.randomUUID()}`
+
+interface LatestRecordUpdate<T extends { id: string }> {
+  getRecords: () => T[]
+  id: string
+  update: (current: T) => T
+  persist: (next: T) => Promise<T>
+}
+
+export function createLatestRecordUpdate<T extends { id: string }>({
+  getRecords,
+  id,
+  update,
+  persist,
+}: LatestRecordUpdate<T>): () => Promise<T> {
+  return async () => {
+    const current = getRecords().find(record => record.id === id)
+    if (!current) throw new Error('Canonical record is no longer available')
+    return persist(update(current))
+  }
+}
+
+interface CanonicalMutationFlow<TConfirmed, TRecords> {
+  execute: () => Promise<TConfirmed>
+  refresh: () => Promise<TRecords>
+  isSatisfied: (records: TRecords) => boolean
+  applyConfirmed: (confirmed: TConfirmed) => void
+  applyRefreshed: (records: TRecords) => void
+  canExecuteAfterRefresh?: (records: TRecords) => boolean
+  reconcileBeforeExecute?: boolean
+}
+
+export async function executeCanonicalMutationWithReconciliation<TConfirmed, TRecords>({
+  execute,
+  refresh,
+  isSatisfied,
+  applyConfirmed,
+  applyRefreshed,
+  canExecuteAfterRefresh,
+  reconcileBeforeExecute = false,
+}: CanonicalMutationFlow<TConfirmed, TRecords>): Promise<{ status: 'saved' | 'failed'; via?: 'operation' | 'refresh' }> {
+  if (reconcileBeforeExecute) {
+    try {
+      const records = await refresh()
+      applyRefreshed(records)
+      if (isSatisfied(records)) return { status: 'saved', via: 'refresh' }
+      if (canExecuteAfterRefresh && !canExecuteAfterRefresh(records)) return { status: 'failed' }
+    } catch {
+      return { status: 'failed' }
+    }
+  }
+  try {
+    const confirmed = await execute()
+    applyConfirmed(confirmed)
+    return { status: 'saved', via: 'operation' }
+  } catch {
+    try {
+      const records = await refresh()
+      applyRefreshed(records)
+      return isSatisfied(records) ? { status: 'saved', via: 'refresh' } : { status: 'failed' }
+    } catch {
+      return { status: 'failed' }
+    }
+  }
+}
+
+type CanonicalActionStatus = 'saved' | 'failed'
+
+interface CoordinatedMutationFlow<TConfirmed, TRecords> extends Omit<CanonicalMutationFlow<TConfirmed, TRecords>, 'reconcileBeforeExecute'> {
+  onSaving: () => void
+  onSaved: () => void
+  onFailed: () => void
+}
+
+export function createCanonicalActionCoordinator() {
+  type QueuedAction = {
+    attempts: number
+    execute: (isRetry: boolean) => Promise<CanonicalActionStatus>
+    resolve: () => void
+  }
+
+  const actions: QueuedAction[] = []
+  let running = false
+  let blocked = false
+
+  const runNext = () => {
+    if (running || blocked || actions.length === 0) return
+    running = true
+    const action = actions[0]
+    void action.execute(action.attempts > 0)
+      .catch((): CanonicalActionStatus => 'failed')
+      .then(status => {
+        running = false
+        if (status === 'saved') {
+          actions.shift()
+          action.resolve()
+          runNext()
+          return
+        }
+        action.attempts += 1
+        blocked = true
+      })
+  }
+
+  const enqueueAction = (execute: QueuedAction['execute']): Promise<void> => new Promise(resolve => {
+    actions.push({ attempts: 0, execute, resolve })
+    runNext()
+  })
+
+  return {
+    enqueueAction,
+    enqueueMutation<TConfirmed, TRecords>(flow: CoordinatedMutationFlow<TConfirmed, TRecords>): Promise<void> {
+      return enqueueAction(async isRetry => {
+        flow.onSaving()
+        const result = await executeCanonicalMutationWithReconciliation({
+          execute: flow.execute,
+          refresh: flow.refresh,
+          isSatisfied: flow.isSatisfied,
+          applyConfirmed: flow.applyConfirmed,
+          applyRefreshed: flow.applyRefreshed,
+          canExecuteAfterRefresh: flow.canExecuteAfterRefresh,
+          reconcileBeforeExecute: isRetry,
+        })
+        if (result.status === 'saved') flow.onSaved()
+        else flow.onFailed()
+        return result.status
+      })
+    },
+    retry() {
+      if (!blocked || running || actions.length === 0) return
+      blocked = false
+      runNext()
+    },
+  }
+}
+
+export function getMeetingPlaybookEmptyMessage(tab: TabKey, records: MeetingPlaybookRecords): string | null {
+  if (tab === 'master' && records.templates.length === 0) return 'No meeting templates yet. Create a new meeting template to get started.'
+  if (tab === 'active' && records.activeMeetings.length === 0) return 'No active meetings yet. Click "+ Create Active Meeting" to get started.'
+  if (tab === 'vault' && records.scripts.length === 0) return 'No scripts yet. Create a new script to get started.'
+  return null
+}
+
+interface DefaultInitializationAttemptFlow {
+  continuation: boolean
+  defaults: MeetingPlaybookRecords
+  readLegacy: () => LegacyMeetingPlaybookData
+  fetchCanonical: () => Promise<MeetingPlaybookRecords>
+  applyCanonical: (records: MeetingPlaybookRecords) => void
+  importMissing: (canonical: MeetingPlaybookRecords) => Promise<{ complete: boolean }>
+}
+
+const containsDefaultPlaybook = (records: MeetingPlaybookRecords, defaults: MeetingPlaybookRecords): boolean =>
+  defaults.templates.every(expected => records.templates.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+  defaults.activeMeetings.every(expected => records.activeMeetings.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+  defaults.scripts.every(expected => records.scripts.some(record => record.id === expected.id && areMeetingPlaybookRecordsEqual(record, expected)))
+
+const isPartialDefaultPlaybook = (records: MeetingPlaybookRecords, defaults: MeetingPlaybookRecords): boolean => {
+  const canonicalCount = records.templates.length + records.activeMeetings.length + records.scripts.length
+  if (canonicalCount === 0 || containsDefaultPlaybook(records, defaults)) return false
+  return records.templates.every(record => defaults.templates.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+    records.activeMeetings.every(record => defaults.activeMeetings.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected))) &&
+    records.scripts.every(record => defaults.scripts.some(expected => expected.id === record.id && areMeetingPlaybookRecordsEqual(record, expected)))
+}
+
+export async function executeDefaultInitializationAttempt({
+  continuation,
+  defaults,
+  readLegacy,
+  fetchCanonical,
+  applyCanonical,
+  importMissing,
+}: DefaultInitializationAttemptFlow): Promise<{ status: CanonicalActionStatus | 'blocked'; mayContinueMissingOnly?: boolean }> {
+  let canonical: MeetingPlaybookRecords
+  try {
+    canonical = await fetchCanonical()
+    applyCanonical(canonical)
+  } catch {
+    return { status: 'failed' }
+  }
+
+  if (continuation && containsDefaultPlaybook(canonical, defaults)) return { status: 'saved' }
+  const continuingPartialInitialization = continuation && isPartialDefaultPlaybook(canonical, defaults)
+  const legacy = continuingPartialInitialization ? null : readLegacy()
+  if (legacy) {
+    const legacyCount = legacy.counts.templates + legacy.counts.activeMeetings + legacy.counts.scripts
+    const canonicalCount = canonical.templates.length + canonical.activeMeetings.length + canonical.scripts.length
+    const hasIssues = Object.values(legacy.issues).some(issues => issues.length > 0)
+    if (legacyCount > 0 || canonicalCount > 0 || hasIssues) return { status: 'blocked' }
+  }
+
+  try {
+    await importMissing(canonical)
+  } catch {
+    // The operation may have committed remotely; the canonical refresh below decides the outcome.
+  }
+
+  try {
+    const refreshed = await fetchCanonical()
+    applyCanonical(refreshed)
+    if (containsDefaultPlaybook(refreshed, defaults)) return { status: 'saved' }
+    return { status: 'failed', mayContinueMissingOnly: isPartialDefaultPlaybook(refreshed, defaults) }
+  } catch {
+    return { status: 'failed' }
+  }
+}
+
+interface DefaultPlaybookInitializationActionFlow extends Omit<DefaultInitializationAttemptFlow, 'continuation'> {
+  onSaving: () => void
+  onSaved: () => void
+  onFailed: () => void
+  onBlocked: () => void
+}
+
+export function createDefaultPlaybookInitializationAction(
+  flow: DefaultPlaybookInitializationActionFlow,
+): (isRetry: boolean) => Promise<CanonicalActionStatus> {
+  let partialContinuationProven = false
+  return async isRetry => {
+    flow.onSaving()
+    const result = await executeDefaultInitializationAttempt({
+      continuation: isRetry && partialContinuationProven,
+      defaults: flow.defaults,
+      readLegacy: flow.readLegacy,
+      fetchCanonical: flow.fetchCanonical,
+      applyCanonical: flow.applyCanonical,
+      importMissing: flow.importMissing,
+    })
+    if (result.mayContinueMissingOnly !== undefined) {
+      partialContinuationProven = result.mayContinueMissingOnly
+    } else if (result.status === 'saved' || result.status === 'blocked') {
+      partialContinuationProven = false
+    }
+    if (result.status === 'saved') {
+      flow.onSaved()
+      return 'saved'
+    }
+    if (result.status === 'blocked') {
+      flow.onBlocked()
+      return 'saved'
+    }
+    flow.onFailed()
+    return 'failed'
+  }
+}
+
+interface CanonicalLoadFlow<TRecords> {
+  fetchCanonical: () => Promise<TRecords>
+  applyCanonical: (records: TRecords) => void
+}
+
+export async function loadCanonicalMeetingPlaybook<TRecords>({
+  fetchCanonical,
+  applyCanonical,
+}: CanonicalLoadFlow<TRecords>): Promise<{ status: 'ready' | 'failed'; records?: TRecords }> {
+  try {
+    const records = await fetchCanonical()
+    applyCanonical(records)
+    return { status: 'ready', records }
+  } catch {
+    return { status: 'failed' }
+  }
+}
+
+interface BulkActionFlow<TRecords> {
+  execute: () => Promise<{ complete: boolean }>
+  refresh: () => Promise<TRecords>
+  applyRefreshed: (records: TRecords) => void
+}
+
+export async function executeBulkActionWithRefresh<TRecords>({
+  execute,
+  refresh,
+  applyRefreshed,
+}: BulkActionFlow<TRecords>): Promise<{ status: 'saved' | 'failed'; records?: TRecords }> {
+  let complete: boolean
+  try {
+    complete = (await execute()).complete
+  } catch {
+    complete = false
+  }
+  try {
+    const records = await refresh()
+    applyRefreshed(records)
+    return { status: complete ? 'saved' : 'failed', records }
+  } catch {
+    return { status: 'failed' }
+  }
+}
+
+export function MeetingPlaybookPersistenceNotice({
+  state,
+  isRefreshing = false,
+  onRetry,
+}: {
+  state: PersistenceState
+  isRefreshing?: boolean
+  onRetry: () => void
+}) {
+  if (state === 'idle' && !isRefreshing) return null
+  const message = state === 'saving'
+    ? 'Saving canonical Meeting Playbook…'
+    : state === 'saved'
+      ? 'Saved to canonical Meeting Playbook.'
+      : state === 'failed'
+        ? 'Canonical save failed. The last confirmed state is shown.'
+        : state === 'blocked'
+          ? 'Default initialization was blocked because canonical or preserved browser data appeared. Review the current records before initializing.'
+          : 'Refreshing canonical Meeting Playbook…'
+  return (
+    <div
+      className="rounded-xl border px-4 py-3 text-xs flex items-center justify-between gap-3"
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        borderColor: 'var(--border-primary)',
+        color: state === 'failed' || state === 'blocked' ? '#B91C1C' : 'var(--text-secondary)',
+      }}
+      role="status"
+      aria-live="polite"
+    >
+      <span>{message}</span>
+      {state === 'failed' && (
+        <button className="font-medium" style={{ color: 'var(--accent)' }} onClick={onRetry}>Retry</button>
+      )}
+    </div>
+  )
+}
 
 export default function MeetingPlaybook() {
   const [activeTab, setActiveTab] = useState<TabKey>('master')
-  const [templates, setTemplates] = useState<MeetingTemplate[]>(() => {
-    if (isSupabaseConfigured) return defaultTemplates
-    const saved = localStorage.getItem(TEMPLATES_KEY)
-    if (saved) { try { return JSON.parse(saved) } catch {} }
-    return defaultTemplates
-  })
+  const [templates, setTemplates] = useState<MeetingTemplate[]>(() =>
+    isSupabaseConfigured ? [] : readLocalArray(LEGACY_TEMPLATES_KEY, defaultTemplates))
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [activeMeetings, setActiveMeetings] = useState<ActiveMeeting[]>(() => {
-    if (isSupabaseConfigured) return []
-    const saved = localStorage.getItem(ACTIVE_MEETINGS_KEY)
-    if (saved) { try { return JSON.parse(saved) } catch {} }
-    return []
-  })
+  const [activeMeetings, setActiveMeetings] = useState<ActiveMeeting[]>(() =>
+    isSupabaseConfigured ? [] : readLocalArray(LEGACY_ACTIVE_MEETINGS_KEY, []))
   const [selectedMeeting, setSelectedMeeting] = useState<string>('')
-  const [scripts, setScripts] = useState<ScriptCard[]>(() => {
-    if (isSupabaseConfigured) return defaultScripts
-    const saved = localStorage.getItem(SCRIPTS_KEY)
-    if (saved) { try { return JSON.parse(saved) } catch {} }
-    return defaultScripts
-  })
+  const [scripts, setScripts] = useState<ScriptCard[]>(() =>
+    isSupabaseConfigured ? [] : readLocalArray(LEGACY_SCRIPTS_KEY, defaultScripts))
   const [editingField, setEditingField] = useState<{ target: string; id: string } | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [canonicalLoaded, setCanonicalLoaded] = useState(!isSupabaseConfigured)
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>(isSupabaseConfigured ? 'loading' : 'ready')
+  const [persistenceState, setPersistenceState] = useState<PersistenceState>('idle')
+  const [legacy, setLegacy] = useState<LegacyMeetingPlaybookData>(() => {
+    if (!isSupabaseConfigured || typeof window === 'undefined') return emptyLegacy()
+    return readLegacyMeetingPlaybook(window.localStorage)
+  })
+  const [legacyKeysPresent, setLegacyKeysPresent] = useState(() => {
+    if (!isSupabaseConfigured || typeof window === 'undefined') return false
+    try {
+      return [LEGACY_TEMPLATES_KEY, LEGACY_ACTIVE_MEETINGS_KEY, LEGACY_SCRIPTS_KEY]
+        .some(key => window.localStorage.getItem(key) !== null)
+    } catch {
+      return true
+    }
+  })
+  const retryRef = useRef<(() => void) | null>(null)
+  const actionCoordinatorRef = useRef(createCanonicalActionCoordinator())
+  const canonicalRecordsRef = useRef<MeetingPlaybookRecords>({ templates, activeMeetings, scripts })
+  const canonicalClient = supabase as unknown as MeetingPlaybookClient | null
+
+  const applyCanonicalRecords = useCallback((records: MeetingPlaybookRecords) => {
+    canonicalRecordsRef.current = records
+    setTemplates(records.templates)
+    setActiveMeetings(records.activeMeetings)
+    setScripts(records.scripts)
+    setSelectedTemplate(current => current && records.templates.some(record => record.id === current) ? current : null)
+    setSelectedMeeting(current => current && records.activeMeetings.some(record => record.id === current)
+      ? current
+      : records.activeMeetings[0]?.id || '')
+  }, [])
+
+  const commitCanonicalRecords = useCallback((
+    update: (records: MeetingPlaybookRecords) => MeetingPlaybookRecords,
+  ) => {
+    applyCanonicalRecords(update(canonicalRecordsRef.current))
+  }, [applyCanonicalRecords])
+
+  const refreshCanonicalRecords = useCallback(async (): Promise<MeetingPlaybookRecords> => {
+    if (!canonicalClient) throw new Error('Canonical client unavailable')
+    setLoadState('loading')
+    const result = await loadCanonicalMeetingPlaybook({
+      fetchCanonical: () => fetchCanonicalMeetingPlaybook(canonicalClient),
+      applyCanonical: applyCanonicalRecords,
+    })
+    if (result.status === 'ready' && result.records) {
+      setCanonicalLoaded(true)
+      setLoadState('ready')
+      return result.records
+    }
+    setLoadState('failed')
+    throw new Error('Canonical Meeting Playbook refresh failed')
+  }, [applyCanonicalRecords, canonicalClient])
+
+  const loadCanonical = useCallback(async (): Promise<boolean> => {
+    try {
+      await refreshCanonicalRecords()
+      return true
+    } catch {
+      return false
+    }
+  }, [refreshCanonicalRecords])
 
   useEffect(() => {
-    if (!isSupabaseConfigured) localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates))
+    if (!isSupabaseConfigured) window.localStorage.setItem(LEGACY_TEMPLATES_KEY, JSON.stringify(templates))
   }, [templates])
   useEffect(() => {
-    if (!isSupabaseConfigured) localStorage.setItem(ACTIVE_MEETINGS_KEY, JSON.stringify(activeMeetings))
+    if (!isSupabaseConfigured) window.localStorage.setItem(LEGACY_ACTIVE_MEETINGS_KEY, JSON.stringify(activeMeetings))
   }, [activeMeetings])
   useEffect(() => {
-    if (!isSupabaseConfigured) localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts))
+    if (!isSupabaseConfigured) window.localStorage.setItem(LEGACY_SCRIPTS_KEY, JSON.stringify(scripts))
   }, [scripts])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    retryRef.current = () => { void loadCanonical() }
+    void loadCanonical()
+  }, [loadCanonical])
 
   useEffect(() => {
     if (!selectedMeeting && activeMeetings.length > 0) {
@@ -156,11 +563,21 @@ export default function MeetingPlaybook() {
     }
   }, [activeMeetings, selectedMeeting])
 
-  if (isSupabaseConfigured) {
+  const canonicalRecords = useMemo<MeetingPlaybookRecords>(() => ({ templates, activeMeetings, scripts }), [activeMeetings, scripts, templates])
+  canonicalRecordsRef.current = canonicalRecords
+  const importPlan = useMemo(() => planLegacyMeetingPlaybookImport(legacy.records, canonicalRecords), [canonicalRecords, legacy.records])
+  const legacyValidCount = legacy.counts.templates + legacy.counts.activeMeetings + legacy.counts.scripts
+  const canonicalCount = templates.length + activeMeetings.length + scripts.length
+  const missingCount = importPlan.missing.templates.length + importPlan.missing.activeMeetings.length + importPlan.missing.scripts.length
+
+  if (isSupabaseConfigured && !canonicalLoaded) {
     return (
       <div className="p-4 sm:p-6 lg:p-8" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900" role="status">
-          Meeting Playbook is unavailable until canonical storage and browser-record recovery are approved. Existing browser-only records are preserved.
+        <div className="rounded-2xl border p-6 text-sm" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }} role="status" aria-live="polite">
+          {loadState === 'loading' ? 'Loading canonical Meeting Playbook…' : 'Canonical Meeting Playbook failed to load. Existing browser records remain preserved.'}
+          {loadState === 'failed' && (
+            <button className="ml-3 font-medium" style={{ color: 'var(--accent)' }} onClick={() => retryRef.current?.()}>Retry</button>
+          )}
         </div>
       </div>
     )
@@ -171,56 +588,169 @@ export default function MeetingPlaybook() {
   const activeLinks = activeMeeting?.links || []
   const activeChecklist = activeMeeting?.checklist || []
 
-  const saveEdit = () => {
+  const markCanonicalActionFailed = () => {
+    retryRef.current = () => actionCoordinatorRef.current.retry()
+    setPersistenceState('failed')
+  }
+
+  const markCanonicalActionSaved = () => {
+    retryRef.current = null
+    setPersistenceState('saved')
+  }
+
+  const runCanonicalMutation = async <T,>(
+    operation: () => Promise<T>,
+    applyConfirmed: (confirmed: T) => void,
+    isSatisfied: (records: MeetingPlaybookRecords) => boolean,
+    successActivity: string,
+    failedActivity: string,
+    canExecuteAfterRefresh?: (records: MeetingPlaybookRecords) => boolean,
+  ) => {
+    if (!canonicalClient) return
+    return actionCoordinatorRef.current.enqueueMutation({
+      execute: operation,
+      refresh: refreshCanonicalRecords,
+      isSatisfied,
+      applyConfirmed,
+      applyRefreshed: applyCanonicalRecords,
+      canExecuteAfterRefresh,
+      onSaving: () => setPersistenceState('saving'),
+      onSaved: () => {
+        markCanonicalActionSaved()
+        void logActivity('Meeting Playbook', successActivity)
+      },
+      onFailed: () => {
+        markCanonicalActionFailed()
+        void logActivity('Meeting Playbook', failedActivity)
+      },
+    })
+  }
+
+  const saveTemplate = async (
+    id: string,
+    update: (current: MeetingTemplate) => MeetingTemplate,
+    activity = 'Updated meeting template',
+  ) => {
+    if (!isSupabaseConfigured) {
+      setTemplates(current => current.map(item => item.id === id ? update(item) : item))
+      return
+    }
+    let intended: MeetingTemplate | null = null
+    const operation = createLatestRecordUpdate({
+      getRecords: () => canonicalRecordsRef.current.templates,
+      id,
+      update: current => (intended = update(current)),
+      persist: next => updateMeetingTemplate(canonicalClient!, next),
+    })
+    await runCanonicalMutation(
+      operation,
+      confirmed => commitCanonicalRecords(records => ({
+        ...records,
+        templates: records.templates.map(item => item.id === confirmed.id ? confirmed : item),
+      })),
+      records => intended !== null && records.templates.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
+      activity,
+      'Meeting template update failed',
+      records => records.templates.some(item => item.id === id),
+    )
+  }
+
+  const saveActiveMeeting = async (
+    id: string,
+    update: (current: ActiveMeeting) => ActiveMeeting,
+    activity = 'Updated active meeting',
+  ) => {
+    if (!isSupabaseConfigured) {
+      setActiveMeetings(current => current.map(item => item.id === id ? update(item) : item))
+      return
+    }
+    let intended: ActiveMeeting | null = null
+    const operation = createLatestRecordUpdate({
+      getRecords: () => canonicalRecordsRef.current.activeMeetings,
+      id,
+      update: current => (intended = update(current)),
+      persist: next => updateActiveMeeting(canonicalClient!, next),
+    })
+    await runCanonicalMutation(
+      operation,
+      confirmed => commitCanonicalRecords(records => ({
+        ...records,
+        activeMeetings: records.activeMeetings.map(item => item.id === confirmed.id ? confirmed : item),
+      })),
+      records => intended !== null && records.activeMeetings.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
+      activity,
+      'Active meeting update failed',
+      records => records.activeMeetings.some(item => item.id === id),
+    )
+  }
+
+  const saveScript = async (
+    id: string,
+    update: (current: ScriptCard) => ScriptCard,
+    activity = 'Updated meeting script',
+  ) => {
+    if (!isSupabaseConfigured) {
+      setScripts(current => current.map(item => item.id === id ? update(item) : item))
+      return
+    }
+    let intended: ScriptCard | null = null
+    const operation = createLatestRecordUpdate({
+      getRecords: () => canonicalRecordsRef.current.scripts,
+      id,
+      update: current => (intended = update(current)),
+      persist: next => updateMeetingScript(canonicalClient!, next),
+    })
+    await runCanonicalMutation(
+      operation,
+      confirmed => commitCanonicalRecords(records => ({
+        ...records,
+        scripts: records.scripts.map(item => item.id === confirmed.id ? confirmed : item),
+      })),
+      records => intended !== null && records.scripts.some(item => item.id === id && areMeetingPlaybookRecordsEqual(item, intended)),
+      activity,
+      'Meeting script update failed',
+      records => records.scripts.some(item => item.id === id),
+    )
+  }
+
+  const saveEdit = async () => {
     if (!editingField) return
     const { target, id } = editingField
-    if (target === 'goal') {
-      setTemplates(prev => prev.map(t => t.id === id ? { ...t, goal: editValue } : t))
-    }
-    if (target === 'step-text') {
-      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.map(s => s.id === id ? { ...s, text: editValue } : s) } : t))
-    }
-    if (target === 'step-time') {
-      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.map(s => s.id === id ? { ...s, time: editValue } : s) } : t))
-    }
-    if (target === 'step-desc') {
-      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.map(s => s.id === id ? { ...s, description: editValue } : s) } : t))
-    }
-    if (target === 'kpi') {
-      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, kpis: t.kpis.map((k, i) => i === Number(id) ? editValue : k) } : t))
-    }
-    if (target === 'tip') {
-      setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, proTips: t.proTips.map((p, i) => i === Number(id) ? editValue : p) } : t))
-    }
-    if (target === 'link-url') {
-      setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, links: m.links.map(l => l.id === id ? { ...l, url: editValue } : l) } : m))
-    }
-    if (target === 'link-label') {
-      setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, links: m.links.map(l => l.id === id ? { ...l, label: editValue } : l) } : m))
-    }
-    if (target === 'script-name') {
-      setScripts(prev => prev.map(s => s.id === id ? { ...s, name: editValue } : s))
-    }
-    if (target === 'script-text') {
-      setScripts(prev => prev.map(s => s.id === id ? { ...s, text: editValue } : s))
-    }
-    if (target === 'script-category') {
-      setScripts(prev => prev.map(s => s.id === id ? { ...s, category: editValue } : s))
-    }
-    if (target === 'checklist-text') {
-      setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, checklist: m.checklist.map(c => c.id === id ? { ...c, text: editValue } : c) } : m))
-    }
-    if (target === 'meeting-name') {
-      setActiveMeetings(prev => prev.map(m => m.id === id ? { ...m, name: editValue } : m))
-    }
-    if (target === 'description') {
-      setTemplates(prev => prev.map(t => t.id === id ? { ...t, description: editValue } : t))
-    }
-    if (target === 'name') {
-      setTemplates(prev => prev.map(t => t.id === id ? { ...t, name: editValue } : t))
-    }
     setEditingField(null)
     setEditValue('')
+    const templateTargets = ['goal', 'description', 'name', 'step-text', 'step-time', 'step-desc', 'kpi', 'tip']
+    const templateId = ['goal', 'description', 'name'].includes(target) ? id : selectedTemplate
+    if (templateTargets.includes(target) && templateId) {
+      await saveTemplate(templateId, current => {
+        if (target === 'goal') return { ...current, goal: editValue }
+        if (target === 'description') return { ...current, description: editValue }
+        if (target === 'name') return { ...current, name: editValue }
+        if (target === 'step-text') return { ...current, flowSteps: current.flowSteps.map(step => step.id === id ? { ...step, text: editValue } : step) }
+        if (target === 'step-time') return { ...current, flowSteps: current.flowSteps.map(step => step.id === id ? { ...step, time: editValue } : step) }
+        if (target === 'step-desc') return { ...current, flowSteps: current.flowSteps.map(step => step.id === id ? { ...step, description: editValue } : step) }
+        if (target === 'kpi') return { ...current, kpis: current.kpis.map((value, index) => index === Number(id) ? editValue : value) }
+        return { ...current, proTips: current.proTips.map((value, index) => index === Number(id) ? editValue : value) }
+      })
+      return
+    }
+    const meetingTargets = ['meeting-name', 'link-url', 'link-label', 'checklist-text']
+    const meetingId = target === 'meeting-name' ? id : selectedMeeting
+    if (meetingTargets.includes(target) && meetingId) {
+      await saveActiveMeeting(meetingId, current => {
+        if (target === 'meeting-name') return { ...current, name: editValue }
+        if (target === 'link-url') return { ...current, links: current.links.map(link => link.id === id ? { ...link, url: editValue } : link) }
+        if (target === 'link-label') return { ...current, links: current.links.map(link => link.id === id ? { ...link, label: editValue } : link) }
+        return { ...current, checklist: current.checklist.map(item => item.id === id ? { ...item, text: editValue } : item) }
+      })
+      return
+    }
+    if (['script-name', 'script-text', 'script-category'].includes(target)) {
+      await saveScript(id, current => {
+        if (target === 'script-name') return { ...current, name: editValue }
+        if (target === 'script-text') return { ...current, text: editValue }
+        return { ...current, category: editValue }
+      })
+    }
   }
 
   const startEdit = (target: string, id: string, value: string) => {
@@ -229,96 +759,233 @@ export default function MeetingPlaybook() {
   }
 
   const addKpi = () => {
-    if (!selectedTemplate) return
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, kpis: [...t.kpis, 'New KPI'] } : t))
+    if (selectedTemplate) void saveTemplate(selectedTemplate, current => ({ ...current, kpis: [...current.kpis, 'New KPI'] }))
   }
 
   const deleteKpi = (index: number) => {
-    if (!selectedTemplate) return
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, kpis: t.kpis.filter((_, i) => i !== index) } : t))
+    if (selectedTemplate) void saveTemplate(selectedTemplate, current => ({ ...current, kpis: current.kpis.filter((_, i) => i !== index) }))
   }
 
   const addTip = () => {
-    if (!selectedTemplate) return
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, proTips: [...t.proTips, 'New tip'] } : t))
+    if (selectedTemplate) void saveTemplate(selectedTemplate, current => ({ ...current, proTips: [...current.proTips, 'New tip'] }))
   }
 
   const deleteTip = (index: number) => {
-    if (!selectedTemplate) return
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, proTips: t.proTips.filter((_, i) => i !== index) } : t))
+    if (selectedTemplate) void saveTemplate(selectedTemplate, current => ({ ...current, proTips: current.proTips.filter((_, i) => i !== index) }))
   }
 
   const addStep = () => {
     if (!selectedTemplate) return
-    const id = 'step-' + Date.now()
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: [...t.flowSteps, { id, text: 'New step', time: '5 min', description: '' }] } : t))
+    const id = createMeetingPlaybookId('step')
+    void saveTemplate(selectedTemplate, current => ({ ...current, flowSteps: [...current.flowSteps, { id, text: 'New step', time: '5 min', description: '' }] }))
   }
 
   const deleteStep = (stepId: string) => {
-    if (!selectedTemplate) return
-    setTemplates(prev => prev.map(t => t.id === selectedTemplate ? { ...t, flowSteps: t.flowSteps.filter(s => s.id !== stepId) } : t))
+    if (selectedTemplate) void saveTemplate(selectedTemplate, current => ({ ...current, flowSteps: current.flowSteps.filter(step => step.id !== stepId) }))
   }
 
   const addTemplate = () => {
-    const id = 'template-' + Date.now()
-    setTemplates(prev => [...prev, { id, name: 'New Meeting Template', description: '', goal: '', kpis: [], proTips: [], flowSteps: [] }])
-    setSelectedTemplate(id)
+    const id = createMeetingPlaybookId('template')
+    const record = { id, name: 'New Meeting Template', description: '', goal: '', kpis: [], proTips: [], flowSteps: [] }
+    if (!isSupabaseConfigured) {
+      setTemplates(current => [...current, record])
+      setSelectedTemplate(id)
+      return
+    }
+    void runCanonicalMutation(
+      () => createMeetingTemplate(canonicalClient!, record),
+      confirmed => {
+        commitCanonicalRecords(records => ({ ...records, templates: [...records.templates, confirmed] }))
+        setSelectedTemplate(confirmed.id)
+      },
+      records => records.templates.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
+      'Created meeting template',
+      'Meeting template creation failed',
+      records => !records.templates.some(item => item.id === record.id),
+    )
   }
 
   const deleteTemplate = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id))
-    if (selectedTemplate === id) setSelectedTemplate(null)
+    if (!isSupabaseConfigured) {
+      setTemplates(current => current.filter(record => record.id !== id))
+      if (selectedTemplate === id) setSelectedTemplate(null)
+      return
+    }
+    void runCanonicalMutation(
+      () => deleteMeetingTemplate(canonicalClient!, id),
+      confirmedId => {
+        commitCanonicalRecords(records => ({ ...records, templates: records.templates.filter(record => record.id !== confirmedId) }))
+        setSelectedTemplate(current => current === confirmedId ? null : current)
+      },
+      records => !records.templates.some(record => record.id === id),
+      'Deleted meeting template',
+      'Meeting template deletion failed',
+    )
   }
 
   const addLink = () => {
     if (!selectedMeeting) return
-    const id = 'link-' + Date.now()
-    setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, links: [...m.links, { id, label: '🔗 New Link', url: '' }] } : m))
+    const id = createMeetingPlaybookId('link')
+    void saveActiveMeeting(selectedMeeting, current => ({ ...current, links: [...current.links, { id, label: '🔗 New Link', url: '' }] }))
   }
 
   const deleteLink = (id: string) => {
-    if (!selectedMeeting) return
-    setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, links: m.links.filter(l => l.id !== id) } : m))
+    if (selectedMeeting) void saveActiveMeeting(selectedMeeting, current => ({ ...current, links: current.links.filter(link => link.id !== id) }))
   }
 
   const addChecklistItem = () => {
     if (!selectedMeeting) return
-    const id = 'check-' + Date.now()
-    setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, checklist: [...m.checklist, { id, text: 'New checklist item', checked: false }] } : m))
+    const id = createMeetingPlaybookId('check')
+    void saveActiveMeeting(selectedMeeting, current => ({ ...current, checklist: [...current.checklist, { id, text: 'New checklist item', checked: false }] }))
   }
 
   const deleteChecklistItem = (id: string) => {
-    if (!selectedMeeting) return
-    setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, checklist: m.checklist.filter(c => c.id !== id) } : m))
+    if (selectedMeeting) void saveActiveMeeting(selectedMeeting, current => ({ ...current, checklist: current.checklist.filter(item => item.id !== id) }))
   }
 
   const toggleChecklistItem = (id: string) => {
-    if (!selectedMeeting) return
-    setActiveMeetings(prev => prev.map(m => m.id === selectedMeeting ? { ...m, checklist: m.checklist.map(c => c.id === id ? { ...c, checked: !c.checked } : c) } : m))
+    if (selectedMeeting) void saveActiveMeeting(selectedMeeting, current => ({ ...current, checklist: current.checklist.map(item => item.id === id ? { ...item, checked: !item.checked } : item) }))
   }
 
   const addScript = () => {
-    const id = 'script-' + Date.now()
-    setScripts(prev => [...prev, { id, name: 'New Script', category: 'General', text: 'Write your script here...' }])
+    const id = createMeetingPlaybookId('script')
+    const record = { id, name: 'New Script', category: 'General', text: 'Write your script here...' }
+    if (!isSupabaseConfigured) { setScripts(current => [...current, record]); return }
+    void runCanonicalMutation(
+      () => createMeetingScript(canonicalClient!, record),
+      confirmed => commitCanonicalRecords(records => ({ ...records, scripts: [...records.scripts, confirmed] })),
+      records => records.scripts.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
+      'Created meeting script',
+      'Meeting script creation failed',
+      records => !records.scripts.some(item => item.id === record.id),
+    )
   }
 
   const deleteScript = (id: string) => {
-    setScripts(prev => prev.filter(s => s.id !== id))
+    if (!isSupabaseConfigured) { setScripts(current => current.filter(record => record.id !== id)); return }
+    void runCanonicalMutation(
+      () => deleteMeetingScript(canonicalClient!, id),
+      confirmedId => commitCanonicalRecords(records => ({ ...records, scripts: records.scripts.filter(record => record.id !== confirmedId) })),
+      records => !records.scripts.some(record => record.id === id),
+      'Deleted meeting script',
+      'Meeting script deletion failed',
+    )
   }
 
   const createActiveMeeting = () => {
-    const id = 'active-' + Date.now()
+    const id = createMeetingPlaybookId('active')
     const name = 'Meeting ' + (activeMeetings.length + 1)
-    setActiveMeetings(prev => [...prev, { id, name, links: [{ id: 'l-' + Date.now(), label: '🔗 Meeting Link', url: '' }], checklist: [] }])
-    setSelectedMeeting(id)
+    const record = { id, name, links: [{ id: createMeetingPlaybookId('link'), label: '🔗 Meeting Link', url: '' }], checklist: [] }
+    if (!isSupabaseConfigured) {
+      setActiveMeetings(current => [...current, record])
+      setSelectedMeeting(id)
+      return
+    }
+    void runCanonicalMutation(
+      () => createCanonicalActiveMeeting(canonicalClient!, record),
+      confirmed => {
+        commitCanonicalRecords(records => ({ ...records, activeMeetings: [...records.activeMeetings, confirmed] }))
+        setSelectedMeeting(confirmed.id)
+      },
+      records => records.activeMeetings.some(item => item.id === record.id && areMeetingPlaybookRecordsEqual(item, record)),
+      'Created active meeting',
+      'Active meeting creation failed',
+      records => !records.activeMeetings.some(item => item.id === record.id),
+    )
   }
 
   const deleteActiveMeeting = (id: string) => {
-    setActiveMeetings(prev => prev.filter(m => m.id !== id))
-    if (selectedMeeting === id) {
-      const remaining = activeMeetings.filter(m => m.id !== id)
-      setSelectedMeeting(remaining[0]?.id || '')
+    const applyDelete = (confirmedId: string) => {
+      const remaining = canonicalRecordsRef.current.activeMeetings.filter(record => record.id !== confirmedId)
+      if (isSupabaseConfigured) commitCanonicalRecords(records => ({ ...records, activeMeetings: remaining }))
+      else setActiveMeetings(remaining)
+      if (selectedMeeting === confirmedId) setSelectedMeeting(remaining[0]?.id || '')
     }
+    if (!isSupabaseConfigured) { applyDelete(id); return }
+    void runCanonicalMutation(
+      () => deleteCanonicalActiveMeeting(canonicalClient!, id),
+      applyDelete,
+      records => !records.activeMeetings.some(record => record.id === id),
+      'Deleted active meeting',
+      'Active meeting deletion failed',
+    )
+  }
+
+  const downloadLegacyBackup = () => {
+    const backup = serializeMeetingPlaybookBackup(legacy.records, new Date().toISOString())
+    const url = URL.createObjectURL(new Blob([backup], { type: 'application/json' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `meeting-playbook-browser-backup-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const refreshLegacyReview = () => {
+    const current = readLegacyMeetingPlaybook(window.localStorage)
+    setLegacy(current)
+    try {
+      setLegacyKeysPresent([LEGACY_TEMPLATES_KEY, LEGACY_ACTIVE_MEETINGS_KEY, LEGACY_SCRIPTS_KEY]
+        .some(key => window.localStorage.getItem(key) !== null))
+    } catch {
+      setLegacyKeysPresent(true)
+    }
+    return current
+  }
+
+  const importLegacy = async () => {
+    if (!canonicalClient) return
+    return actionCoordinatorRef.current.enqueueAction(async () => {
+      setPersistenceState('saving')
+      try {
+        const freshLegacy = refreshLegacyReview()
+        const freshCanonical = await refreshCanonicalRecords()
+        const result = await executeBulkActionWithRefresh({
+          execute: async () => {
+            const outcome = await importMissingLegacyMeetingPlaybook(canonicalClient, freshLegacy.records, freshCanonical)
+            return { complete: outcome.complete }
+          },
+          refresh: refreshCanonicalRecords,
+          applyRefreshed: applyCanonicalRecords,
+        })
+        if (result.status !== 'saved') throw new Error('Import was not fully confirmed')
+        markCanonicalActionSaved()
+        void logActivity('Meeting Playbook', 'Imported missing browser records')
+      } catch {
+        markCanonicalActionFailed()
+        void logActivity('Meeting Playbook', 'Browser record import failed')
+        return 'failed'
+      }
+      return 'saved'
+    })
+  }
+
+  const initializeDefaults = async () => {
+    if (!canonicalClient) return
+    return actionCoordinatorRef.current.enqueueAction(createDefaultPlaybookInitializationAction({
+      defaults: defaultRecords,
+      readLegacy: refreshLegacyReview,
+      fetchCanonical: refreshCanonicalRecords,
+      applyCanonical: applyCanonicalRecords,
+      importMissing: async freshCanonical => {
+        const outcome = await importMissingLegacyMeetingPlaybook(canonicalClient, defaultRecords, freshCanonical)
+        return { complete: outcome.complete }
+      },
+      onSaving: () => setPersistenceState('saving'),
+      onSaved: () => {
+        markCanonicalActionSaved()
+        void logActivity('Meeting Playbook', 'Initialized default playbook')
+      },
+      onBlocked: () => {
+        retryRef.current = null
+        setPersistenceState('blocked')
+        void logActivity('Meeting Playbook', 'Default playbook initialization failed')
+      },
+      onFailed: () => {
+        markCanonicalActionFailed()
+        void logActivity('Meeting Playbook', 'Default playbook initialization failed')
+      },
+    }))
   }
 
   const tabStyle = (tab: TabKey) => ({
@@ -345,6 +1012,66 @@ export default function MeetingPlaybook() {
           </div>
         </div>
       </div>
+
+      {isSupabaseConfigured && (
+        <div className="mb-6 space-y-3">
+          {(loadState === 'loading' || persistenceState !== 'idle') && (
+            <MeetingPlaybookPersistenceNotice
+              state={persistenceState}
+              isRefreshing={loadState === 'loading'}
+              onRetry={() => retryRef.current?.()}
+            />
+          )}
+
+          {legacyKeysPresent && (
+            <section className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }} aria-labelledby="legacy-playbook-title">
+              <h2 id="legacy-playbook-title" className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Review preserved browser records</h2>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                Browser records remain untouched. Review the backup, parse results, and collision preview before importing only missing IDs.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <span>Templates: {legacy.counts.templates} valid · {importPlan.missing.templates.length} missing · {importPlan.collisions.templates} collisions</span>
+                <span>Active meetings: {legacy.counts.activeMeetings} valid · {importPlan.missing.activeMeetings.length} missing · {importPlan.collisions.activeMeetings} collisions</span>
+                <span>Scripts: {legacy.counts.scripts} valid · {importPlan.missing.scripts.length} missing · {importPlan.collisions.scripts} collisions</span>
+              </div>
+              {Object.entries(legacy.issues).some(([, issues]) => issues.length > 0) && (
+                <ul className="mt-3 space-y-1 text-xs" style={{ color: '#B91C1C' }}>
+                  {Object.entries(legacy.issues).flatMap(([key, issues]) => issues.map(issue => (
+                    <li key={`${key}:${issue}`}>{key}: {issue}</li>
+                  )))}
+                </ul>
+              )}
+              <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>{missingCount} valid missing record{missingCount === 1 ? '' : 's'} available to import.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button className="px-3 py-1.5 rounded-lg border text-xs font-medium" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }} onClick={downloadLegacyBackup}>Download JSON backup</button>
+                <button
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                  disabled={missingCount === 0 || persistenceState === 'saving'}
+                  onClick={() => { void importLegacy() }}
+                >
+                  Import missing records
+                </button>
+              </div>
+            </section>
+          )}
+
+          {canonicalCount === 0 && legacyValidCount === 0 && (
+            <section className="rounded-xl border p-4" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>No canonical playbook records yet</h2>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>Bundled templates and scripts are available, but will not become shared data until you explicitly initialize them.</p>
+              <button
+                className="mt-3 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }}
+                disabled={persistenceState === 'saving'}
+                onClick={() => { void initializeDefaults() }}
+              >
+                Initialize default playbook
+              </button>
+            </section>
+          )}
+        </div>
+      )}
 
       {/* Main Tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
@@ -461,7 +1188,7 @@ export default function MeetingPlaybook() {
             </div>
           ) : (
             <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>No active meetings yet. Click "+ Create Active Meeting" to get started.</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{getMeetingPlaybookEmptyMessage('active', canonicalRecords)}</p>
             </div>
           )}
         </div>
@@ -591,6 +1318,10 @@ export default function MeetingPlaybook() {
                 <button className="text-xs mt-2 font-medium transition" style={{ color: 'var(--accent)' }} onClick={addStep}>➕ Add New Step</button>
               </div>
             </div>
+          ) : templates.length === 0 ? (
+            <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{getMeetingPlaybookEmptyMessage('master', canonicalRecords)}</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {templates.map(t => (
@@ -615,8 +1346,13 @@ export default function MeetingPlaybook() {
             <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Talk Scripts & Cheat Sheets</h2>
             <button className="px-3 py-1.5 rounded-lg text-xs font-medium transition" style={{ backgroundColor: 'var(--accent)', color: '#FFFFFF' }} onClick={addScript}>➕ Create New Script</button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {scripts.map(script => (
+          {scripts.length === 0 ? (
+            <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+              <p className="text-xs" style={{ color: 'var(--text-muted)', fontWeight: 300 }}>{getMeetingPlaybookEmptyMessage('vault', canonicalRecords)}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {scripts.map(script => (
               <div key={script.id} className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
                 <div className="flex items-center justify-between mb-1">
                   {editingField?.target === 'script-name' && editingField?.id === script.id ? (
@@ -643,8 +1379,9 @@ export default function MeetingPlaybook() {
                 )}
                 <button className="text-xs font-medium transition" style={{ color: 'var(--accent)' }} onClick={() => navigator.clipboard.writeText(script.text)}>📋 Copy to Clipboard</button>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

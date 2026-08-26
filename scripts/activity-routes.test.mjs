@@ -22,6 +22,7 @@ const { getActivityRouteName, getAuthenticatedActivityRouteName } = await import
 
 test('protected exact and dynamic routes receive activity names', () => {
   assert.equal(getActivityRouteName('/dashboard'), 'Dashboard')
+  assert.equal(getActivityRouteName('/meeting-playbook'), 'Meeting Playbook')
   assert.equal(getActivityRouteName('/marketing-project-list'), 'Project List')
   assert.equal(getActivityRouteName('/view-acceptance/123'), 'Shared Acceptance View')
 })
