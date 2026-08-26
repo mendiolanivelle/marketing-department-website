@@ -76,3 +76,46 @@ query-builder fake only at the external Supabase boundary; all parser, mapper,
 backup, planner, and persistence outcomes exercise the real module behavior.
 No record content is logged by the module, and error messages intentionally do
 not expose database errors or record payloads.
+
+## Fix Round 1
+
+### Corrected behavior
+
+- Bulk insert confirmation now fails closed unless the returned payload is an
+  array with exactly one valid, non-empty string ID for each requested row;
+  returned IDs must be unique and exactly match the requested stable IDs.
+  Duplicate or malformed confirmation rows are therefore never reported as a
+  successful import.
+- The partial-import behavior now performs a real second import after clearing
+  the scripted failure and reloading canonical data. Rows saved on the first
+  attempt are skipped as collisions; only the previously failed scripts are
+  inserted.
+- Removed the unused `emptyRecords` helper.
+
+### TDD evidence
+
+RED command:
+
+```text
+node --test scripts/meeting-playbook-data.test.mjs
+```
+
+Result: 7 tests passed and the new bulk-confirmation behavior failed as
+expected: a two-row duplicate-ID response for one requested template was
+incorrectly reported as `{ status: 'saved', saved: 1 }`.
+
+GREEN commands:
+
+```text
+node --test scripts/meeting-playbook-data.test.mjs
+npm test
+npm run typecheck
+```
+
+Results:
+
+- Focused behavior suite: 8 passed, 0 failed.
+- Full suite: 68 passed, 0 failed.
+- Type check: `tsc --noEmit` completed successfully.
+
+`git diff --check` completed successfully before the local commit.

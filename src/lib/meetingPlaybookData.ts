@@ -117,8 +117,6 @@ interface QueryBuilder extends PromiseLike<QueryResult> {
   maybeSingle(): Promise<QueryResult>
 }
 
-const emptyRecords = (): MeetingPlaybookRecords => ({ templates: [], activeMeetings: [], scripts: [] })
-
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -434,10 +432,24 @@ async function importMissingGroup<T extends { id: string }, R extends { id: stri
   } catch {
     return { status: 'failed', saved: 0, failed: records.length, skipped }
   }
-  const returned = asRows<{ id: string }>(result.data)
-  const expectedIds = new Set(records.map(record => record.id))
-  const returnedIds = new Set((returned ?? []).map(row => row.id))
-  const confirmed = !hasError(result) && returnedIds.size === expectedIds.size && [...expectedIds].every(id => returnedIds.has(id))
+  const returned = asRows<unknown>(result.data)
+  const returnedIds = returned !== null && returned.every(
+    (row): row is { id: string } => isObject(row) && isText(row.id),
+  )
+    ? returned.map(row => row.id)
+    : null
+  const expectedIds = records.map(record => record.id)
+  const expectedIdSet = new Set(expectedIds)
+  const returnedIdSet = returnedIds === null ? null : new Set(returnedIds)
+  const confirmed =
+    !hasError(result) &&
+    returned !== null &&
+    returned.length === records.length &&
+    returnedIds !== null &&
+    expectedIdSet.size === records.length &&
+    returnedIdSet !== null &&
+    returnedIdSet.size === records.length &&
+    expectedIds.every(id => returnedIdSet.has(id))
   if (!confirmed) return { status: 'failed', saved: 0, failed: records.length, skipped }
   return { status: 'saved', saved: records.length, failed: 0, skipped }
 }

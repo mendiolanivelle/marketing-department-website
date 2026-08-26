@@ -252,15 +252,20 @@ test('create, update, and delete return success only after a matching canonical 
 })
 
 test('legacy import saves only planned missing rows and leaves a partial failure retryable', async () => {
-  const { importMissingLegacyMeetingPlaybook, meetingTemplateToRow } = requireModule()
+  const {
+    fetchCanonicalMeetingPlaybook,
+    importMissingLegacyMeetingPlaybook,
+    meetingTemplateToRow,
+  } = requireModule()
   const client = createClient({ meeting_templates: [meetingTemplateToRow(template)] })
   client.database.responses.meeting_scripts = { insert: () => ({ data: null, error: { message: 'denied' } }) }
-
-  const result = await importMissingLegacyMeetingPlaybook(client, {
+  const legacy = {
     templates: [template, { ...template, id: 'template-new' }],
     activeMeetings: [activeMeeting],
     scripts: [script],
-  }, { templates: [template], activeMeetings: [], scripts: [] })
+  }
+
+  const result = await importMissingLegacyMeetingPlaybook(client, legacy, { templates: [template], activeMeetings: [], scripts: [] })
 
   assert.deepEqual(result.tables, {
     templates: { status: 'saved', saved: 1, failed: 0, skipped: 1 },
@@ -271,4 +276,38 @@ test('legacy import saves only planned missing rows and leaves a partial failure
   assert.deepEqual(client.database.tables.meeting_templates.map(row => row.id), ['template-discovery', 'template-new'])
   assert.deepEqual(client.database.tables.active_meetings.map(row => row.id), ['active-weekly'])
   assert.deepEqual(client.database.tables.meeting_scripts, [])
+
+  delete client.database.responses.meeting_scripts
+  const retry = await importMissingLegacyMeetingPlaybook(client, legacy, await fetchCanonicalMeetingPlaybook(client))
+
+  assert.deepEqual(retry.tables, {
+    templates: { status: 'skipped', saved: 0, failed: 0, skipped: 2 },
+    activeMeetings: { status: 'skipped', saved: 0, failed: 0, skipped: 1 },
+    scripts: { status: 'saved', saved: 1, failed: 0, skipped: 0 },
+  })
+  assert.equal(retry.complete, true)
+  assert.deepEqual(client.database.tables.meeting_templates.map(row => row.id), ['template-discovery', 'template-new'])
+  assert.deepEqual(client.database.tables.active_meetings.map(row => row.id), ['active-weekly'])
+  assert.deepEqual(client.database.tables.meeting_scripts.map(row => row.id), ['script-opening'])
+})
+
+test('bulk import rejects duplicate and malformed confirmation rows instead of reporting saved', async () => {
+  const { importMissingLegacyMeetingPlaybook } = requireModule()
+  const legacy = { templates: [template], activeMeetings: [], scripts: [] }
+
+  const duplicateClient = createClient()
+  duplicateClient.database.responses.meeting_templates = {
+    insert: () => ({ data: [{ id: template.id }, { id: template.id }], error: null }),
+  }
+  const duplicateResult = await importMissingLegacyMeetingPlaybook(duplicateClient, legacy, { templates: [], activeMeetings: [], scripts: [] })
+  assert.deepEqual(duplicateResult.tables.templates, { status: 'failed', saved: 0, failed: 1, skipped: 0 })
+  assert.equal(duplicateResult.complete, false)
+
+  const malformedClient = createClient()
+  malformedClient.database.responses.meeting_templates = {
+    insert: () => ({ data: [null], error: null }),
+  }
+  const malformedResult = await importMissingLegacyMeetingPlaybook(malformedClient, legacy, { templates: [], activeMeetings: [], scripts: [] })
+  assert.deepEqual(malformedResult.tables.templates, { status: 'failed', saved: 0, failed: 1, skipped: 0 })
+  assert.equal(malformedResult.complete, false)
 })
