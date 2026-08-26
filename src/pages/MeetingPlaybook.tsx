@@ -366,7 +366,11 @@ export function createDefaultPlaybookInitializationAction(
       applyCanonical: flow.applyCanonical,
       importMissing: flow.importMissing,
     })
-    partialContinuationProven = result.mayContinueMissingOnly === true
+    if (result.mayContinueMissingOnly !== undefined) {
+      partialContinuationProven = result.mayContinueMissingOnly
+    } else if (result.status === 'saved' || result.status === 'blocked') {
+      partialContinuationProven = false
+    }
     if (result.status === 'saved') {
       flow.onSaved()
       return 'saved'

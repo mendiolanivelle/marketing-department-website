@@ -554,6 +554,60 @@ test('partial default initialization retries only missing defaults without rerun
   assert.deepEqual(canonical, defaults)
 })
 
+test('partial default initialization keeps continuation proof across a transient refresh failure', async () => {
+  const defaults = {
+    templates: [{ id: 'template-1', name: 'Default template' }],
+    activeMeetings: [],
+    scripts: [{ id: 'script-1', name: 'Default script' }],
+  }
+  const emptyIssues = {
+    'exodia-playbook-templates': [],
+    'exodia-playbook-active': [],
+    'exodia-playbook-scripts': [],
+  }
+  let canonical = { templates: [], activeMeetings: [], scripts: [] }
+  let fetchCalls = 0
+  let importCalls = 0
+  let blockedCalls = 0
+
+  const initialize = controls.createDefaultPlaybookInitializationAction({
+    defaults,
+    readLegacy: () => ({
+      records: { templates: [], activeMeetings: [], scripts: [] },
+      counts: { templates: 0, activeMeetings: 0, scripts: 0 },
+      issues: emptyIssues,
+    }),
+    fetchCanonical: async () => {
+      fetchCalls += 1
+      if (fetchCalls === 3) throw new Error('transient refresh failure')
+      return structuredClone(canonical)
+    },
+    applyCanonical: records => { canonical = structuredClone(records) },
+    importMissing: async freshCanonical => {
+      importCalls += 1
+      if (freshCanonical.templates.length === 0) {
+        canonical = { ...canonical, templates: structuredClone(defaults.templates) }
+        return { complete: false }
+      }
+      canonical = { ...canonical, scripts: structuredClone(defaults.scripts) }
+      return { complete: true }
+    },
+    onSaving: () => {},
+    onSaved: () => {},
+    onFailed: () => {},
+    onBlocked: () => { blockedCalls += 1 },
+  })
+
+  assert.equal(await initialize(false), 'failed')
+  assert.deepEqual(canonical, { templates: defaults.templates, activeMeetings: [], scripts: [] })
+  assert.equal(await initialize(true), 'failed')
+  assert.equal(await initialize(true), 'saved')
+
+  assert.equal(blockedCalls, 0)
+  assert.equal(importCalls, 2)
+  assert.deepEqual(canonical, defaults)
+})
+
 test('canonical load failure remains retryable and applies records only after success', async () => {
   assert.equal(typeof controls.loadCanonicalMeetingPlaybook, 'function')
   const records = { templates: [{ id: 'template-1' }], activeMeetings: [], scripts: [] }
