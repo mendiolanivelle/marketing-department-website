@@ -151,11 +151,55 @@ test('migration 060 creates and re-runs the Meeting Playbook contract without re
       .filter(({ data_type }) => data_type === 'text' || data_type === 'jsonb')
       .every(({ is_nullable }) => is_nullable === 'NO'),
   )
-  for (const column of columns.filter(({ column_name }) =>
-    ['kpis', 'pro_tips', 'flow_steps', 'links', 'checklist', 'created_at', 'updated_at'].includes(column_name),
-  )) {
-    assert.notEqual(column.column_default, null)
-  }
+  assert.deepEqual(
+    columns
+      .filter(({ column_name }) =>
+        ['kpis', 'pro_tips', 'flow_steps', 'links', 'checklist'].includes(column_name),
+      )
+      .map(({ table_name, column_name, column_default }) => ({
+        table_name,
+        column_name,
+        column_default,
+      })),
+    [
+      { table_name: 'active_meetings', column_name: 'links', column_default: "'[]'::jsonb" },
+      { table_name: 'active_meetings', column_name: 'checklist', column_default: "'[]'::jsonb" },
+      { table_name: 'meeting_templates', column_name: 'kpis', column_default: "'[]'::jsonb" },
+      { table_name: 'meeting_templates', column_name: 'pro_tips', column_default: "'[]'::jsonb" },
+      { table_name: 'meeting_templates', column_name: 'flow_steps', column_default: "'[]'::jsonb" },
+    ],
+  )
+  assert.deepEqual(
+    columns
+      .filter(({ column_name }) => ['created_at', 'updated_at'].includes(column_name))
+      .map(({ table_name, column_name, column_default }) => ({
+        table_name,
+        column_name,
+        column_default,
+      })),
+    [
+      { table_name: 'active_meetings', column_name: 'created_at', column_default: 'now()' },
+      { table_name: 'active_meetings', column_name: 'updated_at', column_default: 'now()' },
+      { table_name: 'meeting_scripts', column_name: 'created_at', column_default: 'now()' },
+      { table_name: 'meeting_scripts', column_name: 'updated_at', column_default: 'now()' },
+      { table_name: 'meeting_templates', column_name: 'created_at', column_default: 'now()' },
+      { table_name: 'meeting_templates', column_name: 'updated_at', column_default: 'now()' },
+    ],
+  )
+
+  const { rows: rowLevelSecurity } = await db.query(`
+    SELECT tables.relname AS table_name, tables.relrowsecurity
+    FROM pg_class AS tables
+    JOIN pg_namespace AS schemas ON schemas.oid = tables.relnamespace
+    WHERE schemas.nspname = 'public'
+      AND tables.relname IN ('meeting_templates', 'active_meetings', 'meeting_scripts')
+    ORDER BY tables.relname
+  `)
+  assert.deepEqual(rowLevelSecurity, [
+    { table_name: 'active_meetings', relrowsecurity: true },
+    { table_name: 'meeting_scripts', relrowsecurity: true },
+    { table_name: 'meeting_templates', relrowsecurity: true },
+  ])
 
   const { rows: primaryKeys } = await db.query(`
     SELECT tc.table_name, kcu.column_name
@@ -176,6 +220,11 @@ test('migration 060 creates and re-runs the Meeting Playbook contract without re
 
   await insertSentinels(db)
   const sentinelsBeforeRerun = await readSentinels(db)
+  await db.exec(`
+    GRANT TRUNCATE, REFERENCES, TRIGGER
+    ON TABLE public.meeting_templates, public.active_meetings, public.meeting_scripts
+    TO authenticated;
+  `)
   await applyMigration(db)
   assert.deepEqual(await readSentinels(db), sentinelsBeforeRerun)
 
@@ -201,6 +250,29 @@ test('migration 060 creates and re-runs the Meeting Playbook contract without re
       AND grantee IN ('PUBLIC', 'anon')
   `)
   assert.deepEqual(anonymousGrants, [])
+
+  const { rows: authenticatedGrants } = await db.query(`
+    SELECT table_name, privilege_type
+    FROM information_schema.role_table_grants
+    WHERE table_schema = 'public'
+      AND table_name IN ('meeting_templates', 'active_meetings', 'meeting_scripts')
+      AND grantee = 'authenticated'
+    ORDER BY table_name, privilege_type
+  `)
+  assert.deepEqual(authenticatedGrants, [
+    { table_name: 'active_meetings', privilege_type: 'DELETE' },
+    { table_name: 'active_meetings', privilege_type: 'INSERT' },
+    { table_name: 'active_meetings', privilege_type: 'SELECT' },
+    { table_name: 'active_meetings', privilege_type: 'UPDATE' },
+    { table_name: 'meeting_scripts', privilege_type: 'DELETE' },
+    { table_name: 'meeting_scripts', privilege_type: 'INSERT' },
+    { table_name: 'meeting_scripts', privilege_type: 'SELECT' },
+    { table_name: 'meeting_scripts', privilege_type: 'UPDATE' },
+    { table_name: 'meeting_templates', privilege_type: 'DELETE' },
+    { table_name: 'meeting_templates', privilege_type: 'INSERT' },
+    { table_name: 'meeting_templates', privilege_type: 'SELECT' },
+    { table_name: 'meeting_templates', privilege_type: 'UPDATE' },
+  ])
 
   const { rows: anonymousFunctionGrants } = await db.query(`
     SELECT grantee

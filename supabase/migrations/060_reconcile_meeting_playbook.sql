@@ -325,6 +325,7 @@ BEGIN
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', protected_table);
     EXECUTE format('REVOKE ALL ON TABLE public.%I FROM PUBLIC, anon', protected_table);
+    EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', protected_table);
     EXECUTE format(
       'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.%I TO authenticated',
       protected_table
