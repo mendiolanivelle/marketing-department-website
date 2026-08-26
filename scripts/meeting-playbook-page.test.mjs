@@ -51,22 +51,23 @@ test('configured mode waits for canonical data before showing playbook records',
 })
 
 test('edit blur followed by delete is serialized without dropping either action', async () => {
-  assert.equal(typeof controls.createSerialActionQueue, 'function')
-  const queue = controls.createSerialActionQueue()
+  const coordinator = controls.createCanonicalActionCoordinator()
   const events = []
   let records = [{ id: 'template-1', name: 'Before edit' }]
   let releaseEdit
   const editGate = new Promise(resolve => { releaseEdit = resolve })
 
-  const edit = queue.enqueue(async () => {
+  const edit = coordinator.enqueueAction(async () => {
     events.push('edit:start')
     await editGate
     records = records.map(record => record.id === 'template-1' ? { ...record, name: 'After edit' } : record)
     events.push('edit:saved')
+    return 'saved'
   })
-  const remove = queue.enqueue(async () => {
+  const remove = coordinator.enqueueAction(async () => {
     events.push(`delete:saw:${records[0]?.name}`)
     records = records.filter(record => record.id !== 'template-1')
+    return 'saved'
   })
 
   releaseEdit()
@@ -76,17 +77,16 @@ test('edit blur followed by delete is serialized without dropping either action'
 })
 
 test('rapid sequential mutations execute once each against the latest confirmed state', async () => {
-  assert.equal(typeof controls.createSerialActionQueue, 'function')
-  const queue = controls.createSerialActionQueue()
+  const coordinator = controls.createCanonicalActionCoordinator()
   let confirmedCount = 0
-  const calls = [1, 2, 3].map(value => queue.enqueue(async () => {
+  const calls = [1, 2, 3].map(() => coordinator.enqueueAction(async () => {
     const previous = confirmedCount
     await Promise.resolve()
     confirmedCount = previous + 1
-    return value
+    return 'saved'
   }))
 
-  assert.deepEqual(await Promise.all(calls), [1, 2, 3])
+  await Promise.all(calls)
   assert.equal(confirmedCount, 3)
 })
 
@@ -99,7 +99,7 @@ test('rapid creates receive distinct ids', () => {
 
 test('rapid record updates compose from the latest confirmed canonical record', async () => {
   assert.equal(typeof controls.createLatestRecordUpdate, 'function')
-  const queue = controls.createSerialActionQueue()
+  const coordinator = controls.createCanonicalActionCoordinator()
   let records = [{ id: 'template-1', kpis: [] }]
   const persist = async next => {
     records = records.map(record => record.id === next.id ? structuredClone(next) : record)
@@ -113,10 +113,51 @@ test('rapid record updates compose from the latest confirmed canonical record', 
   })
 
   await Promise.all([
-    queue.enqueue(add('First')),
-    queue.enqueue(add('Second')),
+    coordinator.enqueueAction(async () => { await add('First')(); return 'saved' }),
+    coordinator.enqueueAction(async () => { await add('Second')(); return 'saved' }),
   ])
   assert.deepEqual(records[0].kpis, ['First', 'Second'])
+})
+
+test('failed older update blocks a newer update until retry preserves invocation order', async () => {
+  assert.equal(typeof controls.createCanonicalActionCoordinator, 'function')
+  const coordinator = controls.createCanonicalActionCoordinator()
+  let remote = [{ id: 'template-1', kpis: [] }]
+  const persistenceOrder = []
+  let firstAttempts = 0
+  let releaseFailed
+  const firstFailed = new Promise(resolve => { releaseFailed = resolve })
+
+  const enqueueAdd = (label, failFirstAttempt = false) => coordinator.enqueueMutation({
+    execute: async () => {
+      if (label === 'First') firstAttempts += 1
+      const current = remote[0]
+      const intended = { ...current, kpis: [...current.kpis, label] }
+      persistenceOrder.push(`${label}:attempt-${label === 'First' ? firstAttempts : 1}`)
+      if (failFirstAttempt && firstAttempts === 1) throw new Error('uncommitted failure')
+      remote = [structuredClone(intended)]
+      return intended
+    },
+    refresh: async () => structuredClone(remote),
+    isSatisfied: records => records[0]?.kpis.includes(label) === true,
+    applyConfirmed: records => { remote = [structuredClone(records)] },
+    applyRefreshed: records => { remote = structuredClone(records) },
+    onSaving: () => {},
+    onSaved: () => {},
+    onFailed: () => { if (label === 'First') releaseFailed() },
+  })
+
+  const first = enqueueAdd('First', true)
+  const second = enqueueAdd('Second')
+  await firstFailed
+  await new Promise(resolve => setImmediate(resolve))
+  assert.deepEqual(persistenceOrder, ['First:attempt-1'])
+  assert.deepEqual(remote[0].kpis, [])
+
+  coordinator.retry()
+  await Promise.all([first, second])
+  assert.deepEqual(persistenceOrder, ['First:attempt-1', 'First:attempt-2', 'Second:attempt-1'])
+  assert.deepEqual(remote[0].kpis, ['First', 'Second'])
 })
 
 test('ambiguous committed create, update, and delete outcomes reconcile as saved', async () => {
@@ -164,6 +205,47 @@ test('ambiguous committed create, update, and delete outcomes reconcile as saved
     assert.equal(result.via, 'refresh', scenario.name)
     assert.equal(executeCalls, 1, scenario.name)
     assert.deepEqual(applied, remote, scenario.name)
+  }
+})
+
+test('production coordinator reconciles committed update and delete without replay', async () => {
+  assert.equal(typeof controls.createCanonicalActionCoordinator, 'function')
+  const scenarios = [
+    {
+      name: 'update',
+      initial: [{ id: 'template-1', name: 'Before' }],
+      commit: () => [{ id: 'template-1', name: 'After' }],
+      satisfied: records => records[0]?.name === 'After',
+    },
+    {
+      name: 'delete',
+      initial: [{ id: 'template-1', name: 'Before' }],
+      commit: () => [],
+      satisfied: records => records.length === 0,
+    },
+  ]
+
+  for (const scenario of scenarios) {
+    const coordinator = controls.createCanonicalActionCoordinator()
+    let remote = structuredClone(scenario.initial)
+    let executeCalls = 0
+    let savedCalls = 0
+    await coordinator.enqueueMutation({
+      execute: async () => {
+        executeCalls += 1
+        remote = scenario.commit()
+        throw new Error('confirmation lost')
+      },
+      refresh: async () => structuredClone(remote),
+      isSatisfied: scenario.satisfied,
+      applyConfirmed: () => { throw new Error('direct confirmation was not expected') },
+      applyRefreshed: records => { remote = structuredClone(records) },
+      onSaving: () => {},
+      onSaved: () => { savedCalls += 1 },
+      onFailed: () => {},
+    })
+    assert.equal(executeCalls, 1, scenario.name)
+    assert.equal(savedCalls, 1, scenario.name)
   }
 })
 
@@ -235,7 +317,7 @@ test('retry does not replay a create when the canonical id is now occupied by di
 })
 
 test('default initialization re-reads legacy and canonical state and blocks stale preconditions', async () => {
-  assert.equal(typeof controls.initializeDefaultPlaybookWithFreshPreconditions, 'function')
+  assert.equal(typeof controls.executeDefaultInitializationAttempt, 'function')
   const emptyRecords = { templates: [], activeMeetings: [], scripts: [] }
   const emptyIssues = {
     'exodia-playbook-templates': [],
@@ -274,14 +356,77 @@ test('default initialization re-reads legacy and canonical state and blocks stal
 
   for (const scenario of scenarios) {
     let importCalls = 0
-    const result = await controls.initializeDefaultPlaybookWithFreshPreconditions({
+    const result = await controls.executeDefaultInitializationAttempt({
+      continuation: false,
+      defaults: emptyRecords,
       readLegacy: () => structuredClone(scenario.legacy),
       fetchCanonical: async () => structuredClone(scenario.canonical),
-      importDefaults: async () => { importCalls += 1; return { complete: true } },
+      applyCanonical: () => {},
+      importMissing: async () => { importCalls += 1; return { complete: true } },
     })
     assert.equal(result.status, 'blocked', scenario.name)
     assert.equal(importCalls, 0, scenario.name)
   }
+})
+
+test('partial default initialization retries only missing defaults without rerunning eligibility', async () => {
+  assert.equal(typeof controls.createCanonicalActionCoordinator, 'function')
+  assert.equal(typeof controls.createDefaultPlaybookInitializationAction, 'function')
+  const coordinator = controls.createCanonicalActionCoordinator()
+  const defaults = {
+    templates: [{ id: 'template-1', name: 'Default template' }],
+    activeMeetings: [],
+    scripts: [{ id: 'script-1', name: 'Default script' }],
+  }
+  const emptyIssues = {
+    'exodia-playbook-templates': [],
+    'exodia-playbook-active': [],
+    'exodia-playbook-scripts': [],
+  }
+  let canonical = { templates: [], activeMeetings: [], scripts: [] }
+  let legacyReads = 0
+  const importSnapshots = []
+  let failedCalls = 0
+
+  const initialize = coordinator.enqueueAction(controls.createDefaultPlaybookInitializationAction({
+    defaults,
+    readLegacy: () => {
+      legacyReads += 1
+      return {
+        records: { templates: [], activeMeetings: [], scripts: [] },
+        counts: { templates: 0, activeMeetings: 0, scripts: 0 },
+        issues: emptyIssues,
+      }
+    },
+    fetchCanonical: async () => structuredClone(canonical),
+    applyCanonical: records => { canonical = structuredClone(records) },
+    importMissing: async freshCanonical => {
+      importSnapshots.push(structuredClone(freshCanonical))
+      if (freshCanonical.templates.length === 0) {
+        canonical = { ...canonical, templates: structuredClone(defaults.templates) }
+        return { complete: false }
+      }
+      canonical = { ...canonical, scripts: structuredClone(defaults.scripts) }
+      return { complete: true }
+    },
+    onSaving: () => {},
+    onSaved: () => {},
+    onFailed: () => { failedCalls += 1 },
+    onBlocked: () => { throw new Error('continuation must not rerun initial eligibility') },
+  }))
+
+  while (failedCalls === 0) await new Promise(resolve => setImmediate(resolve))
+  assert.deepEqual(canonical, { templates: defaults.templates, activeMeetings: [], scripts: [] })
+  assert.equal(legacyReads, 1)
+
+  coordinator.retry()
+  await initialize
+  assert.equal(legacyReads, 1)
+  assert.deepEqual(importSnapshots, [
+    { templates: [], activeMeetings: [], scripts: [] },
+    { templates: defaults.templates, activeMeetings: [], scripts: [] },
+  ])
+  assert.deepEqual(canonical, defaults)
 })
 
 test('canonical load failure remains retryable and applies records only after success', async () => {

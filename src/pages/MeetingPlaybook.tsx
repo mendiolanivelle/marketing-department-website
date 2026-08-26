@@ -126,17 +126,6 @@ const sameRecord = (left: unknown, right: unknown): boolean => JSON.stringify(le
 
 export const createMeetingPlaybookId = (prefix: string): string => `${prefix}-${crypto.randomUUID()}`
 
-export function createSerialActionQueue() {
-  let tail: Promise<unknown> = Promise.resolve()
-  return {
-    enqueue<T>(action: () => Promise<T>): Promise<T> {
-      const result = tail.then(action, action)
-      tail = result.then(() => undefined, () => undefined)
-      return result
-    },
-  }
-}
-
 interface LatestRecordUpdate<T extends { id: string }> {
   getRecords: () => T[]
   id: string
@@ -201,6 +190,76 @@ export async function executeCanonicalMutationWithReconciliation<TConfirmed, TRe
   }
 }
 
+type CanonicalActionStatus = 'saved' | 'failed'
+
+interface CoordinatedMutationFlow<TConfirmed, TRecords> extends Omit<CanonicalMutationFlow<TConfirmed, TRecords>, 'reconcileBeforeExecute'> {
+  onSaving: () => void
+  onSaved: () => void
+  onFailed: () => void
+}
+
+export function createCanonicalActionCoordinator() {
+  type QueuedAction = {
+    attempts: number
+    execute: (isRetry: boolean) => Promise<CanonicalActionStatus>
+    resolve: () => void
+  }
+
+  const actions: QueuedAction[] = []
+  let running = false
+  let blocked = false
+
+  const runNext = () => {
+    if (running || blocked || actions.length === 0) return
+    running = true
+    const action = actions[0]
+    void action.execute(action.attempts > 0)
+      .catch((): CanonicalActionStatus => 'failed')
+      .then(status => {
+        running = false
+        if (status === 'saved') {
+          actions.shift()
+          action.resolve()
+          runNext()
+          return
+        }
+        action.attempts += 1
+        blocked = true
+      })
+  }
+
+  const enqueueAction = (execute: QueuedAction['execute']): Promise<void> => new Promise(resolve => {
+    actions.push({ attempts: 0, execute, resolve })
+    runNext()
+  })
+
+  return {
+    enqueueAction,
+    enqueueMutation<TConfirmed, TRecords>(flow: CoordinatedMutationFlow<TConfirmed, TRecords>): Promise<void> {
+      return enqueueAction(async isRetry => {
+        flow.onSaving()
+        const result = await executeCanonicalMutationWithReconciliation({
+          execute: flow.execute,
+          refresh: flow.refresh,
+          isSatisfied: flow.isSatisfied,
+          applyConfirmed: flow.applyConfirmed,
+          applyRefreshed: flow.applyRefreshed,
+          canExecuteAfterRefresh: flow.canExecuteAfterRefresh,
+          reconcileBeforeExecute: isRetry,
+        })
+        if (result.status === 'saved') flow.onSaved()
+        else flow.onFailed()
+        return result.status
+      })
+    },
+    retry() {
+      if (!blocked || running || actions.length === 0) return
+      blocked = false
+      runNext()
+    },
+  }
+}
+
 export function getMeetingPlaybookEmptyMessage(tab: TabKey, records: MeetingPlaybookRecords): string | null {
   if (tab === 'master' && records.templates.length === 0) return 'No meeting templates yet. Create a new meeting template to get started.'
   if (tab === 'active' && records.activeMeetings.length === 0) return 'No active meetings yet. Click "+ Create Active Meeting" to get started.'
@@ -208,31 +267,90 @@ export function getMeetingPlaybookEmptyMessage(tab: TabKey, records: MeetingPlay
   return null
 }
 
-interface FreshInitializationFlow {
+interface DefaultInitializationAttemptFlow {
+  continuation: boolean
+  defaults: MeetingPlaybookRecords
   readLegacy: () => LegacyMeetingPlaybookData
   fetchCanonical: () => Promise<MeetingPlaybookRecords>
-  importDefaults: (canonical: MeetingPlaybookRecords) => Promise<{ complete: boolean }>
+  applyCanonical: (records: MeetingPlaybookRecords) => void
+  importMissing: (canonical: MeetingPlaybookRecords) => Promise<{ complete: boolean }>
 }
 
-export async function initializeDefaultPlaybookWithFreshPreconditions({
+const containsDefaultPlaybook = (records: MeetingPlaybookRecords, defaults: MeetingPlaybookRecords): boolean =>
+  defaults.templates.every(expected => records.templates.some(record => record.id === expected.id && sameRecord(record, expected))) &&
+  defaults.activeMeetings.every(expected => records.activeMeetings.some(record => record.id === expected.id && sameRecord(record, expected))) &&
+  defaults.scripts.every(expected => records.scripts.some(record => record.id === expected.id && sameRecord(record, expected)))
+
+export async function executeDefaultInitializationAttempt({
+  continuation,
+  defaults,
   readLegacy,
   fetchCanonical,
-  importDefaults,
-}: FreshInitializationFlow): Promise<{
-  status: 'saved' | 'failed' | 'blocked'
-  legacy: LegacyMeetingPlaybookData
-  canonical: MeetingPlaybookRecords
-}> {
-  const legacy = readLegacy()
-  const canonical = await fetchCanonical()
-  const legacyCount = legacy.counts.templates + legacy.counts.activeMeetings + legacy.counts.scripts
-  const canonicalCount = canonical.templates.length + canonical.activeMeetings.length + canonical.scripts.length
-  const hasIssues = Object.values(legacy.issues).some(issues => issues.length > 0)
-  if (legacyCount > 0 || canonicalCount > 0 || hasIssues) {
-    return { status: 'blocked', legacy, canonical }
+  applyCanonical,
+  importMissing,
+}: DefaultInitializationAttemptFlow): Promise<{ status: CanonicalActionStatus | 'blocked' }> {
+  const legacy = continuation ? null : readLegacy()
+  let canonical: MeetingPlaybookRecords
+  try {
+    canonical = await fetchCanonical()
+    applyCanonical(canonical)
+  } catch {
+    return { status: 'failed' }
   }
-  const result = await importDefaults(canonical)
-  return { status: result.complete ? 'saved' : 'failed', legacy, canonical }
+
+  if (legacy) {
+    const legacyCount = legacy.counts.templates + legacy.counts.activeMeetings + legacy.counts.scripts
+    const canonicalCount = canonical.templates.length + canonical.activeMeetings.length + canonical.scripts.length
+    const hasIssues = Object.values(legacy.issues).some(issues => issues.length > 0)
+    if (legacyCount > 0 || canonicalCount > 0 || hasIssues) return { status: 'blocked' }
+  }
+
+  try {
+    await importMissing(canonical)
+  } catch {
+    // The operation may have committed remotely; the canonical refresh below decides the outcome.
+  }
+
+  try {
+    const refreshed = await fetchCanonical()
+    applyCanonical(refreshed)
+    return { status: containsDefaultPlaybook(refreshed, defaults) ? 'saved' : 'failed' }
+  } catch {
+    return { status: 'failed' }
+  }
+}
+
+interface DefaultPlaybookInitializationActionFlow extends Omit<DefaultInitializationAttemptFlow, 'continuation'> {
+  onSaving: () => void
+  onSaved: () => void
+  onFailed: () => void
+  onBlocked: () => void
+}
+
+export function createDefaultPlaybookInitializationAction(
+  flow: DefaultPlaybookInitializationActionFlow,
+): (isRetry: boolean) => Promise<CanonicalActionStatus> {
+  return async isRetry => {
+    flow.onSaving()
+    const result = await executeDefaultInitializationAttempt({
+      continuation: isRetry,
+      defaults: flow.defaults,
+      readLegacy: flow.readLegacy,
+      fetchCanonical: flow.fetchCanonical,
+      applyCanonical: flow.applyCanonical,
+      importMissing: flow.importMissing,
+    })
+    if (result.status === 'saved') {
+      flow.onSaved()
+      return 'saved'
+    }
+    if (result.status === 'blocked') {
+      flow.onBlocked()
+      return 'saved'
+    }
+    flow.onFailed()
+    return 'failed'
+  }
 }
 
 interface CanonicalLoadFlow<TRecords> {
@@ -308,8 +426,7 @@ export default function MeetingPlaybook() {
     }
   })
   const retryRef = useRef<(() => void) | null>(null)
-  const failedActionRetriesRef = useRef<Array<() => void>>([])
-  const actionQueueRef = useRef(createSerialActionQueue())
+  const actionCoordinatorRef = useRef(createCanonicalActionCoordinator())
   const canonicalRecordsRef = useRef<MeetingPlaybookRecords>({ templates, activeMeetings, scripts })
   const canonicalClient = supabase as unknown as MeetingPlaybookClient | null
 
@@ -402,18 +519,14 @@ export default function MeetingPlaybook() {
   const activeLinks = activeMeeting?.links || []
   const activeChecklist = activeMeeting?.checklist || []
 
-  const markCanonicalActionFailed = (retry: () => void) => {
-    failedActionRetriesRef.current.push(retry)
-    retryRef.current = () => {
-      const retries = failedActionRetriesRef.current.splice(0)
-      retryRef.current = null
-      retries.forEach(run => run())
-    }
+  const markCanonicalActionFailed = () => {
+    retryRef.current = () => actionCoordinatorRef.current.retry()
     setPersistenceState('failed')
   }
 
   const markCanonicalActionSaved = () => {
-    setPersistenceState(failedActionRetriesRef.current.length > 0 ? 'failed' : 'saved')
+    retryRef.current = null
+    setPersistenceState('saved')
   }
 
   const runCanonicalMutation = async <T,>(
@@ -423,39 +536,24 @@ export default function MeetingPlaybook() {
     successActivity: string,
     failedActivity: string,
     canExecuteAfterRefresh?: (records: MeetingPlaybookRecords) => boolean,
-    reconcileBeforeExecute = false,
   ) => {
     if (!canonicalClient) return
-    const retry = () => {
-      void runCanonicalMutation(
-        operation,
-        applyConfirmed,
-        isSatisfied,
-        successActivity,
-        failedActivity,
-        canExecuteAfterRefresh,
-        true,
-      )
-    }
-    setPersistenceState('saving')
-    return actionQueueRef.current.enqueue(async () => {
-      setPersistenceState('saving')
-      const result = await executeCanonicalMutationWithReconciliation({
-        execute: operation,
-        refresh: refreshCanonicalRecords,
-        isSatisfied,
-        applyConfirmed,
-        applyRefreshed: applyCanonicalRecords,
-        canExecuteAfterRefresh,
-        reconcileBeforeExecute,
-      })
-      if (result.status === 'saved') {
+    return actionCoordinatorRef.current.enqueueMutation({
+      execute: operation,
+      refresh: refreshCanonicalRecords,
+      isSatisfied,
+      applyConfirmed,
+      applyRefreshed: applyCanonicalRecords,
+      canExecuteAfterRefresh,
+      onSaving: () => setPersistenceState('saving'),
+      onSaved: () => {
         markCanonicalActionSaved()
         void logActivity('Meeting Playbook', successActivity)
-      } else {
-        markCanonicalActionFailed(retry)
+      },
+      onFailed: () => {
+        markCanonicalActionFailed()
         void logActivity('Meeting Playbook', failedActivity)
-      }
+      },
     })
   }
 
@@ -768,9 +866,7 @@ export default function MeetingPlaybook() {
 
   const importLegacy = async () => {
     if (!canonicalClient) return
-    const retry = () => { void importLegacy() }
-    setPersistenceState('saving')
-    return actionQueueRef.current.enqueue(async () => {
+    return actionCoordinatorRef.current.enqueueAction(async () => {
       setPersistenceState('saving')
       try {
         const freshLegacy = refreshLegacyReview()
@@ -787,42 +883,40 @@ export default function MeetingPlaybook() {
         markCanonicalActionSaved()
         void logActivity('Meeting Playbook', 'Imported missing browser records')
       } catch {
-        markCanonicalActionFailed(retry)
+        markCanonicalActionFailed()
         void logActivity('Meeting Playbook', 'Browser record import failed')
+        return 'failed'
       }
+      return 'saved'
     })
   }
 
   const initializeDefaults = async () => {
     if (!canonicalClient) return
-    const retry = () => { void initializeDefaults() }
-    setPersistenceState('saving')
-    return actionQueueRef.current.enqueue(async () => {
-      setPersistenceState('saving')
-      try {
-        const result = await initializeDefaultPlaybookWithFreshPreconditions({
-          readLegacy: refreshLegacyReview,
-          fetchCanonical: refreshCanonicalRecords,
-          importDefaults: async freshCanonical => {
-            const importResult = await executeBulkActionWithRefresh({
-              execute: async () => {
-                const outcome = await importMissingLegacyMeetingPlaybook(canonicalClient, defaultRecords, freshCanonical)
-                return { complete: outcome.complete }
-              },
-              refresh: refreshCanonicalRecords,
-              applyRefreshed: applyCanonicalRecords,
-            })
-            return { complete: importResult.status === 'saved' }
-          },
-        })
-        if (result.status !== 'saved') throw new Error('Initialization preconditions or confirmation failed')
+    return actionCoordinatorRef.current.enqueueAction(createDefaultPlaybookInitializationAction({
+      defaults: defaultRecords,
+      readLegacy: refreshLegacyReview,
+      fetchCanonical: refreshCanonicalRecords,
+      applyCanonical: applyCanonicalRecords,
+      importMissing: async freshCanonical => {
+        const outcome = await importMissingLegacyMeetingPlaybook(canonicalClient, defaultRecords, freshCanonical)
+        return { complete: outcome.complete }
+      },
+      onSaving: () => setPersistenceState('saving'),
+      onSaved: () => {
         markCanonicalActionSaved()
         void logActivity('Meeting Playbook', 'Initialized default playbook')
-      } catch {
-        markCanonicalActionFailed(retry)
+      },
+      onBlocked: () => {
+        retryRef.current = null
+        setPersistenceState('failed')
         void logActivity('Meeting Playbook', 'Default playbook initialization failed')
-      }
-    })
+      },
+      onFailed: () => {
+        markCanonicalActionFailed()
+        void logActivity('Meeting Playbook', 'Default playbook initialization failed')
+      },
+    }))
   }
 
   const tabStyle = (tab: TabKey) => ({

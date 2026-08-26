@@ -140,3 +140,54 @@ Focused GREEN progression:
 - Configured mutations remain confirmed/pessimistic; refresh is authoritative after ambiguity and partial bulk outcomes.
 - No localStorage deletion/overwrite was added in configured mode; unconfigured mode retains the existing local-only effects.
 - No migration, Supabase application, remote database mutation, network mutation, environment/dependency change, Coolify/GitHub action, push, PR, merge, deployment, or production UAT was performed.
+
+## Fix Round 2
+
+### Review findings resolved
+
+- Replaced the retry-drain behavior with the single production `createCanonicalActionCoordinator`. A failed action remains at the queue head and later actions remain pending. Retry re-runs only that head action with refresh/reconciliation first; only a saved outcome advances the queue.
+- The page now uses this coordinator for canonical CRUD, legacy import, and default initialization. Edit-blur/delete, rapid actions, and record transforms therefore share the exact queue code exercised by the focused tests.
+- Update retries preserve invocation order and derive each later queued transform from the confirmed state produced by the preceding action. A truly uncommitted additive update retries first, then the newer additive update runs once, producing `First, Second` with no duplicate item.
+- Coordinator-level ambiguity tests cover server-committed-but-unconfirmed update and delete outcomes. Matching refreshed state resolves saved without replay. The uncommitted update case refreshes nonmatching state, blocks later work, and safely retries at the original queue position.
+- Added the single-source `createDefaultPlaybookInitializationAction` used by both the page and tests. Its initial attempt re-reads legacy storage and fetches canonical state before enforcing empty-state eligibility. After a partial attempt, retry is a continuation: it skips the one-time eligibility gate, fetches the partial canonical state, and asks the Task 2 adapter to import only still-missing defaults.
+- Initialization refresh now reconciles the complete intended default playbook. An incomplete/ambiguous bulk result is marked saved when every intended default is confirmed present; otherwise it remains failed at the queue head and retry continues from the refreshed partial state.
+- Removed the superseded nonblocking queue and stale initialization helper seams so focused coverage targets the same coordinator and initialization wrapper used by `MeetingPlaybook`.
+
+### Strict TDD evidence
+
+RED before the ordering/reconciliation implementation:
+
+```bash
+node --test scripts/meeting-playbook-page.test.mjs
+```
+
+Exit 1; 13 passed, 3 failed. The failed-update ordering and committed update/delete cases expected `createCanonicalActionCoordinator`, and the partial initialization continuation expected the new initialization control flow; those exports were undefined against `5a13916`.
+
+RED before extracting and wiring the single-source initialization action wrapper:
+
+```bash
+node --test scripts/meeting-playbook-page.test.mjs
+```
+
+Exit 1; 15 passed, 1 failed. `partial default initialization retries only missing defaults without rerunning eligibility` expected `createDefaultPlaybookInitializationAction`, which was undefined.
+
+Focused GREEN:
+
+- `node --test scripts/meeting-playbook-page.test.mjs` — exit 0; 16 passed, 0 failed.
+- `node --test scripts/activity-routes.test.mjs scripts/meeting-playbook-page.test.mjs scripts/meeting-playbook-data.test.mjs` — exit 0; 27 passed, 0 failed.
+
+### Fix Round 2 final gates
+
+- `npm test` — exit 0; 84 passed, 0 failed (one full-suite run after the final implementation).
+- `npm run lint` — exit 0; 0 errors. Only the same two pre-existing Fast Refresh warnings remain in `src/contexts/AuthContext.tsx` and `src/contexts/ThemeContext.tsx`.
+- `npm run typecheck` — exit 0.
+- `npm run build` — exit 0; Vite transformed 203 modules and emitted the lazy Meeting Playbook chunk.
+- `git diff --check` — clean.
+
+### Fix Round 2 self-review and boundaries
+
+- The coordinator cannot advance beyond a failed head action; enqueueing later work does not restart or bypass it. Retry is ignored unless the queue is blocked with a head action.
+- Every mutation retry enters `executeCanonicalMutationWithReconciliation` with pre-execution refresh enabled. Matching create/update/delete intent resolves without replay; unsafe create collisions remain failed without another insert attempt.
+- The initialization continuation uses freshly fetched partial canonical records as the adapter import plan input, so confirmed defaults are neither reinserted nor treated as a reason to fail the original one-time empty-state gate.
+- Fixed activity strings and configured-mode legacy preservation remain unchanged. No contents, URLs, scripts, payloads, tokens, or raw errors are logged.
+- No dependency, environment, migration, Supabase application, remote database/network mutation, Coolify/GitHub action, push, PR, merge, deployment, or production UAT was performed.
